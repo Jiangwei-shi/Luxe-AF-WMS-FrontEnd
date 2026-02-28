@@ -5,6 +5,14 @@
         <el-form-item label="商品名称" prop="itemName">
           <el-input v-model="queryParams.itemName" placeholder="请输入商品名称" clearable @keyup.enter="handleQuery"/>
         </el-form-item>
+        <el-form-item label="SKU" prop="skuCode">
+          <el-input
+            v-model="queryParams.skuCode"
+            placeholder="请输入SKU编码"
+            clearable
+            @keyup.enter="handleQuery"
+          />
+        </el-form-item>
         <el-form-item label="商品品牌" prop="itemBrand">
           <el-select v-model="queryParams.itemBrand" clearable filterable>
             <el-option
@@ -187,6 +195,7 @@
       <div v-loading="skuLoading">
         <el-card>
           <el-form ref="itemFormRef" :model="form" :rules="rules" label-width="108px">
+            <!-- 1.商品名称 2.商品分类 -->
             <el-row :gutter="24">
               <el-col :span="12">
                 <el-form-item label="商品名称" prop="itemName">
@@ -207,13 +216,19 @@
                   />
                 </el-form-item>
               </el-col>
-              <el-col :span="1">
+              <el-col :span="2">
                 <el-button link icon="Plus" type="primary" style="height: 32px!important;line-height: 32px!important;"
                            @click="handleAddType(true)">新增分类
                 </el-button>
               </el-col>
             </el-row>
+            <!-- 3.SKU编码 4.商品品牌 -->
             <el-row :gutter="24">
+              <el-col :span="12">
+                <el-form-item label="SKU编码" prop="skuCode">
+                  <el-input v-model="form.skuCode" placeholder="请输入SKU编码"/>
+                </el-form-item>
+              </el-col>
               <el-col :span="12">
                 <el-form-item label="商品品牌" prop="itemBrand">
                   <el-select v-model="form.itemBrand" clearable filterable style="width: 100%!important;">
@@ -226,18 +241,48 @@
                   </el-select>
                 </el-form-item>
               </el-col>
+            </el-row>
+            <!-- 5.成色 6.年份 -->
+            <el-row :gutter="24">
               <el-col :span="12">
                 <el-form-item label="成色" prop="itemCondition">
                   <el-input v-model="form.itemCondition" placeholder="请输入成色（如：全新、九成新等）" />
                 </el-form-item>
               </el-col>
-            </el-row>
-            <el-row :gutter="24">
               <el-col :span="12">
-                <el-form-item label="年份">
+                <el-form-item label="年份" prop="year">
                   <el-input-number v-model="form.year" :min="0" :max="9999" :controls="false" style="width: 100%" />
                 </el-form-item>
               </el-col>
+            </el-row>
+            <!-- 7.成本价 8.销售价 -->
+            <el-row :gutter="24">
+              <el-col :span="12">
+                <el-form-item label="成本价(元)">
+                  <el-input-number v-model="form.costPrice" :min="0" :precision="2" :controls="false" style="width: 100%"/>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="销售价(元)">
+                  <el-input-number v-model="form.sellingPrice" :min="0" :precision="2" :controls="false" style="width: 100%"/>
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <!-- 9.鉴定机构 10.数量 -->
+            <el-row :gutter="24">
+              <el-col :span="12">
+                <el-form-item label="鉴定机构">
+                  <el-input v-model="form.authAgency" placeholder="请输入鉴定机构名称" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="数量">
+                  <el-input-number v-model="form.defaultQty" :min="0" :controls="false" style="width: 100%" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <!-- 是否已护理（保留在原逻辑位置） -->
+            <el-row :gutter="24">
               <el-col :span="12">
                 <el-form-item label="是否已护理">
                   <el-switch
@@ -248,18 +293,7 @@
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-row :gutter="24">
-              <el-col :span="12">
-                <el-form-item label="默认数量">
-                  <el-input-number v-model="form.defaultQty" :min="0" :controls="false" style="width: 100%" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="鉴定机构">
-                  <el-input v-model="form.authAgency" placeholder="请输入鉴定机构名称" />
-                </el-form-item>
-              </el-col>
-            </el-row>
+            <!-- 11.寄售信息 -->
             <el-row :gutter="24">
               <el-col :span="24">
                 <el-form-item label="寄售信息">
@@ -272,6 +306,7 @@
                 </el-form-item>
               </el-col>
             </el-row>
+            <!-- 12.备注 -->
             <el-row :gutter="24">
               <el-col :span="24">
                 <el-form-item label="备注" prop="remark">
@@ -284,7 +319,7 @@
                 </el-form-item>
               </el-col>
             </el-row>
-            <!-- 商品图片：方案B，使用 /item/{itemId}/image/upload 接口 -->
+            <!-- 13.商品图片 -->
             <el-row :gutter="24">
               <el-col :span="24">
                 <el-form-item label="商品图片" prop="imageList">
@@ -325,54 +360,6 @@
                 </el-form-item>
               </el-col>
             </el-row>
-          </el-form>
-        </el-card>
-        <el-card class="mt20">
-          <template #header>
-            <div class="card-header">
-              <span>规格</span>
-            </div>
-          </template>
-          <el-form :model="skuForm" :rules="skuRules" ref="skuFormRef" :show-message="false">
-            <el-table :data="skuForm.itemSkuList" border cell-class-name="my-cell">
-              <el-table-column label="SKU编码" prop="skuCode">
-                <template #default="scope">
-                  <el-form-item :prop="'itemSkuList.' + scope.$index + '.skuCode'" :rules="skuRules.skuCode"
-                                style="margin-bottom: 0!important;">
-                    <el-input v-model="scope.row.skuCode" placeholder="请输入SKU编码"/>
-                  </el-form-item>
-                </template>
-              </el-table-column>
-              <el-table-column label="成本价/销售价(元)" width="240">
-                <template #default="scope">
-                  <div class="flex-center">
-                    <span class="mr5">成本价</span>
-                    <el-input-number :controls="false" :min="0" :precision="2" v-model="scope.row.costPrice"/>
-                  </div>
-                  <div class="flex-center mt5">
-                    <span class="mr5">销售价</span>
-                    <el-input-number :controls="false" :min="0" :precision="2" v-model="scope.row.sellingPrice"/>
-                  </div>
-                </template>
-              </el-table-column>
-              <el-table-column label="操作" class-name="small-padding fixed-width" width="80" align="right">
-                <template #default="scope">
-                  <el-button link icon="Delete" type="primary" @click="handleDeleteItemSku(scope.row, scope.$index)">删除</el-button>
-                </template>
-              </el-table-column>
-              <template #append v-if="skuForm.itemSkuList.length">
-                <div style="padding: 6px 2px 6px 2px;text-align: center;">
-                  <el-button text class="add-btn" icon="Plus" type="primary" @click="onAppendBtnClick">添加商品规格
-                  </el-button>
-                </div>
-              </template>
-              <template #empty>
-                <div style="padding: 2px 2px 6px 2px;text-align: center;width: 100%!important;">
-                  <el-button text class="add-btn" icon="Plus" type="primary" @click="onAppendBtnClick">添加商品规格
-                  </el-button>
-                </div>
-              </template>
-            </el-table>
           </el-form>
         </el-card>
       </div>
@@ -509,9 +496,12 @@ const initFormData = {
   cared: false,
   authAgency: undefined,
   consignInfo: undefined,
-  defaultQty: undefined,
+  defaultQty: 1,
   remark: undefined,
   imageList: [], // 商品图片列表（编辑时由接口返回，项为 { id, url, isMain, sort }）
+  skuCode: undefined, // SKU编码（与规格表第一行同步，主表校验与提示）
+  costPrice: null,   // 成本价（与规格表第一行同步）
+  sellingPrice: null, // 销售价（与规格表第一行同步）
 }
 const initCategoryFormData = {
   id: undefined,
@@ -527,6 +517,7 @@ const data = reactive({
     pageNum: 1,
     pageSize: 10,
     itemName: undefined,
+    skuCode: undefined,         // SKU编码
     itemBrand: undefined,       // 品牌
     itemCategory: undefined,    // 分类
     itemCondition: undefined,   // 成色
@@ -542,6 +533,18 @@ const data = reactive({
     ],
     itemCategory: [
       {required: true, message: "分类不能为空", trigger: "blur"}
+    ],
+    itemBrand: [
+      {required: true, message: "品牌不能为空", trigger: "change"}
+    ],
+    itemCondition: [
+      {required: true, message: "成色不能为空", trigger: "blur"}
+    ],
+    year: [
+      {required: true, message: "年份不能为空", trigger: "blur"}
+    ],
+    skuCode: [
+      {required: true, message: "SKU编码不能为空", trigger: "blur"}
     ],
   }
 });
@@ -597,11 +600,7 @@ const handleAddType = (show) => {
 const skuForm = reactive({
   itemSkuList: []
 })
-const skuFormRef = ref(ElForm)
 const itemImageUploadRef = ref(null)
-const skuRules = {
-  skuCode: [{required: true, message: 'SKU编码不能为空', trigger: 'blur'}]
-}
 
 // 商品图片（方案B）：新增时暂存的待上传文件 { file, url }
 const pendingImageFiles = ref([])
@@ -813,6 +812,9 @@ const handleUpdate = (row) => {
     Object.assign(skuForm.itemSkuList, skuRes.data)
     const itemData = itemRes.data || {}
     form.value = { ...form.value, ...row.item, ...itemData, imageList: itemData.imageList || itemData.images || [] }
+    form.value.skuCode = skuForm.itemSkuList[0]?.skuCode ?? ''
+    form.value.costPrice = skuForm.itemSkuList[0]?.costPrice ?? null
+    form.value.sellingPrice = skuForm.itemSkuList[0]?.sellingPrice ?? null
     skuLoading.value = false
   });
 }
@@ -830,28 +832,25 @@ const handleQueryType = (node, data) => {
 }
 /** 提交按钮 */
 const submitForm = async () => {
-  // 将规格挂到 form 上，一起提交给后端
-  form.value.sku = skuForm.itemSkuList;
-
-  // 先校验商品主表
+  // 先校验商品主表（含商品名称、分类、品牌、成色、年份、SKU编码等）
   try {
     await itemFormRef.value.validate();
   } catch {
     return;
   }
 
-  // 再校验规格表
-  let flag = true;
+  // 将主表填的 SKU 编码同步到规格行，再提交
+  if (skuForm.itemSkuList && skuForm.itemSkuList.length) {
+    skuForm.itemSkuList[0].skuCode = form.value.skuCode;
+    skuForm.itemSkuList[0].costPrice = form.value.costPrice;
+    skuForm.itemSkuList[0].sellingPrice = form.value.sellingPrice;
+  }
+  form.value.sku = skuForm.itemSkuList;
+
   if (!skuForm.itemSkuList || skuForm.itemSkuList.length === 0) {
     proxy?.$modal.msgError("至少包含一个商品规格");
-    flag = false;
+    return;
   }
-  try {
-    await skuFormRef.value.validate();
-  } catch {
-    flag = false;
-  }
-  if (!flag) return;
 
   buttonLoading.value = true;
   try {
