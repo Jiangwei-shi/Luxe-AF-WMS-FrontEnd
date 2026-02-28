@@ -1,97 +1,93 @@
 <template>
   <div class="app-container">
     <el-card>
-      <el-form :model="queryParams" ref="queryFormRef" :inline="true" label-width="68px">
-        <el-form-item label="商品名称" prop="itemName">
-          <el-input v-model="queryParams.itemName" placeholder="请输入商品名称" clearable @keyup.enter="handleQuery"/>
-        </el-form-item>
-        <el-form-item label="SKU" prop="skuCode">
-          <el-input
-            v-model="queryParams.skuCode"
-            placeholder="请输入SKU编码"
-            clearable
-            @keyup.enter="handleQuery"
-          />
-        </el-form-item>
-        <el-form-item label="商品品牌" prop="itemBrand">
-          <el-select v-model="queryParams.itemBrand" clearable filterable>
-            <el-option
-              v-for="item in useWmsStore().itemBrandList"
-              :key="item.id"
-              :label="item.brandName"
-              :value="item.id"
-            ></el-option>
-          </el-select>
-        </el-form-item>
-        <!-- 成色（文本） -->
-        <el-form-item label="成色" prop="itemCondition">
-          <el-input
-            v-model="queryParams.itemCondition"
-            placeholder="请输入成色，如：全新、九成新"
-            clearable
-            @keyup.enter="handleQuery"
-          />
-        </el-form-item>
-
-        <!-- 年份（数字输入） -->
-        <el-form-item label="年份" prop="year">
-          <el-input-number
-            v-model="queryParams.year"
-            :min="0"
-            :max="9999"
-            :controls="false"
-            style="width: 120px"
-            @keyup.enter.native="handleQuery"
-          />
-        </el-form-item>
-
-        <!-- 是否已护理（开关） -->
-        <el-form-item label="已护理" prop="cared">
-          <el-switch
-            v-model="queryParams.cared"
-            active-text="是"
-            inactive-text="否"
-            :active-value="true"
-            :inactive-value="false"
-          />
-        </el-form-item>
-
-        <!-- 默认数量（数字输入） -->
-        <el-form-item label="默认数量" prop="defaultQty">
-          <el-input-number
-            v-model="queryParams.defaultQty"
-            :min="0"
-            :controls="false"
-            style="width: 120px"
-            @keyup.enter.native="handleQuery"
-          />
-        </el-form-item>
-
-        <!-- 鉴定机构（文本） -->
-        <el-form-item label="鉴定机构" prop="authAgency">
-          <el-input
-            v-model="queryParams.authAgency"
-            placeholder="请输入鉴定机构"
-            clearable
-            @keyup.enter="handleQuery"
-          />
-        </el-form-item>
-
-        <!-- 寄售信息（多行文本） -->
-        <el-form-item label="寄售信息" prop="consignInfo">
-          <el-input
-            v-model="queryParams.consignInfo"
-            type="textarea"
-            :rows="1"
-            placeholder="请输入寄售信息关键字"
-            @keyup.enter="handleQuery"
-          />
-        </el-form-item>
-
-        <el-form-item>
-          <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-          <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-        </el-form-item>
+      <el-form :model="queryParams" ref="queryFormRef" label-width="88px" class="query-form">
+        <el-row :gutter="16">
+          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+            <el-form-item label="商品名称" prop="itemName">
+              <el-input v-model="queryParams.itemName" placeholder="请输入商品名称" clearable @keyup.enter="handleQuery" style="width: 100%"/>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+            <el-form-item label="SKU" prop="skuCode">
+              <el-input v-model="queryParams.skuCode" placeholder="请输入SKU编码" clearable @keyup.enter="handleQuery" style="width: 100%"/>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+            <el-form-item label="商品品牌" prop="itemBrand">
+              <el-select v-model="queryParams.itemBrand" clearable filterable style="width: 100%">
+                <el-option v-for="item in useWmsStore().itemBrandList" :key="item.id" :label="item.brandName" :value="item.id"/>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+            <el-form-item label="成色" prop="itemCondition">
+              <el-input v-model="queryParams.itemCondition" placeholder="如：全新、九成新" clearable @keyup.enter="handleQuery" style="width: 100%"/>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+            <el-form-item label="年份" prop="year">
+              <el-input-number v-model="queryParams.year" :min="0" :max="9999" :controls="false" style="width: 100%" @keyup.enter.native="handleQuery"/>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+            <el-form-item label="鉴定机构" prop="authAgency">
+              <el-input v-model="queryParams.authAgency" placeholder="请输入鉴定机构" clearable @keyup.enter="handleQuery" style="width: 100%"/>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+            <el-form-item label="数量" prop="defaultQty">
+              <el-input-number v-model="queryParams.defaultQty" :min="0" :controls="false" style="width: 100%" @keyup.enter.native="handleQuery"/>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+            <el-form-item label="已护理" prop="cared">
+              <el-switch v-model="queryParams.cared" active-text="是" inactive-text="否" :active-value="true" :inactive-value="false"/>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :xs="24" :sm="24" :md="12" :lg="12">
+            <el-form-item label="寄售信息" prop="consignInfo">
+              <el-input v-model="queryParams.consignInfo" placeholder="请输入寄售信息关键字" clearable @keyup.enter="handleQuery" style="width: 100%"/>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="24" :md="12" :lg="12">
+            <el-form-item label="创建时间" prop="createTimeRange">
+              <el-date-picker
+                v-model="queryParams.createTimeRange"
+                type="datetimerange"
+                range-separator="至"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                format="YYYY-MM-DD HH:mm:ss"
+                :default-time="defaultTime"
+                start-placeholder="开始时间"
+                end-placeholder="结束时间"
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+            <el-form-item label="销售价(元)" prop="sellingPriceMin">
+              <el-input-number v-model="queryParams.sellingPriceMin" :min="0" :precision="2" :controls="false" placeholder="最低" style="width: 100%"/>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+            <el-form-item label="至" prop="sellingPriceMax" label-width="32px">
+              <el-input-number v-model="queryParams.sellingPriceMax" :min="0" :precision="2" :controls="false" placeholder="最高" style="width: 100%"/>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+            <el-form-item label=" " label-width="0">
+              <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+              <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+            </el-form-item>
+          </el-col>
+        </el-row>
       </el-form>
     </el-card>
     <el-card class="mt20">
@@ -258,12 +254,12 @@
             <!-- 7.成本价 8.销售价 -->
             <el-row :gutter="24">
               <el-col :span="12">
-                <el-form-item label="成本价(元)">
+                <el-form-item label="成本价">
                   <el-input-number v-model="form.costPrice" :min="0" :precision="2" :controls="false" style="width: 100%"/>
                 </el-form-item>
               </el-col>
               <el-col :span="12">
-                <el-form-item label="销售价(元)">
+                <el-form-item label="销售价">
                   <el-input-number v-model="form.sellingPrice" :min="0" :precision="2" :controls="false" style="width: 100%"/>
                 </el-form-item>
               </el-col>
@@ -446,6 +442,8 @@ const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
 const skuLoading = ref(false)
+/** 创建时间选择器默认时间：当天 00:00:00 - 23:59:59（参考库存记录） */
+const defaultTime = reactive([new Date(0, 0, 0, 0, 0, 0), new Date(0, 0, 0, 23, 59, 59)])
 const queryFormRef = ref(ElForm);
 const itemFormRef = ref(ElForm);
 const itemCategoryFormRef = ref(ElForm);
@@ -526,6 +524,9 @@ const data = reactive({
     defaultQty: undefined,      // 默认数量
     authAgency: undefined,      // 鉴定机构
     consignInfo: undefined,     // 寄售信息
+    createTimeRange: undefined, // 创建时间区间 [开始, 结束]
+    sellingPriceMin: undefined, // 销售价下限(元)
+    sellingPriceMax: undefined, // 销售价上限(元)
   },
   rules: {
     itemName: [
@@ -579,8 +580,13 @@ const {queryParams: typeQueryParams, form: categoryForm, rules: typeRules} = toR
 const currentType = ref()
 /** 查询物料列表 */
 const getList = async () => {
+  const query = { ...queryParams.value };
+  if (query.createTimeRange && query.createTimeRange.length === 2) {
+    query.startTime = query.createTimeRange[0];
+    query.endTime = query.createTimeRange[1];
+  }
   loading.value = true;
-  const res = await listItemSkuPage(queryParams.value);
+  const res = await listItemSkuPage(query);
   const content = [...res.rows];
   itemList.value = content.map((it) => ({...it, id: it.skuId,itemId: it?.item?.id}));
   total.value = res.total;
