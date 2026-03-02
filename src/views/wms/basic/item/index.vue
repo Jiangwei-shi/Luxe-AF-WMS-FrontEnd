@@ -285,7 +285,20 @@
                 </el-form-item>
               </el-col>
             </el-row>
-            <!-- 是否已护理（保留在原逻辑位置） -->
+            <!-- 11.材质 12.瑕疵 -->
+            <el-row :gutter="24">
+              <el-col :span="12">
+                <el-form-item label="材质" prop="material">
+                  <el-input v-model="form.material" placeholder="请输入材质" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="瑕疵" prop="defect">
+                  <el-input v-model="form.defect" placeholder="请输入瑕疵描述" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <!-- 是否已护理 -->
             <el-row :gutter="24">
               <el-col :span="12">
                 <el-form-item label="是否已护理">
@@ -297,7 +310,32 @@
                 </el-form-item>
               </el-col>
             </el-row>
-            <!-- 11.寄售信息 -->
+            <!-- 配件（多行，下方可点 tag 快速填入） -->
+            <el-row :gutter="24">
+              <el-col :span="24">
+                <el-form-item label="配件" prop="accessories">
+                  <el-input
+                    v-model="form.accessories"
+                    type="textarea"
+                    :rows="2"
+                    placeholder="请输入配件信息，或点击下方标签快速填入"
+                  />
+                  <div class="accessory-tags mt8">
+                    <el-tag
+                      v-for="tag in ACCESSORY_TAG_OPTIONS"
+                      :key="tag"
+                      class="accessory-tag"
+                      type="info"
+                      effect="plain"
+                      @click="appendAccessoryTag(tag)"
+                    >
+                      {{ tag }}
+                    </el-tag>
+                  </div>
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <!-- 寄售信息 -->
             <el-row :gutter="24">
               <el-col :span="24">
                 <el-form-item label="寄售信息">
@@ -496,6 +534,16 @@ const showParent = ref(false)
 const AUTH_AGENCY_OPTIONS = ['Entrupy', 'Real Authentication', 'Legitmark', 'CheckCheck', 'N/A']
 /** 成色固定选项 */
 const ITEM_CONDITION_OPTIONS = ['S', 'A', 'B', 'C', 'D']
+/** 配件常用选项（可点击快速填入，也可自行输入） */
+const ACCESSORY_TAG_OPTIONS = ['Dustbag', 'Box', 'ID card', 'Lock & Key', 'Strap', 'Receipt']
+
+/** 点击配件 tag 时追加到输入框（已包含则不重复添加） */
+const appendAccessoryTag = (tag) => {
+  const val = form.value.accessories || ''
+  const parts = val.split(/[,，、\n]+/).map(s => s.trim()).filter(Boolean)
+  if (parts.includes(tag)) return
+  form.value.accessories = parts.length ? parts.concat(tag).join(', ') : tag
+}
 const initFormData = {
   id: undefined,
   itemName: undefined,
@@ -507,6 +555,9 @@ const initFormData = {
   authAgency: undefined,
   consignInfo: undefined,
   defaultQty: 1,
+  material: undefined,
+  defect: undefined,
+  accessories: undefined,
   remark: undefined,
   imageList: [], // 商品图片列表（编辑时由接口返回，项为 { id, url, isMain, sort }）
   skuCode: undefined, // SKU编码（与规格表第一行同步，主表校验与提示）
@@ -1054,6 +1105,19 @@ onMounted(() => {
   width: 100px;
   height: 100px;
   line-height: 100px;
+}
+
+.mt8 { margin-top: 8px; }
+.accessory-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.accessory-tag {
+  cursor: pointer;
+}
+.accessory-tag:hover {
+  opacity: 0.85;
 }
 
 </style>
