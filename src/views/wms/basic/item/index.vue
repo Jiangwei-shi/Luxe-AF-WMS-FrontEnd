@@ -22,7 +22,9 @@
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="6">
             <el-form-item label="成色" prop="itemCondition">
-              <el-input v-model="queryParams.itemCondition" placeholder="如：全新、九成新" clearable @keyup.enter="handleQuery" style="width: 100%"/>
+              <el-select v-model="queryParams.itemCondition" placeholder="请选择成色" clearable style="width: 100%">
+                <el-option v-for="item in ITEM_CONDITION_OPTIONS" :key="item" :label="item" :value="item"/>
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -34,7 +36,9 @@
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="6">
             <el-form-item label="鉴定机构" prop="authAgency">
-              <el-input v-model="queryParams.authAgency" placeholder="请输入鉴定机构" clearable @keyup.enter="handleQuery" style="width: 100%"/>
+              <el-select v-model="queryParams.authAgency" placeholder="请选择鉴定机构" clearable style="width: 100%">
+                <el-option v-for="item in AUTH_AGENCY_OPTIONS" :key="item" :label="item" :value="item"/>
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="6">
@@ -72,7 +76,7 @@
         </el-row>
         <el-row :gutter="16">
           <el-col :xs="24" :sm="12" :md="8" :lg="6">
-            <el-form-item label="销售价(元)" prop="sellingPriceMin">
+            <el-form-item label="销售价" prop="sellingPriceMin">
               <el-input-number v-model="queryParams.sellingPriceMin" :min="0" :precision="2" :controls="false" placeholder="最低" style="width: 100%"/>
             </el-form-item>
           </el-col>
@@ -242,7 +246,9 @@
             <el-row :gutter="24">
               <el-col :span="12">
                 <el-form-item label="成色" prop="itemCondition">
-                  <el-input v-model="form.itemCondition" placeholder="请输入成色（如：全新、九成新等）" />
+                  <el-select v-model="form.itemCondition" placeholder="请选择成色" clearable style="width: 100%">
+                    <el-option v-for="item in ITEM_CONDITION_OPTIONS" :key="item" :label="item" :value="item"/>
+                  </el-select>
                 </el-form-item>
               </el-col>
               <el-col :span="12">
@@ -267,8 +273,10 @@
             <!-- 9.鉴定机构 10.数量 -->
             <el-row :gutter="24">
               <el-col :span="12">
-                <el-form-item label="鉴定机构">
-                  <el-input v-model="form.authAgency" placeholder="请输入鉴定机构名称" />
+                <el-form-item label="鉴定机构" prop="authAgency">
+                  <el-select v-model="form.authAgency" placeholder="请选择鉴定机构" clearable style="width: 100%">
+                    <el-option v-for="item in AUTH_AGENCY_OPTIONS" :key="item" :label="item" :value="item"/>
+                  </el-select>
                 </el-form-item>
               </el-col>
               <el-col :span="12">
@@ -484,6 +492,10 @@ const categoryDialog = reactive({
   title: ''
 });
 const showParent = ref(false)
+/** 鉴定机构固定选项（仅可选，不可手输） */
+const AUTH_AGENCY_OPTIONS = ['Entrupy', 'Real Authentication', 'Legitmark', 'CheckCheck', 'N/A']
+/** 成色固定选项 */
+const ITEM_CONDITION_OPTIONS = ['S', 'A', 'B', 'C', 'D']
 const initFormData = {
   id: undefined,
   itemName: undefined,

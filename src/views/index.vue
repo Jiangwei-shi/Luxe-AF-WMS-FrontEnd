@@ -4,108 +4,56 @@
       <el-col :span="12">
         <el-card shadow="always" style="padding-bottom: 20px;font-size: 14px" >
           <div slot="header">
-            <span style="font-size: large;font-weight: bold">SaaS版已上线，如需体验，请在公众号内回复：saas</span>
+            <span style="font-size: large;font-weight: bold">商品字段结构说明（Item 10.26更新）</span>
           </div>
           <div style="display: flex;align-items: center">
-            <div class="first" style="font-size:20px;line-height: 50px;background: linear-gradient(to right, red, blue);-webkit-background-clip: text;color: transparent;">
-              轻量级库存管理工具，不用安装，自动升级，让仓库效率提高5倍，让出错概率降低5倍。 集中入库、出库、扫描、一物一码、商品、库存、供应商、结算等优质功能于一体，为商家提供更全面库存处理解决方案。
+            <div class="first" style="font-size:16px;line-height: 32px;">
+              基础信息：<br/>
+              · 商品名称（itemName）：String，必填，用于展示和搜索。<br/>
+              · 商品分类（itemCategory）：Long，必填，分类 ID。<br/>
+              · 商品品牌（itemBrand）：Long，必填，品牌 ID。<br/>
+              · 成色（itemCondition）：String，必填，如“全新”“九成新”。<br/>
+              · 年份（year）：Number，可选，四位年份。<br/>
+              · 是否已护理（cared）：可选 Boolean，true/false。<br/>
+              · 数量（defaultQty）：可选 Number，默认 1。<br/>
+              · 鉴定机构（authAgency）：String，可选。<br/>
+              · 寄售信息（consignInfo）：String，可选，文本描述。<br/>
+              · 备注（remark）：String，可选，文本备注。<br/>
+              · 商品图片（imageList）：List&lt;Image&gt;，包含 id、url、isMain、sort 等字段。<br/>
+              SKU信息（挂在 sku 列表上）：<br/>
+              · skuCode：String，必填，一个商品仅对应一个 SKU。。<br/>
+              · costPrice：Number，成本价，保留两位小数。<br/>
+              · sellingPrice：Number，销售价，保留两位小数。<br/>
+              时间信息（由后端维护）：<br/>
+              · createTime：DateTime，创建时间。<br/>
+              · updateTime：DateTime，最后更新时间。
             </div>
           </div>
         </el-card>
       </el-col>
       <el-col :span="12">
-        <el-card style="font-size: 14px">
+        <el-card shadow="always" style="padding-bottom: 20px;font-size: 14px" >
           <div slot="header">
-            <span style="font-size: large;font-weight: bold">更多内容</span>
-          </div>
-          <div>
-            <div style="font-size:20px;line-height: 50px;background: linear-gradient(to right, red, blue);-webkit-background-clip: text;color: transparent;">
-              <div>
-                <span style="font-size: large;font-weight: bold">v2 advance预览：</span><a href="http://kucun.ichengle.top/" target="_blank">http://kucun.ichengle.top/</a>
-              </div>
-              <div>
-                <span style="font-size: large;font-weight: bold">v1.0预览：</span><a href="http://wms.ichengle.top/" target="_blank">http://wms.ichengle.top/</a>
-              </div>
-              <div>
-                <span style="font-size: large;font-weight: bold">讲解视频：</span><a href="https://www.bilibili.com/video/BV1ys4y1q7uG/" target="_blank">https://www.bilibili.com/video/BV1ys4y1q7uG/</a>
-              </div>
-              <div>
-                <span style="font-size: large;font-weight: bold">若依实战视频：</span><a href="https://www.bilibili.com/video/BV1Fi4y1q74p/" target="_blank">https://www.bilibili.com/video/BV1Fi4y1q74p/</a>
-              </div>
-            </div>
-          </div>
-
-        </el-card>
-
-      </el-col>
-    </el-row>
-    <el-row class="pl20 pr20" :gutter="10">
-      <el-col :span="12">
-        <el-card shadow="always" style="padding-bottom: 20px;font-size: 14px;margin-bottom: 20px; margin-top: 20px" >
-          <div slot="header">
-            <span style="font-size: large;font-weight: bold">招聘全栈开发</span>
+            <span style="font-size: large;font-weight: bold">商品过滤结构说明（Item Filter 10.26更新）</span>
           </div>
           <div style="display: flex;align-items: center">
-            <div class="first" style="font-size:20px;line-height: 50px;background: linear-gradient(to right, red, blue);-webkit-background-clip: text;color: transparent;">
-              参与开发基于jdk17和vue3的ruoyi-mall、ruoyi-erp-进销存。<br>
-              要求：对若依框架和ruoyi-wms、ruoyi-mall 有一定的认知。并且有一定的空余时间。<br>
-              全职、兼职、实习都可。我们在苏州，远程或现场参与开发都可。<br>
-              有兴趣的可以在公众号内回复：应聘。<br>
+            <div class="first" style="font-size:16px;line-height: 30px;">
+              基础筛选字段：<br/>
+              · 商品名称（itemName）：String，模糊匹配名称。<br/>
+              · SKU 编码（skuCode）：String，精确匹配 SKU。<br/>
+              · 商品分类（itemCategory）：Long，分类 ID，左侧分类框选择。<br/>
+              · 商品品牌（itemBrand）：Long，品牌 ID，下拉选择。<br/>
+              · 成色（itemCondition）：String，文本匹配，如“全新”“九成新”。<br/>
+              · 年份（year）：Number，按年份精确筛选。<br/>
+              · 鉴定机构（authAgency）：String，文本匹配。<br/>
+              · 默认数量（defaultQty）：Number，按数量精确筛选。<br/>
+              · 已护理（cared）：Boolean，是/否 开关。<br/>
+              · 寄售信息（consignInfo）：String，关键字模糊匹配。<br/>
+              时间与价格筛选：<br/>
+              · 创建时间区间（createTimeRange → startTime/endTime）：DateTime，按创建时间段筛选。<br/>
+              · 销售价下限（sellingPriceMin）：Number，筛选不低于此价格的商品。<br/>
+              · 销售价上限（sellingPriceMax）：Number，筛选不高于此价格的商品。
             </div>
-          </div>
-        </el-card>
-        <el-card shadow="always" style="padding-bottom: 20px;font-size: 14px;margin-bottom: 20px;" >
-          <div slot="header">
-            <span style="font-size: large;font-weight: bold">招聘自媒体运营</span>
-          </div>
-          <div style="display: flex;align-items: center">
-            <div class="first" style="font-size:20px;line-height: 50px;background: linear-gradient(to right, red, blue);-webkit-background-clip: text;color: transparent;">
-              参与ruoyi-wms、ruoyi-mall、ruoyi-erp-进销存项目的自媒体运营。<br>
-              要求做过短视频编辑或公众号文章编辑，并且对我们的开源项目有一定的了解。<br>
-              全职、兼职、实习都可。我们在苏州，远程或现场参与开发都可。<br>
-              有兴趣的可以在公众号内回复：应聘。<br>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="12">
-        <el-card style="padding-bottom: 20px; font-size: 14px">
-          <div slot="header">
-            <span style="font-size: large;font-weight: bold">发展历程</span>
-          </div>
-          <div style="padding-top: 20px">
-            <el-timeline >
-              <el-timeline-item placement="top" timestamp="2018年">
-                <el-card>
-                  <h4>参与京东服务市场商品分析应用开发，参与京东服务市场会员积分应用开发</h4>
-                </el-card>
-              </el-timeline-item>
-              <el-timeline-item placement="top" timestamp="2019年">
-                <el-card>
-                  <h4>参与京东服务市场商品搬家应用开发，参与京东服务市场商品搬家应用开发，参与拼多多服务市场订单应用开发</h4>
-                </el-card>
-              </el-timeline-item>
-              <el-timeline-item placement="top" timestamp="2020年">
-                <el-card>
-                  <h4>所参与开发的拼多多订单应用排名服务市场类目第一，开始快手服务市场订单应用开发</h4>
-                </el-card>
-              </el-timeline-item>
-              <el-timeline-item placement="top" timestamp="2021年">
-                <el-card>
-                  <h4>日处理拼多多订单200万条，开始美团、饿了么应用市场应用开发</h4>
-                </el-card>
-              </el-timeline-item>
-              <el-timeline-item placement="top" timestamp="2022年">
-                <el-card>
-                  <h4>累计服务10万+电商平台店铺、5万+外卖店铺。开始抖音、淘宝服务市场订单应用开发，开源ruoyi-wms</h4>
-                </el-card>
-              </el-timeline-item>
-              <el-timeline-item placement="top" timestamp="2023年">
-                <el-card>
-                  <h4>B站播放量破万，开源ruoyi-mall，公众号粉丝破万，wms-saas火热研发中</h4>
-                </el-card>
-              </el-timeline-item>
-            </el-timeline>
           </div>
         </el-card>
       </el-col>
