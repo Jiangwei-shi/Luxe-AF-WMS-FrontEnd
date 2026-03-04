@@ -378,16 +378,46 @@
                   <div class="item-image-upload">
                     <!-- 已上传图片列表（编辑时来自接口，新增时为空） -->
                     <div class="image-list" v-if="form.id && form.imageList && form.imageList.length">
-                      <div class="image-item" v-for="(img, idx) in form.imageList" :key="img.id || idx">
-                        <el-image :src="img.url" fit="cover" class="thumb" />
+                      <div
+                        class="image-item"
+                        v-for="(img, idx) in form.imageList"
+                        :key="img.id || idx"
+                        draggable="true"
+                        @dragstart="onImageDragStart('uploaded', idx)"
+                        @dragover.prevent
+                        @drop="onImageDrop('uploaded', idx)"
+                      >
+                        <el-image
+                          :src="img.url"
+                          :preview-src-list="uploadedImagePreviewList"
+                          :initial-index="idx"
+                          preview-teleported
+                          fit="cover"
+                          class="thumb"
+                        />
                         <span v-if="img.isMain" class="main-tag">主图</span>
                         <el-button type="danger" link class="btn-remove" icon="Delete" @click="removeItemImage(idx)" />
                       </div>
                     </div>
                     <!-- 新增时待上传的图片预览 -->
                     <div class="image-list" v-if="!form.id && pendingImageFiles.length">
-                      <div class="image-item" v-for="(item, idx) in pendingImageFiles" :key="idx">
-                        <el-image :src="item.url" fit="cover" class="thumb" />
+                      <div
+                        class="image-item"
+                        v-for="(item, idx) in pendingImageFiles"
+                        :key="idx"
+                        draggable="true"
+                        @dragstart="onImageDragStart('pending', idx)"
+                        @dragover.prevent
+                        @drop="onImageDrop('pending', idx)"
+                      >
+                        <el-image
+                          :src="item.url"
+                          :preview-src-list="pendingImagePreviewList"
+                          :initial-index="idx"
+                          preview-teleported
+                          fit="cover"
+                          class="thumb"
+                        />
                         <el-button type="danger" link class="btn-remove" icon="Delete" @click="removePendingImage(idx)" />
                       </div>
                     </div>
@@ -408,7 +438,9 @@
                       <el-icon class="avatar-uploader-icon"><Plus /></el-icon>
                     </el-upload>
                   </div>
-                  <div class="el-upload__tip" v-if="true">请上传大小不超过 20MB 的图片，格式 png/jpg/jpeg，最多 {{ IMAGE_LIMIT }} 张</div>
+                  <div class="el-upload__tip" v-if="true">
+                    请上传大小不超过 20MB 的图片，格式 png/jpg/jpeg，最多 {{ IMAGE_LIMIT }} 张。支持拖拽调整顺序，点击图片预览原图
+                  </div>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -744,6 +776,56 @@ const itemImageUploadRef = ref(null)
 const pendingImageFiles = ref([])
 const IMAGE_LIMIT = 10
 const IMAGE_SIZE_MB = 20
+const imageDragState = reactive({ type: '', fromIndex: -1 })
+const uploadedImagePreviewList = computed(() => (form.value.imageList || []).map(it => it.url).filter(Boolean))
+const pendingImagePreviewList = computed(() => pendingImageFiles.value.map(it => it.url).filter(Boolean))
+
+function normalizeUploadedImageMeta() {
+  if (!Array.isArray(form.value.imageList)) return
+  form.value.imageList.forEach((img, idx) => {
+    img.sort = idx
+    img.isMain = idx === 0 ? 1 : 0
+  })
+}
+
+/** 构造提交给后端的图片排序数据（按当前前端顺序） */
+function buildImageListPayload() {
+  const list = Array.isArray(form.value.imageList) ? form.value.imageList : []
+  return list.map((img, idx) => ({
+    id: img.id,
+    itemId: img.itemId ?? form.value.id,
+    ossId: img.ossId,
+    thumbOssId: img.thumbOssId,
+    isMain: idx === 0 ? 1 : 0,
+    sort: idx,
+    status: img.status ?? 1
+  }))
+}
+
+function onImageDragStart(type, fromIndex) {
+  imageDragState.type = type
+  imageDragState.fromIndex = fromIndex
+}
+
+function onImageDrop(type, toIndex) {
+  if (imageDragState.type !== type) return
+  const fromIndex = imageDragState.fromIndex
+  if (fromIndex < 0 || fromIndex === toIndex) return
+  if (type === 'uploaded') {
+    const list = form.value.imageList || []
+    if (!list.length) return
+    const [moved] = list.splice(fromIndex, 1)
+    list.splice(toIndex, 0, moved)
+    normalizeUploadedImageMeta()
+  } else {
+    const list = pendingImageFiles.value
+    if (!list.length) return
+    const [moved] = list.splice(fromIndex, 1)
+    list.splice(toIndex, 0, moved)
+  }
+  imageDragState.type = ''
+  imageDragState.fromIndex = -1
+}
 
 function beforeImageUpload(file) {
   const isImage = /^image\/(jpeg|jpg|png|gif|webp)/i.test(file.type)
@@ -819,6 +901,7 @@ async function removeItemImage(index) {
   try {
     await deleteItemImage(imageId)
     list.splice(index, 1)
+    normalizeUploadedImageMeta()
     proxy?.$modal.msgSuccess('删除成功')
   } catch (e) {
     proxy?.$modal.msgError(e?.message || '删除失败')
@@ -950,6 +1033,7 @@ const handleUpdate = (row) => {
     Object.assign(skuForm.itemSkuList, skuRes.data)
     const itemData = itemRes.data || {}
     form.value = { ...form.value, ...row.item, ...itemData, imageList: itemData.imageList || itemData.images || [] }
+    normalizeUploadedImageMeta()
     form.value.skuCode = skuForm.itemSkuList[0]?.skuCode ?? ''
     form.value.costPrice = skuForm.itemSkuList[0]?.costPrice ?? null
     form.value.sellingPrice = skuForm.itemSkuList[0]?.sellingPrice ?? null
@@ -995,7 +1079,12 @@ const submitForm = async () => {
     // 先保存商品，拿到 itemId（新增时后端返回 Long 类型 itemId）
     let itemId = form.value.id;
     if (itemId) {
-      await updateItem(form.value);
+      normalizeUploadedImageMeta()
+      const payload = {
+        ...form.value,
+        imageList: buildImageListPayload()
+      }
+      await updateItem(payload);
     } else {
       const payload = { ...form.value };
       delete payload.imageList;
