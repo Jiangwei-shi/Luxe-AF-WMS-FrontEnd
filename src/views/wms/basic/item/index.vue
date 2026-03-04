@@ -5,7 +5,12 @@
         <el-row :gutter="16">
           <el-col :xs="24" :sm="12" :md="8" :lg="6">
             <el-form-item label="商品名称" prop="itemName">
-              <el-input v-model="queryParams.itemName" placeholder="请输入商品名称" clearable @keyup.enter="handleQuery" style="width: 100%"/>
+              <div class="item-name-with-tag">
+                <el-input v-model="queryParams.itemName" placeholder="请输入商品名称" clearable @keyup.enter="handleQuery" class="item-name-input"/>
+                <el-button type="primary" link title="预处理标签" @click="openNameTagDrawer('query')" class="name-tag-btn">
+                  <el-icon><Ticket /></el-icon><span class="name-tag-btn-text">标签</span>
+                </el-button>
+              </div>
             </el-form-item>
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="6">
@@ -199,7 +204,12 @@
             <el-row :gutter="24">
               <el-col :span="12">
                 <el-form-item label="商品名称" prop="itemName">
-                  <el-input v-model="form.itemName" placeholder="请输入名称"/>
+                  <div class="item-name-with-tag">
+                    <el-input v-model="form.itemName" placeholder="请输入名称" class="item-name-input"/>
+                    <el-button type="primary" link title="预处理标签" @click="openNameTagDrawer" class="name-tag-btn">
+                      <el-icon><Ticket /></el-icon><span class="name-tag-btn-text">标签</span>
+                    </el-button>
+                  </div>
                 </el-form-item>
               </el-col>
               <el-col :span="10">
@@ -383,11 +393,11 @@
                     </div>
                     <el-upload
                       ref="itemImageUploadRef"
-                      v-show="(form.id ? (form.imageList?.length || 0) : pendingImageFiles.length) < 8"
+                      v-show="(form.id ? (form.imageList?.length || 0) : pendingImageFiles.length) < IMAGE_LIMIT"
                       class="upload-inline"
                       list-type="picture-card"
                       :auto-upload="!!form.id"
-                      :limit="8"
+                      :limit="IMAGE_LIMIT"
                       :on-exceed="handleImageExceed"
                       :before-upload="(file) => beforeImageUpload(file)"
                       :http-request="form.id ? customUpload : undefined"
@@ -398,7 +408,7 @@
                       <el-icon class="avatar-uploader-icon"><Plus /></el-icon>
                     </el-upload>
                   </div>
-                  <div class="el-upload__tip" v-if="true">请上传大小不超过 20MB 的图片，格式 png/jpg/jpeg，最多 8 张</div>
+                  <div class="el-upload__tip" v-if="true">请上传大小不超过 20MB 的图片，格式 png/jpg/jpeg，最多 {{ IMAGE_LIMIT }} 张</div>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -441,6 +451,29 @@
       </template>
       <div id="qrcode"></div>
     </el-dialog>
+    <!-- 商品名称预处理标签抽屉 -->
+    <el-drawer v-model="nameTagDrawerVisible" title="商品名称预处理标签" size="360px" append-to-body>
+      <div class="name-tag-drawer">
+        <div class="name-tag-add">
+          <el-input v-model="newNameTag" placeholder="输入新标签后回车或点击新增" clearable @keyup.enter="addNameTag"/>
+          <el-button type="primary" @click="addNameTag">新增</el-button>
+        </div>
+        <p class="name-tag-tip">点击标签可追加到商品名称末尾</p>
+        <div class="name-tag-list">
+          <el-tag
+            v-for="(tag, idx) in nameTagList"
+            :key="idx"
+            class="name-tag-item"
+            closable
+            @close="removeNameTag(idx)"
+            @click="insertNameTag(tag)"
+          >
+            {{ tag }}
+          </el-tag>
+          <span v-if="!nameTagList.length" class="name-tag-empty">暂无标签，请上方新增</span>
+        </div>
+      </div>
+    </el-drawer>
     <div id="outSkuIdBox" style="display: none">
       <img :src="qrcode"/>
       <canvas ref="barcode"></canvas>
@@ -452,7 +485,7 @@
 import { getItem, delItem, addItem, updateItem, uploadItemImage, deleteItemImage } from '@/api/wms/item';
 import { computed, getCurrentInstance, nextTick, onMounted, reactive, ref, toRefs } from 'vue';
 import { ElForm, ElTree, ElTreeSelect } from 'element-plus';
-import { Plus, Delete } from '@element-plus/icons-vue';
+import { Plus, Delete, Ticket } from '@element-plus/icons-vue';
 import {
   updateItemCategory,
   addItemCategory,
@@ -530,6 +563,42 @@ const categoryDialog = reactive({
   title: ''
 });
 const showParent = ref(false)
+/** 商品名称预处理标签：抽屉显隐、标签列表（持久化到 localStorage）、新标签输入 */
+const NAME_TAG_STORAGE_KEY = 'wms_item_name_tags'
+const nameTagDrawerVisible = ref(false)
+const nameTagList = ref(JSON.parse(localStorage.getItem(NAME_TAG_STORAGE_KEY) || '[]'))
+const newNameTag = ref('')
+
+/** 'form' = 新增/编辑表单内的商品名称，'query' = 筛选条件中的商品名称 */
+const nameTagInsertTarget = ref('form')
+const openNameTagDrawer = (context = 'form') => {
+  nameTagInsertTarget.value = context
+  nameTagDrawerVisible.value = true
+}
+const saveNameTags = () => { try { localStorage.setItem(NAME_TAG_STORAGE_KEY, JSON.stringify(nameTagList.value)) } catch (_) {} }
+const addNameTag = () => {
+  const tag = (newNameTag.value || '').trim()
+  if (!tag) return
+  if (nameTagList.value.includes(tag)) { newNameTag.value = ''; return }
+  nameTagList.value.push(tag)
+  saveNameTags()
+  newNameTag.value = ''
+}
+const removeNameTag = (index) => {
+  nameTagList.value.splice(index, 1)
+  saveNameTags()
+}
+const insertNameTag = (tag) => {
+  if (nameTagInsertTarget.value === 'query') {
+    const cur = queryParams.value.itemName || ''
+    queryParams.value.itemName = cur ? cur + ' ' + tag : tag
+  } else {
+    const cur = form.value.itemName || ''
+    form.value.itemName = cur ? cur + ' ' + tag : tag
+  }
+  nameTagDrawerVisible.value = false
+}
+
 /** 鉴定机构固定选项（仅可选，不可手输） */
 const AUTH_AGENCY_OPTIONS = ['Entrupy', 'Real Authentication', 'Legitmark', 'CheckCheck', 'N/A']
 /** 成色固定选项 */
@@ -673,7 +742,7 @@ const itemImageUploadRef = ref(null)
 
 // 商品图片（方案B）：新增时暂存的待上传文件 { file, url }
 const pendingImageFiles = ref([])
-const IMAGE_LIMIT = 8
+const IMAGE_LIMIT = 10
 const IMAGE_SIZE_MB = 20
 
 function beforeImageUpload(file) {
@@ -1118,6 +1187,41 @@ onMounted(() => {
 }
 .accessory-tag:hover {
   opacity: 0.85;
+}
+
+.item-name-with-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.item-name-with-tag .item-name-input { flex: 1; }
+.item-name-with-tag .name-tag-btn {
+  flex-shrink: 0;
+  padding: 0 8px;
+}
+.item-name-with-tag .name-tag-btn-text { margin-left: 4px; }
+
+.name-tag-drawer .name-tag-add {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.name-tag-drawer .name-tag-add .el-input { flex: 1; }
+.name-tag-drawer .name-tag-tip {
+  font-size: 12px; color: #909399; margin-bottom: 12px;
+}
+.name-tag-drawer .name-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.name-tag-drawer .name-tag-item {
+  cursor: pointer;
+}
+.name-tag-drawer .name-tag-item:hover { opacity: 0.85; }
+.name-tag-drawer .name-tag-empty {
+  font-size: 13px; color: #909399;
 }
 
 </style>
