@@ -80,11 +80,11 @@
             <el-table-column label="规格信息">
               <template #default="{ row }">
                 <template v-if="row.newInventoryDetail">
-                  <div v-if="row.itemSku">{{ row.itemSku.skuName + (row.itemSku.barcode ? ('(' + row.itemSku.barcode + ')') : '') }}</div>
+                  <div v-if="row.itemSku">{{ row.itemSku.skuCode + (row.itemSku.barcode ? ('(' + row.itemSku.barcode + ')') : '') }}</div>
                   <div v-else>请选择商品</div>
                 </template>
                 <template v-else>
-                  <div>{{ row.itemSku.skuName + (row.itemSku.barcode ? ('(' + row.itemSku.barcode + ')') : '') }}</div>
+                  <div>{{ row.itemSku.skuCode + (row.itemSku.barcode ? ('(' + row.itemSku.barcode + ')') : '') }}</div>
                 </template>
               </template>
             </el-table-column>
