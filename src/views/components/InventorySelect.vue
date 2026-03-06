@@ -11,8 +11,14 @@
       <el-form-item label="规格名称">
         <el-input class="w200" v-model="query.skuName" clearable placeholder="规格名称"></el-input>
       </el-form-item>
-      <el-form-item label="规格编号">
-        <el-input class="w200" v-model="query.barcode" clearable placeholder="规格编号"></el-input>
+      <el-form-item label="SKU">
+        <el-input
+          class="w200"
+          v-model="query.skuCode"
+          clearable
+          placeholder="SKU查询"
+          @keyup.enter="handleSkuEnter"
+        ></el-input>
       </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="loadAll">查询</el-button>
@@ -138,6 +144,11 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  // 扫码枪模式：true 时，SKU 回车只添加商品不关闭抽屉
+  scanMode: {
+    type: Boolean,
+    default: false
+  },
   size: {
     type: String,
     default: '30%'
@@ -153,6 +164,37 @@ const show = computed(() => {
 })
 
 const emit = defineEmits(["handleCancelClick", 'handleOkClick']);
+
+// SKU 输入框回车：根据 SKU 精确查一条库存并回传给父组件
+async function handleSkuEnter() {
+  const skuCode = query.skuCode?.trim()
+  if (!skuCode) return
+  loading.value = true
+  try {
+    const res = await listInventory({
+      ...query,
+      pageNum: 1,
+      pageSize: 2
+    })
+    const rows = res.rows || []
+    if (rows.length === 1) {
+      const row = rows[0]
+      emit('handleOkClick', [row])
+      if (props.scanMode) {
+        // 扫码枪模式：不关闭抽屉，只清空 SKU 输入
+        query.skuCode = ''
+      } else {
+        // 普通模式：选中后直接关闭抽屉
+        emit('handleCancelClick')
+      }
+    } else if (rows.length > 1) {
+      // 多条时，按当前条件刷新列表让用户自己勾选
+      loadAll()
+    }
+  } finally {
+    loading.value = false
+  }
+}
 
 function handleCancelClick() {
   emit('handleCancelClick');

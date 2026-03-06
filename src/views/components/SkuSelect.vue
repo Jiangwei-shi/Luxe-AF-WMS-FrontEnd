@@ -105,7 +105,7 @@ const loadAll = () => {
   getList()
 };
 
-/** SKU 输入框回车：仅当通过 SKU 查询且唯一结果时直接加入并关闭 */
+/** SKU 输入框回车 */
 async function handleSkuEnter() {
   const skuCode = query.skuCode?.trim()
   if (!skuCode) return
@@ -121,7 +121,13 @@ async function handleSkuEnter() {
       const row = rows[0]
       const normalized = { ...row, id: row.skuId }
       emit('handleOkClick', [normalized])
-      emit('handleCancelClick')
+      if (props.scanMode) {
+        // 扫码枪模式：不关闭抽屉，只清空 SKU 输入，便于连续扫码
+        query.skuCode = ''
+      } else {
+        // 普通模式：选中后直接关闭抽屉
+        emit('handleCancelClick')
+      }
     } else if (rows.length === 0) {
       ElMessage.warning('未找到该SKU')
     } else {
@@ -155,6 +161,11 @@ const goCreateItem = () => {
 // 定义props
 const props = defineProps({
   modelValue: {
+    type: Boolean,
+    default: false
+  },
+  // 扫码枪模式：true 时，SKU 回车只添加商品不关闭抽屉
+  scanMode: {
     type: Boolean,
     default: false
   },

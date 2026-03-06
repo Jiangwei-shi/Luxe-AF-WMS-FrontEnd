@@ -84,7 +84,28 @@
               content="请先选择仓库！"
             >
               <template #reference>
-                <el-button type="primary" plain="plain" size="default" @click="showAddItem" icon="Plus" :disabled="!form.warehouseId">添加商品</el-button>
+                <div>
+                  <el-button
+                    type="primary"
+                    plain="plain"
+                    size="default"
+                    @click="showAddItem"
+                    icon="Plus"
+                    :disabled="!form.warehouseId"
+                  >
+                    添加商品
+                  </el-button>
+                  <el-button
+                    type="primary"
+                    plain="plain"
+                    size="default"
+                    class="ml10"
+                    @click="showScanAddItem"
+                    :disabled="!form.warehouseId"
+                  >
+                    扫码枪模式
+                  </el-button>
+                </div>
               </template>
             </el-popover>
           </div>
@@ -134,6 +155,7 @@
       <SkuSelect
         ref="skuSelectRef"
         :model-value="skuSelectShow"
+        :scan-mode="scanMode"
         :selected-sku="selectedSku"
         @handleOkClick="handleOkClick"
         @handleCancelClick="skuSelectShow = false"
@@ -172,6 +194,8 @@ const selectedSku = ref([])
 const mode = ref(false)
 const loading = ref(false)
 const skuSelectRef = ref(null)
+// 扫码枪模式标记
+const scanMode = ref(false)
 const initFormData = {
   id: undefined,
   orderNo: undefined,
@@ -219,12 +243,22 @@ const skuSelectShow = ref(false)
 
 // 选择商品 start
 const showAddItem = () => {
+  scanMode.value = false
+  skuSelectRef.value.getList()
+  skuSelectShow.value = true
+}
+
+const showScanAddItem = () => {
+  scanMode.value = true
   skuSelectRef.value.getList()
   skuSelectShow.value = true
 }
 // 选择成功
 const handleOkClick = (item) => {
-  skuSelectShow.value = false
+  // 普通模式：选完关闭弹窗；扫码枪模式：保持弹窗打开
+  if (!scanMode.value) {
+    skuSelectShow.value = false
+  }
   selectedSku.value = [...item]
   item.forEach((it) => {
     if (!form.value.details.find(detail => detail.itemSku.id === it.id)) {
