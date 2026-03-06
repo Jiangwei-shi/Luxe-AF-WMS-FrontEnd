@@ -108,7 +108,7 @@
                   placeholder="数量"
                   :min="1"
                   :precision="0"
-                  @change="handleChangeQuantity"
+                  @change="handleChangeQuantity(scope.row)"
                 ></el-input-number>
               </template>
             </el-table-column>
@@ -228,17 +228,24 @@ const handleOkClick = (item) => {
   selectedSku.value = [...item]
   item.forEach((it) => {
     if (!form.value.details.find(detail => detail.itemSku.id === it.id)) {
+      const quantity = 1
+      const costPrice = it.itemSku?.costPrice
+      let amount = undefined
+      if (costPrice || costPrice === 0) {
+        amount = Number(costPrice) * quantity
+      }
       form.value.details.push(
         {
           itemSku: it.itemSku,
           item: it.item,
-          amount: undefined,
-          quantity: it.quantity,
+          amount,
+          quantity,
           warehouseId: form.value.warehouseId
         }
       )
     }
   })
+  updateTotalQuantity()
 }
 // 选择商品 end
 
@@ -381,7 +388,7 @@ const loadDetail = (id) => {
   })
 }
 
-const handleChangeQuantity = () => {
+const updateTotalQuantity = () => {
   let sum = 0
   form.value.details.forEach(it => {
     if (it.quantity) {
@@ -389,6 +396,15 @@ const handleChangeQuantity = () => {
     }
   })
   form.value.totalQuantity = sum
+}
+
+const handleChangeQuantity = (row) => {
+  const costPrice = row.itemSku?.costPrice
+  if (costPrice || costPrice === 0) {
+    const quantity = Number(row.quantity || 0)
+    row.amount = quantity ? Number(costPrice) * quantity : 0
+  }
+  updateTotalQuantity()
 }
 
 const handleAutoCalc = () => {
