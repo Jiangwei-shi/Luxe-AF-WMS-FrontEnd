@@ -66,7 +66,7 @@
                     <div>{{ row?.item?.itemName }}</div>
                   </template>
                 </el-table-column>
-                <el-table-column label="规格名称">
+                <el-table-column label="SKU编号">
                   <template #default="{ row }">
                     <div>{{ row?.itemSku?.skuCode }}</div>
                   </template>
