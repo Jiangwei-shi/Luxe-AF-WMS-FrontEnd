@@ -8,20 +8,8 @@
               </el-form-item>
             </el-col>
             <el-col :span="8">
-              <el-form-item label="商品编号">
-                <el-input class="w200" v-model="query.itemCode" clearable placeholder="商品编号"></el-input>
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="规格名称">
-                <el-input class="w200" v-model="query.skuName" clearable placeholder="规格名称"></el-input>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="20">
-            <el-col :span="8">
-              <el-form-item label="规格编号">
-                <el-input class="w200" v-model="query.barcode" clearable placeholder="规格编号"></el-input>
+              <el-form-item label="SKU">
+                <el-input class="w200" v-model="query.skuCode" clearable placeholder="SKU查询" @keyup.enter="handleSkuEnter"></el-input>
               </el-form-item>
             </el-col>
             <el-col :span="8">
@@ -34,7 +22,6 @@
               <el-table-column label="商品信息" prop="itemId">
                 <template #default="{ row }">
                   <div>{{ row.item.itemName }}</div>
-                  <div v-if="row.item.itemCode">编号：{{ row.item.itemCode }}</div>
                   <div v-if="row.item.itemBrand">品牌：{{ useWmsStore().itemBrandMap.get(row.item.itemBrand).brandName }}</div>
                 </template>
               </el-table-column>
@@ -42,7 +29,6 @@
                 <template #default="{ row }">
                   <div>{{ row.itemSku.skuName }}</div>
                   <div v-if="row.itemSku.skuCode">编号：{{ row.itemSku.skuCode }}</div>
-                  <div v-if="row.itemSku.barcode">条码：{{ row.itemSku.barcode }}</div>
                 </template>
               </el-table-column>
               <el-table-column label="价格(元)" width="160" align="left">
@@ -55,23 +41,6 @@
                     <span>销售价：</span>
                     <div>{{ (row.itemSku.sellingPrice || row.itemSku.sellingPrice === 0) ? row.itemSku.sellingPrice : '' }}</div>
                   </div>
-                </template>
-              </el-table-column>
-              <el-table-column label="重量(kg)" width="160" align="left">
-                <template #default="{ row }">
-                  <div v-if="row.itemSku.netWeight" class="flex-space-between">
-                    <span>净重：</span>
-                    <div>{{ (row.itemSku.netWeight || row.itemSku.netWeight === 0) ? row.itemSku.netWeight : '' }}</div>
-                  </div>
-                  <div v-if="row.itemSku.grossWeight" class="flex-space-between">
-                    <span>毛重：</span>
-                    <div>{{ (row.itemSku.grossWeight || row.itemSku.grossWeight === 0) ? row.itemSku.grossWeight : '' }}</div>
-                  </div>
-                </template>
-              </el-table-column>
-              <el-table-column label="长宽高(cm)" align="right" width="250">
-                <template #default="{ row }">
-                  <div>{{ getVolumeText(row) }}</div>
                 </template>
               </el-table-column>
               <el-table-column label="操作" width="100" v-if="singleSelect" align="right">
@@ -99,8 +68,8 @@
   </el-drawer>
 </template>
 <script setup lang="ts" name="SkuSelect">
-import {computed, getCurrentInstance, onMounted, reactive, ref} from 'vue';
-import {ElForm} from "element-plus";
+import {computed, getCurrentInstance, onMounted, reactive, ref, watch} from 'vue';
+import {ElForm, ElMessage} from "element-plus";
 import {listItemSkuPage} from "@/api/wms/itemSku";
 import {useRouter} from "vue-router";
 import {useWmsStore} from '@/store/modules/wms'
@@ -112,9 +81,7 @@ const loading = ref(false)
 const deptOptions = ref([]);
 const query = reactive({
   itemName: '',
-  itemCode: '',
-  skuName: '',
-  barcode: ''
+  skuCode: ''
 });
 const selectItemSkuVoCheck = ref([])
 const skuSelectFormRef = ref(null)
@@ -135,6 +102,33 @@ const loadAll = () => {
   pageReq.page = 1
   getList()
 };
+
+/** SKU 输入框回车：仅当通过 SKU 查询且唯一结果时直接加入并关闭 */
+async function handleSkuEnter() {
+  const skuCode = query.skuCode?.trim()
+  if (!skuCode) return
+  loading.value = true
+  try {
+    const res = await listItemSkuPage({
+      ...query,
+      pageNum: 1,
+      pageSize: 2
+    })
+    const rows = res.rows || []
+    if (rows.length === 1) {
+      const row = rows[0]
+      const normalized = { ...row, id: row.skuId }
+      emit('handleOkClick', [normalized])
+      emit('handleCancelClick')
+    } else if (rows.length === 0) {
+      ElMessage.warning('未找到该SKU')
+    } else {
+      loadAll()
+    }
+  } finally {
+    loading.value = false
+  }
+}
 const getRowKey = (row: any) => {
   return row.id;
 }
@@ -178,6 +172,16 @@ const props = defineProps({
 
 const show = computed(() => {
   return props.modelValue;
+})
+
+// 每次打开抽屉时清空查询条件并重新拉取，便于看到全部商品
+watch(show, (visible) => {
+  if (visible) {
+    query.itemName = ''
+    query.skuCode = ''
+    pageReq.page = 1
+    getList()
+  }
 })
 
 // 定义事件
@@ -226,14 +230,6 @@ function clearQuantity() {
   skuSelectFormRef.value.clearSelection()
 }
 
-const getVolumeText = (row) => {
-  if((row.length || row.length === 0) && (row.width || row.width === 0) && (row.height || row.height === 0)) {
-    return row.length + ' * ' + row.width + ' * ' + row.height
-  }
-  return ((row.length || row.length === 0) ? ('长：' + row.length) : '')
-    + ((row.width || row.width === 0) ? (' 宽：' + row.width) : '')
-    + ((row.height || row.height === 0) ? (' 高：' + row.height) : '')
-}
 defineExpose({
   getList
 })
