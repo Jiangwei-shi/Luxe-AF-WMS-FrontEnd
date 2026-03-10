@@ -3,7 +3,7 @@
     <el-card>
       <el-form :model="queryParams" ref="queryFormRef" label-width="88px" class="query-form">
         <el-row :gutter="16">
-          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+          <el-col :xs="24" :sm="24" :md="18" :lg="18">
             <el-form-item label="商品名称" prop="itemName">
               <div class="item-name-with-tag">
                 <el-input v-model="queryParams.itemName" placeholder="请输入商品名称" clearable @keyup.enter="handleQuery" class="item-name-input"/>
@@ -13,56 +13,58 @@
               </div>
             </el-form-item>
           </el-col>
-          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+          <el-col :xs="24" :sm="24" :md="6" :lg="6">
             <el-form-item label="SKU" prop="skuCode">
               <el-input v-model="queryParams.skuCode" placeholder="请输入SKU编码" clearable @keyup.enter="handleQuery" style="width: 100%"/>
             </el-form-item>
           </el-col>
-          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :xs="24" :sm="12" :md="6" :lg="6">
             <el-form-item label="商品品牌" prop="itemBrand">
               <el-select v-model="queryParams.itemBrand" clearable filterable style="width: 100%">
                 <el-option v-for="item in useWmsStore().itemBrandList" :key="item.id" :label="item.brandName" :value="item.id"/>
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+          <el-col :xs="24" :sm="12" :md="6" :lg="6">
             <el-form-item label="成色" prop="itemCondition">
               <el-select v-model="queryParams.itemCondition" placeholder="请选择成色" clearable style="width: 100%">
                 <el-option v-for="item in ITEM_CONDITION_OPTIONS" :key="item" :label="item" :value="item"/>
               </el-select>
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row :gutter="16">
-          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+          <el-col :xs="24" :sm="12" :md="6" :lg="6">
             <el-form-item label="年份" prop="year">
               <el-input-number v-model="queryParams.year" :min="0" :max="9999" :controls="false" style="width: 100%" @keyup.enter.native="handleQuery"/>
             </el-form-item>
           </el-col>
-          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+          <el-col :xs="24" :sm="12" :md="6" :lg="6">
             <el-form-item label="鉴定机构" prop="authAgency">
               <el-select v-model="queryParams.authAgency" placeholder="请选择鉴定机构" clearable style="width: 100%">
                 <el-option v-for="item in AUTH_AGENCY_OPTIONS" :key="item" :label="item" :value="item"/>
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :xs="24" :sm="12" :md="6" :lg="6">
             <el-form-item label="数量" prop="defaultQty">
               <el-input-number v-model="queryParams.defaultQty" :min="0" :controls="false" style="width: 100%" @keyup.enter.native="handleQuery"/>
             </el-form-item>
           </el-col>
-          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+          <el-col :xs="24" :sm="12" :md="6" :lg="6">
             <el-form-item label="已护理" prop="cared">
               <el-switch v-model="queryParams.cared" active-text="是" inactive-text="否" :active-value="true" :inactive-value="false"/>
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row :gutter="16">
           <el-col :xs="24" :sm="24" :md="12" :lg="12">
             <el-form-item label="寄售信息" prop="consignInfo">
               <el-input v-model="queryParams.consignInfo" placeholder="请输入寄售信息关键字" clearable @keyup.enter="handleQuery" style="width: 100%"/>
             </el-form-item>
           </el-col>
+        </el-row>
+        <el-row :gutter="16">
           <el-col :xs="24" :sm="24" :md="12" :lg="12">
             <el-form-item label="创建时间" prop="createTimeRange">
               <el-date-picker
@@ -78,20 +80,19 @@
               />
             </el-form-item>
           </el-col>
+          <el-col :xs="24" :sm="24" :md="12" :lg="12">
+            <el-form-item label="销售价" prop="sellingPriceMin">
+              <div class="query-price-range">
+                <el-input-number v-model="queryParams.sellingPriceMin" :min="0" :precision="2" :controls="false" placeholder="最低" style="width: 100%"/>
+                <span class="query-price-range-separator">至</span>
+                <el-input-number v-model="queryParams.sellingPriceMax" :min="0" :precision="2" :controls="false" placeholder="最高" style="width: 100%"/>
+              </div>
+            </el-form-item>
+          </el-col>
         </el-row>
         <el-row :gutter="16">
-          <el-col :xs="24" :sm="12" :md="8" :lg="6">
-            <el-form-item label="销售价" prop="sellingPriceMin">
-              <el-input-number v-model="queryParams.sellingPriceMin" :min="0" :precision="2" :controls="false" placeholder="最低" style="width: 100%"/>
-            </el-form-item>
-          </el-col>
-          <el-col :xs="24" :sm="12" :md="8" :lg="6">
-            <el-form-item label="至" prop="sellingPriceMax" label-width="32px">
-              <el-input-number v-model="queryParams.sellingPriceMax" :min="0" :precision="2" :controls="false" placeholder="最高" style="width: 100%"/>
-            </el-form-item>
-          </el-col>
-          <el-col :xs="24" :sm="12" :md="8" :lg="6">
-            <el-form-item label=" " label-width="0">
+          <el-col :span="24">
+            <el-form-item label=" ">
               <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
               <el-button icon="Refresh" @click="resetQuery">重置</el-button>
             </el-form-item>
@@ -421,17 +422,26 @@
                         <el-button type="danger" link class="btn-remove" icon="Delete" @click="removePendingImage(idx)" />
                       </div>
                     </div>
+                    <!-- 拖拽 / 点击统一上传区域：一次性拖入不超过 IMAGE_LIMIT 张图片 -->
+                    <div
+                      class="image-drop-zone"
+                      v-show="(form.id ? (form.imageList?.length || 0) : pendingImageFiles.length) < IMAGE_LIMIT"
+                      @dragover.prevent
+                      @dragenter.prevent
+                      @drop.prevent="handleImageFilesDrop"
+                    >
+                      将图片拖拽到此处上传，或点击右侧按钮选择
+                    </div>
                     <el-upload
                       ref="itemImageUploadRef"
                       v-show="(form.id ? (form.imageList?.length || 0) : pendingImageFiles.length) < IMAGE_LIMIT"
                       class="upload-inline"
                       list-type="picture-card"
-                      :auto-upload="!!form.id"
+                      multiple
+                      :auto-upload="false"
                       :limit="IMAGE_LIMIT"
                       :on-exceed="handleImageExceed"
-                      :before-upload="(file) => beforeImageUpload(file)"
-                      :http-request="form.id ? customUpload : undefined"
-                      :on-change="!form.id ? onPendingImageChange : undefined"
+                      :on-change="onPendingImageChange"
                       :show-file-list="false"
                       accept="image/*"
                     >
@@ -514,9 +524,9 @@
 </template>
 
 <script setup name="Item">
-import { getItem, delItem, addItem, updateItem, uploadItemImage, deleteItemImage } from '@/api/wms/item';
-import { computed, getCurrentInstance, nextTick, onMounted, reactive, ref, toRefs } from 'vue';
-import { ElForm, ElTree, ElTreeSelect } from 'element-plus';
+import { getItem, delItem, addItem, updateItem, uploadItemImage, deleteItemImage, getItemImages } from '@/api/wms/item';
+import { computed, getCurrentInstance, nextTick, onMounted, reactive, ref, toRefs, watch } from 'vue';
+import { ElForm, ElTree, ElTreeSelect, ElMessage } from 'element-plus';
 import { Plus, Delete, Ticket } from '@element-plus/icons-vue';
 import {
   updateItemCategory,
@@ -771,6 +781,7 @@ const skuForm = reactive({
   itemSkuList: []
 })
 const itemImageUploadRef = ref(null)
+let imagePollTimer = null
 
 // 商品图片（方案B）：新增时暂存的待上传文件 { file, url }
 const pendingImageFiles = ref([])
@@ -845,46 +856,104 @@ function handleImageExceed() {
   proxy?.$modal.msgError(`最多上传 ${IMAGE_LIMIT} 张图片`)
 }
 
-/** 编辑时：自定义上传，走 /item/{itemId}/image/upload */
+/** 编辑时：自定义上传，走 /item/{itemId}/image/upload，不阻塞界面 */
 async function customUpload(options) {
   const { file } = options
   if (!beforeImageUpload(file)) return
   if (!form.value.id) return
-  proxy?.$modal.loading('正在上传图片…')
+  ElMessage({ type: 'success', message: '图片在上传队列中（后台异步上传请勿重复提交）', duration: 5000 })
   try {
     const sort = (form.value.imageList?.length ?? 0)
     const res = await uploadItemImage(form.value.id, file, !(form.value.imageList?.length), sort)
-    proxy?.$modal.closeLoading()
-    if (res.code === 200 && res.data) {
+    if (res.code === 200) {
       if (!Array.isArray(form.value.imageList)) form.value.imageList = []
-      form.value.imageList.push(res.data)
-      proxy?.$modal.msgSuccess('上传成功')
+      const previewUrl = URL.createObjectURL(file)
+      form.value.imageList.push({
+        ...(res.data || {}),
+        itemId: form.value.id,
+        isMain: !(form.value.imageList.length),
+        sort,
+        url: previewUrl,
+        thumbUrl: previewUrl,
+        _local: true
+      })
+      scheduleImagePollWhenHasLocal()
       nextTick(() => itemImageUploadRef.value?.clearFiles?.())
     } else {
       proxy?.$modal.msgError(res.msg || '上传失败')
     }
   } catch (e) {
-    proxy?.$modal.closeLoading()
     proxy?.$modal.msgError('上传失败')
   }
 }
 
-/** 新增时：选择文件仅加入待上传列表，不发请求 */
-function onPendingImageChange(uploadFile) {
-  const file = uploadFile.raw
-  if (!file || !beforeImageUpload(file)) return
-  if (pendingImageFiles.value.length >= IMAGE_LIMIT) {
+/** 统一处理图片文件入口：新增/编辑、拖拽/点击都走这里 */
+function handleSelectedImageFiles(files) {
+  if (!files || !files.length) return
+  const imageFiles = files.filter(file => /^image\/(jpeg|jpg|png|gif|webp)/i.test(file.type))
+  if (!imageFiles.length) {
+    proxy?.$modal.msgError('只能上传 jpg/jpeg/png/gif/webp 格式图片')
+    return
+  }
+
+  // 编辑场景：直接上传到后端（复用 customUpload 逻辑），支持多张
+  if (form.value.id) {
+    const currentCount = (form.value.imageList?.length) || 0
+    const remaining = IMAGE_LIMIT - currentCount
+    if (remaining <= 0) {
+      handleImageExceed()
+      return
+    }
+    const validFiles = imageFiles.filter(file => beforeImageUpload(file))
+    if (!validFiles.length) return
+    const toUpload = validFiles.slice(0, remaining)
+    if (imageFiles.length > toUpload.length || imageFiles.length > remaining) {
+      proxy?.$modal.msgWarning(`最多还能上传 ${remaining} 张符合要求的图片，已自动忽略多余或不合规文件`)
+    }
+    toUpload.forEach(file => {
+      customUpload({ file })
+    })
+    return
+  }
+
+  // 新增场景：仅加入待上传列表，不立刻请求后端
+  const currentCount = pendingImageFiles.value.length
+  const remaining = IMAGE_LIMIT - currentCount
+  if (remaining <= 0) {
     handleImageExceed()
     return
   }
-  const url = URL.createObjectURL(file)
-  pendingImageFiles.value.push({ file, url })
+  const validFiles = imageFiles.filter(file => beforeImageUpload(file))
+  if (!validFiles.length) return
+  const toAdd = validFiles.slice(0, remaining)
+  if (imageFiles.length > toAdd.length || imageFiles.length > remaining) {
+    proxy?.$modal.msgWarning(`最多还能选择 ${remaining} 张符合要求的图片，已自动忽略多余或不合规文件`)
+  }
+  toAdd.forEach(file => {
+    const url = URL.createObjectURL(file)
+    pendingImageFiles.value.push({ file, url })
+  })
+}
+
+/** el-upload 变更事件：点击选择文件也走统一入口 */
+function onPendingImageChange(uploadFile) {
+  const file = uploadFile?.raw
+  if (!file) return
+  handleSelectedImageFiles([file])
 }
 
 function removePendingImage(index) {
   const item = pendingImageFiles.value[index]
   if (item?.url) URL.revokeObjectURL(item.url)
   pendingImageFiles.value.splice(index, 1)
+}
+
+/** 拖拽图片文件到自定义区域，支持一次性拖入多张，遵守数量与大小限制 */
+async function handleImageFilesDrop(event) {
+  const dt = event.dataTransfer
+  const fileList = dt && dt.files ? Array.from(dt.files) : []
+  if (!fileList.length) return
+  handleSelectedImageFiles(fileList)
 }
 
 /** 删除已上传的商品图片：调用后端删除接口并从列表中移除 */
@@ -894,12 +963,14 @@ async function removeItemImage(index) {
   const img = list[index]
   const imageId = img.id
   if (imageId == null) {
+    if (img._local && img.url) URL.revokeObjectURL(img.url)
     list.splice(index, 1)
     return
   }
   await proxy?.$modal.confirm('确认删除该图片吗？')
   try {
     await deleteItemImage(imageId)
+    if (img._local && img.url) URL.revokeObjectURL(img.url)
     list.splice(index, 1)
     normalizeUploadedImageMeta()
     proxy?.$modal.msgSuccess('删除成功')
@@ -979,6 +1050,9 @@ const reset = () => {
     if (item?.url) URL.revokeObjectURL(item.url)
   })
   pendingImageFiles.value = []
+  ;(form.value.imageList || []).forEach((img) => {
+    if (img._local && img.url) URL.revokeObjectURL(img.url)
+  })
   itemImageUploadRef.value?.clearFiles?.()
   form.value = {...initFormData};
   itemFormRef.value?.resetFields();
@@ -1095,19 +1169,15 @@ const submitForm = async () => {
       }
     }
 
-    // 如果有待上传图片，则利用返回的 itemId 调用原有图片上传接口
+    // 如果有待上传图片，后台入队上传，不阻塞界面
     if (itemId && pendingImageFiles.value.length) {
-      proxy?.$modal.loading('正在上传商品图片…');
-      try {
-        for (let i = 0; i < pendingImageFiles.value.length; i++) {
-          const { file } = pendingImageFiles.value[i];
-          await uploadItemImage(itemId, file, i === 0, i);
-        }
-      } catch (e) {
-        proxy?.$modal.msgWarning('商品已保存，但部分图片上传失败，可在修改中重新上传');
-      } finally {
-        proxy?.$modal.closeLoading();
-      }
+      ElMessage({ type: 'success', message: '图片在上传队列中（后台异步上传请勿重复提交）', duration: 5000 })
+      const files = [...pendingImageFiles.value];
+      files.forEach((item, index) => {
+        uploadItemImage(itemId, item.file, index === 0, index).catch(() => {
+          proxy?.$modal.msgWarning('商品已保存，但部分图片未能加入上传队列，可在修改中重新上传');
+        });
+      });
     }
 
     proxy?.$modal.msgSuccess('修改成功');
@@ -1120,6 +1190,78 @@ const submitForm = async () => {
     buttonLoading.value = false;
   }
 }
+
+/** 从 getItemImages 响应里取出图片数组（兼容 data 直接为数组或 data.list / data.images） */
+function getImageListFromResponse(res) {
+  if (!res || res.code !== 200) return null
+  const d = res.data
+  if (Array.isArray(d)) return d
+  if (d && Array.isArray(d.list)) return d.list
+  if (d && Array.isArray(d.images)) return d.images
+  return null
+}
+
+/** 轮询商品图片列表，发现 _local 的图片在后端已有 url 时替换并提示上传成功 */
+async function pollItemImagesIfNeeded() {
+  if (!form.value.id) return
+  const hasLocal = Array.isArray(form.value.imageList) && form.value.imageList.some(img => img._local)
+  if (!hasLocal) return
+  try {
+    const res = await getItemImages(form.value.id)
+    const serverList = getImageListFromResponse(res)
+    if (!serverList || !serverList.length) return
+    let updated = false
+    const skuCode = form.value.skuCode || ''
+    const list = form.value.imageList || []
+    form.value.imageList = list.map((localImg, index) => {
+      if (!localImg._local) return localImg
+      const matchById = localImg.id != null && serverList.find(s => s.id != null && s.id === localImg.id)
+      const matchBySort = localImg.sort != null && serverList.find(s => s.sort != null && s.sort === localImg.sort)
+      const matchByIndex = serverList[index]
+      const matched = matchById || matchBySort || matchByIndex
+      const hasUrl = matched && (matched.url || matched.thumbUrl || matched.imageUrl)
+      if (hasUrl) {
+        updated = true
+        if (localImg.url && localImg.url.startsWith('blob:')) URL.revokeObjectURL(localImg.url)
+        return { ...localImg, ...matched, url: matched.url || matched.thumbUrl || matched.imageUrl, _local: false }
+      }
+      return localImg
+    })
+    if (updated) {
+      ElMessage({ type: 'success', message: `SKU ${skuCode} 商品图片已经上传成功` })
+    }
+  } catch (e) {
+    // 轮询失败静默
+  }
+}
+
+/** 有 _local 图片时，延迟几秒后轮询一次并启动定时轮询，便于尽快提示上传成功 */
+function scheduleImagePollWhenHasLocal() {
+  if (!form.value.id) return
+  const hasLocal = Array.isArray(form.value.imageList) && form.value.imageList.some(img => img._local)
+  if (!hasLocal) return
+  setTimeout(() => pollItemImagesIfNeeded(), 3000)
+}
+
+watch(
+  () => dialog.visible,
+  (visible) => {
+    if (visible) {
+      if (imagePollTimer) {
+        clearInterval(imagePollTimer)
+        imagePollTimer = null
+      }
+      pollItemImagesIfNeeded()
+      imagePollTimer = setInterval(() => pollItemImagesIfNeeded(), 10000)
+    } else {
+      if (imagePollTimer) {
+        clearInterval(imagePollTimer)
+        imagePollTimer = null
+      }
+    }
+  }
+)
+
 const submitCategoryForm = () => {
   itemCategoryFormRef.value.validate(async (valid) => {
     if (valid) {
@@ -1264,6 +1406,18 @@ onMounted(() => {
   height: 100px;
   line-height: 100px;
 }
+.item-image-upload .image-drop-zone {
+  width: 200px;
+  height: 100px;
+  border: 1px dashed #dcdfe6;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #909399;
+  font-size: 13px;
+  box-sizing: border-box;
+}
 
 .mt8 { margin-top: 8px; }
 .accessory-tags {
@@ -1290,6 +1444,20 @@ onMounted(() => {
   padding: 0 8px;
 }
 .item-name-with-tag .name-tag-btn-text { margin-left: 4px; }
+
+.query-price-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.query-price-range :deep(.el-input-number) {
+  flex: 1;
+}
+.query-price-range-separator {
+  color: #606266;
+  flex-shrink: 0;
+}
 
 .name-tag-drawer .name-tag-add {
   display: flex;
