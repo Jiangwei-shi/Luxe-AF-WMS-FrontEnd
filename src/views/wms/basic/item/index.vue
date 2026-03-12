@@ -422,21 +422,12 @@
                         <el-button type="danger" link class="btn-remove" icon="Delete" @click="removePendingImage(idx)" />
                       </div>
                     </div>
-                    <!-- 拖拽 / 点击统一上传区域：一次性拖入不超过 IMAGE_LIMIT 张图片 -->
-                    <div
-                      class="image-drop-zone"
-                      v-show="(form.id ? (form.imageList?.length || 0) : pendingImageFiles.length) < IMAGE_LIMIT"
-                      @dragover.prevent
-                      @dragenter.prevent
-                      @drop.prevent="handleImageFilesDrop"
-                    >
-                      将图片拖拽到此处上传，或点击右侧按钮选择
-                    </div>
+                    <!-- 统一上传区域：支持拖拽 + 点击选择 -->
                     <el-upload
                       ref="itemImageUploadRef"
                       v-show="(form.id ? (form.imageList?.length || 0) : pendingImageFiles.length) < IMAGE_LIMIT"
-                      class="upload-inline"
-                      list-type="picture-card"
+                      class="upload-unified"
+                      drag
                       multiple
                       :auto-upload="false"
                       :limit="IMAGE_LIMIT"
@@ -446,10 +437,13 @@
                       accept="image/*"
                     >
                       <el-icon class="avatar-uploader-icon"><Plus /></el-icon>
+                      <div class="upload-main-text">将图片拖拽到此处，或点击上传</div>
+                      <div class="upload-tip-text">
+                        请上传大小不超过 20MB 的图片，格式 png/jpg/jpeg，最多 {{ IMAGE_LIMIT }} 张。
+                        <br />
+                        支持拖拽调整顺序，点击图片预览原图
+                      </div>
                     </el-upload>
-                  </div>
-                  <div class="el-upload__tip" v-if="true">
-                    请上传大小不超过 20MB 的图片，格式 png/jpg/jpeg，最多 {{ IMAGE_LIMIT }} 张。支持拖拽调整顺序，点击图片预览原图
                   </div>
                 </el-form-item>
               </el-col>
@@ -948,14 +942,6 @@ function removePendingImage(index) {
   pendingImageFiles.value.splice(index, 1)
 }
 
-/** 拖拽图片文件到自定义区域，支持一次性拖入多张，遵守数量与大小限制 */
-async function handleImageFilesDrop(event) {
-  const dt = event.dataTransfer
-  const fileList = dt && dt.files ? Array.from(dt.files) : []
-  if (!fileList.length) return
-  handleSelectedImageFiles(fileList)
-}
-
 /** 删除已上传的商品图片：调用后端删除接口并从列表中移除 */
 async function removeItemImage(index) {
   const list = form.value.imageList
@@ -1401,22 +1387,33 @@ onMounted(() => {
   color: #fff;
   border-radius: 4px;
 }
-.item-image-upload .upload-inline :deep(.el-upload--picture-card) {
-  width: 100px;
-  height: 100px;
-  line-height: 100px;
+.item-image-upload .upload-unified {
+  width: 280px;
 }
-.item-image-upload .image-drop-zone {
-  width: 200px;
-  height: 100px;
-  border: 1px dashed #dcdfe6;
+.item-image-upload .upload-unified :deep(.el-upload-dragger) {
+  width: 280px;
+  height: 126px;
+  padding: 8px 10px;
   border-radius: 6px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #909399;
+  text-align: center;
+}
+.item-image-upload .upload-unified .avatar-uploader-icon {
+  margin-bottom: 4px;
+}
+.item-image-upload .upload-unified .upload-main-text {
   font-size: 13px;
-  box-sizing: border-box;
+  line-height: 18px;
+  color: #606266;
+}
+.item-image-upload .upload-unified .upload-tip-text {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 17px;
+  color: #909399;
 }
 
 .mt8 { margin-top: 8px; }

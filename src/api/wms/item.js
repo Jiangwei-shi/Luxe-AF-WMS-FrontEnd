@@ -100,7 +100,19 @@ export function uploadItemImage(itemId, file, isMain, sort) {
     method: 'post',
     data: formData,
     params,
-    headers: { 'Content-Type': 'multipart/form-data' }
+    headers: { 'Content-Type': 'multipart/form-data', repeatSubmit: false },
+    timeout: 0  // 不限制超时，允许上传任意时长
+  });
+}
+
+/**
+ * 查询商品图片列表（异步上传完成后会带 url）
+ * @param itemId 商品ID
+ */
+export function getItemImages(itemId) {
+  return request({
+    url: `/wms/item/${itemId}/images`,
+    method: 'get'
   });
 }
 
