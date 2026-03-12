@@ -8,15 +8,16 @@ import InnerLink from '@/layout/components/InnerLink'
 // 需要在前端隐藏的菜单路由 path（可以写一级或子级）
 const HIDDEN_SIDEBAR_PATHS = [
   // 'itemBrand',
+  // 'merchant',
   // 'inventory',
   // 'inventoryHistory',
   // 'checkOrder',
   // 'movementOrder',
-  // 'merchant',      
-  // '/system', 
-  // '/monitor',
-  // 'gen',
-  // '/log'
+
+  '/system', 
+  '/monitor',
+  'gen',
+  '/log'
 ]
 
 // 递归过滤 sidebar 路由

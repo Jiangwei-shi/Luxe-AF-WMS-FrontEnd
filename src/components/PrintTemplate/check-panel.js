@@ -415,10 +415,10 @@ export default {
             "colspan": 1
           }, {
             "width": 78.57142857142857,
-            "title": "规格名称",
-            "field": "skuName",
+            "title": "SKU编号",
+            "field": "skuCode",
             "checked": true,
-            "columnId": "skuName",
+            "columnId": "skuCode",
             "fixed": false,
             "rowspan": 1,
             "colspan": 1

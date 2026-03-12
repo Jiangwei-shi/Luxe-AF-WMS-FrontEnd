@@ -91,9 +91,28 @@
               content="请先选择仓库！"
             >
               <template #reference>
-                <el-button type="primary" plain="plain" size="default" @click="showAddItem" icon="Plus"
-                           :disabled="!form.warehouseId">添加商品
-                </el-button>
+                <div>
+                  <el-button
+                    type="primary"
+                    plain="plain"
+                    size="default"
+                    @click="showAddItem"
+                    icon="Plus"
+                    :disabled="!form.warehouseId"
+                  >
+                    添加商品
+                  </el-button>
+                  <el-button
+                    type="primary"
+                    plain="plain"
+                    size="default"
+                    class="ml10"
+                    @click="showScanAddItem"
+                    :disabled="!form.warehouseId"
+                  >
+                    扫码枪模式
+                  </el-button>
+                </div>
               </template>
             </el-popover>
           </div>
@@ -111,7 +130,7 @@
             </el-table-column>
             <el-table-column label="规格信息">
               <template #default="{ row }">
-                <div>{{ row.itemSku.skuName }}</div>
+                <div>{{ row.itemSku.Code }}</div>
                 <div v-if="row.itemSku.barcode">条码：{{row.itemSku.barcode}}</div>
               </template>
             </el-table-column>
@@ -150,6 +169,7 @@
       <InventorySelect
         ref="inventorySelectRef"
         :model-value="inventorySelectShow"
+        :scan-mode="scanMode"
         @handleOkClick="handleOkClick"
         @handleCancelClick="inventorySelectShow = false"
         :size="'90%'"
@@ -203,6 +223,8 @@ const initFormData = {
 }
 const inventorySelectRef = ref(null)
 const selectedInventory = ref([])
+// 扫码枪模式标记
+const scanMode = ref(false)
 const data = reactive({
   form: {...initFormData},
   rules: {
@@ -230,12 +252,22 @@ const inventorySelectShow = ref(false)
 
 // 选择商品 start
 const showAddItem = () => {
+  scanMode.value = false
+  inventorySelectRef.value.getList()
+  inventorySelectShow.value = true
+}
+
+const showScanAddItem = () => {
+  scanMode.value = true
   inventorySelectRef.value.getList()
   inventorySelectShow.value = true
 }
 // 选择成功
 const handleOkClick = (item) => {
-  inventorySelectShow.value = false
+  // 普通模式：选完关闭弹窗；扫码枪模式：保持弹窗打开
+  if (!scanMode.value) {
+    inventorySelectShow.value = false
+  }
   selectedInventory.value = [...item]
   item.forEach(it => {
     if (!form.value.details.find(detail => getWarehouseAndSkuKey(detail) === getWarehouseAndSkuKey(it))) {

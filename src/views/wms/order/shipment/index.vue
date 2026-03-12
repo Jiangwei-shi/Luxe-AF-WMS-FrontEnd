@@ -90,9 +90,9 @@
                     <div>{{ row?.item?.itemName }}</div>
                   </template>
                 </el-table-column>
-                <el-table-column label="规格名称">
+                <el-table-column label="SKU编号">
                   <template #default="{ row }">
-                    <div>{{ row?.itemSku?.skuName }}</div>
+                    <div>{{ row?.itemSku?.skuCode }}</div>
                   </template>
                 </el-table-column>
                 <el-table-column label="数量" prop="quantity" align="right">
@@ -322,7 +322,7 @@ async function handlePrint(row) {
     table = shipmentOrder.details.map(detail => {
       return {
         itemName: detail.item.itemName,
-        skuName: detail.itemSku.skuName,
+        skuCode: detail.itemSku.skuCode,
         quantity: Number(detail.quantity).toFixed(0),
         amount: detail.amount
       }

@@ -84,7 +84,28 @@
               content="请先选择仓库！"
             >
               <template #reference>
-                <el-button type="primary" plain="plain" size="default" @click="showAddItem" icon="Plus" :disabled="!form.warehouseId">添加商品</el-button>
+                <div>
+                  <el-button
+                    type="primary"
+                    plain="plain"
+                    size="default"
+                    @click="showAddItem"
+                    icon="Plus"
+                    :disabled="!form.warehouseId"
+                  >
+                    添加商品
+                  </el-button>
+                  <el-button
+                    type="primary"
+                    plain="plain"
+                    size="default"
+                    class="ml10"
+                    @click="showScanAddItem"
+                    :disabled="!form.warehouseId"
+                  >
+                    扫码枪模式
+                  </el-button>
+                </div>
               </template>
             </el-popover>
           </div>
@@ -97,7 +118,7 @@
             </el-table-column>
             <el-table-column label="规格信息">
               <template #default="{ row }">
-                <div>{{ row.itemSku.skuName }}</div>
+                <div>{{ row.itemSku.skuCode }}</div>
                 <div v-if="row.itemSku.barcode">条码：{{row.itemSku.barcode}}</div>
               </template>
             </el-table-column>
@@ -108,7 +129,7 @@
                   placeholder="数量"
                   :min="1"
                   :precision="0"
-                  @change="handleChangeQuantity"
+                  @change="handleChangeQuantity(scope.row)"
                 ></el-input-number>
               </template>
             </el-table-column>
@@ -134,6 +155,7 @@
       <SkuSelect
         ref="skuSelectRef"
         :model-value="skuSelectShow"
+        :scan-mode="scanMode"
         :selected-sku="selectedSku"
         @handleOkClick="handleOkClick"
         @handleCancelClick="skuSelectShow = false"
@@ -172,6 +194,8 @@ const selectedSku = ref([])
 const mode = ref(false)
 const loading = ref(false)
 const skuSelectRef = ref(null)
+// 扫码枪模式标记
+const scanMode = ref(false)
 const initFormData = {
   id: undefined,
   orderNo: undefined,
@@ -219,26 +243,43 @@ const skuSelectShow = ref(false)
 
 // 选择商品 start
 const showAddItem = () => {
+  scanMode.value = false
+  skuSelectRef.value.getList()
+  skuSelectShow.value = true
+}
+
+const showScanAddItem = () => {
+  scanMode.value = true
   skuSelectRef.value.getList()
   skuSelectShow.value = true
 }
 // 选择成功
 const handleOkClick = (item) => {
-  skuSelectShow.value = false
+  // 普通模式：选完关闭弹窗；扫码枪模式：保持弹窗打开
+  if (!scanMode.value) {
+    skuSelectShow.value = false
+  }
   selectedSku.value = [...item]
   item.forEach((it) => {
     if (!form.value.details.find(detail => detail.itemSku.id === it.id)) {
+      const quantity = 1
+      const costPrice = it.itemSku?.costPrice
+      let amount = undefined
+      if (costPrice || costPrice === 0) {
+        amount = Number(costPrice) * quantity
+      }
       form.value.details.push(
         {
           itemSku: it.itemSku,
           item: it.item,
-          amount: undefined,
-          quantity: it.quantity,
+          amount,
+          quantity,
           warehouseId: form.value.warehouseId
         }
       )
     }
   })
+  updateTotalQuantity()
 }
 // 选择商品 end
 
@@ -381,7 +422,7 @@ const loadDetail = (id) => {
   })
 }
 
-const handleChangeQuantity = () => {
+const updateTotalQuantity = () => {
   let sum = 0
   form.value.details.forEach(it => {
     if (it.quantity) {
@@ -389,6 +430,15 @@ const handleChangeQuantity = () => {
     }
   })
   form.value.totalQuantity = sum
+}
+
+const handleChangeQuantity = (row) => {
+  const costPrice = row.itemSku?.costPrice
+  if (costPrice || costPrice === 0) {
+    const quantity = Number(row.quantity || 0)
+    row.amount = quantity ? Number(costPrice) * quantity : 0
+  }
+  updateTotalQuantity()
 }
 
 const handleAutoCalc = () => {
