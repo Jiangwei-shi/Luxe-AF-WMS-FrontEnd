@@ -377,26 +377,37 @@
               <el-col :span="24">
                 <el-form-item label="商品图片" prop="imageList">
                   <div class="item-image-upload">
-                    <!-- 已上传图片列表（编辑时来自接口，新增时为空） -->
+                    <!-- 图片列表（仅展示已关联到商品的图片状态） -->
                     <div class="image-list" v-if="form.id && form.imageList && form.imageList.length">
                       <div
                         class="image-item"
                         v-for="(img, idx) in form.imageList"
-                        :key="img.id || idx"
+                        :key="img.tempId || img.imageId || img.id || idx"
                         draggable="true"
                         @dragstart="onImageDragStart('uploaded', idx)"
                         @dragover.prevent
                         @drop="onImageDrop('uploaded', idx)"
                       >
                         <el-image
-                          :src="img.url"
+                          :src="img.thumbUrl || img.url"
                           :preview-src-list="uploadedImagePreviewList"
                           :initial-index="idx"
                           preview-teleported
                           fit="cover"
                           class="thumb"
                         />
-                        <span v-if="img.isMain" class="main-tag">主图</span>
+                        <span v-if="idx === 0" class="main-tag">主图</span>
+                        <span v-if="img.uploadStatus === 'uploading'" class="status-tag status-uploading">上传中</span>
+                        <span v-else-if="img.uploadStatus === 'failed'" class="status-tag status-failed">上传失败</span>
+                        <el-button
+                          v-if="img.uploadStatus === 'failed'"
+                          type="warning"
+                          link
+                          class="btn-retry"
+                          @click="retryItemImage(img, idx)"
+                        >
+                          重试
+                        </el-button>
                         <el-button type="danger" link class="btn-remove" icon="Delete" @click="removeItemImage(idx)" />
                       </div>
                     </div>
@@ -444,6 +455,9 @@
                         支持拖拽调整顺序，点击图片预览原图
                       </div>
                     </el-upload>
+                    <div v-if="form.id && hasUploadingImages" class="upload-state-tip">
+                      当前有 {{ uploadingImageCount }} 张图片上传中，上传完成后才可保存。
+                    </div>
                   </div>
                 </el-form-item>
               </el-col>
@@ -454,7 +468,7 @@
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button :loading="buttonLoading" type="primary" @click="submitForm">确 定</el-button>
+          <el-button :loading="buttonLoading" :disabled="hasUploadingImages" type="primary" @click="submitForm">确 定</el-button>
           <el-button @click="cancel">取 消</el-button>
         </div>
       </template>
@@ -519,7 +533,7 @@
 
 <script setup name="Item">
 import { getItem, delItem, addItem, updateItem, uploadItemImage, deleteItemImage, getItemImages } from '@/api/wms/item';
-import { computed, getCurrentInstance, nextTick, onMounted, reactive, ref, toRefs, watch } from 'vue';
+import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, reactive, ref, toRefs, watch } from 'vue';
 import { ElForm, ElTree, ElTreeSelect, ElMessage } from 'element-plus';
 import { Plus, Delete, Ticket } from '@element-plus/icons-vue';
 import {
@@ -776,28 +790,58 @@ const skuForm = reactive({
 })
 const itemImageUploadRef = ref(null)
 let imagePollTimer = null
+const IMAGE_POLL_INTERVAL_MS = 5000
+const IMAGE_POLL_TIMEOUT_MS = 120000
 
 // 商品图片（方案B）：新增时暂存的待上传文件 { file, url }
 const pendingImageFiles = ref([])
 const IMAGE_LIMIT = 10
 const IMAGE_SIZE_MB = 20
 const imageDragState = reactive({ type: '', fromIndex: -1 })
-const uploadedImagePreviewList = computed(() => (form.value.imageList || []).map(it => it.url).filter(Boolean))
+const uploadedImagePreviewList = computed(() => (form.value.imageList || []).map(it => it.url || it.thumbUrl).filter(Boolean))
 const pendingImagePreviewList = computed(() => pendingImageFiles.value.map(it => it.url).filter(Boolean))
+const hasUploadingImages = computed(() => Array.isArray(form.value.imageList) && form.value.imageList.some(it => it.uploadStatus === 'uploading'))
+const uploadingImageCount = computed(() => Array.isArray(form.value.imageList) ? form.value.imageList.filter(it => it.uploadStatus === 'uploading').length : 0)
+
+function genTempId() {
+  return `img_${Date.now()}_${Math.random().toString(16).slice(2)}`
+}
 
 function normalizeUploadedImageMeta() {
   if (!Array.isArray(form.value.imageList)) return
   form.value.imageList.forEach((img, idx) => {
     img.sort = idx
     img.isMain = idx === 0 ? 1 : 0
+    if (!img.tempId) img.tempId = genTempId()
+    if (img.imageId == null && img.id != null) img.imageId = img.id
+    if (!img.uploadStatus) img.uploadStatus = img.imageId != null ? 'done' : 'uploading'
   })
+}
+
+function normalizeServerImage(img, idx) {
+  const displayUrl = img?.url || img?.thumbUrl || img?.imageUrl || ''
+  const imageId = img?.imageId ?? img?.id ?? null
+  return {
+    ...img,
+    tempId: img?.tempId || genTempId(),
+    imageId,
+    id: imageId,
+    url: displayUrl,
+    thumbUrl: img?.thumbUrl || displayUrl,
+    uploadStatus: imageId != null ? 'done' : 'uploading',
+    sort: img?.sort ?? idx,
+    isMain: idx === 0 ? 1 : 0,
+    queuedAt: Date.now(),
+    file: img?.file
+  }
 }
 
 /** 构造提交给后端的图片排序数据（按当前前端顺序） */
 function buildImageListPayload() {
   const list = Array.isArray(form.value.imageList) ? form.value.imageList : []
-  return list.map((img, idx) => ({
-    id: img.id,
+  const doneList = list.filter((img) => img.uploadStatus === 'done' && img.imageId != null)
+  return doneList.map((img, idx) => ({
+    id: img.imageId,
     itemId: img.itemId ?? form.value.id,
     ossId: img.ossId,
     thumbOssId: img.thumbOssId,
@@ -852,31 +896,59 @@ function handleImageExceed() {
 
 /** 编辑时：自定义上传，走 /item/{itemId}/image/upload，不阻塞界面 */
 async function customUpload(options) {
-  const { file } = options
+  const { file, existingImage } = options
   if (!beforeImageUpload(file)) return
   if (!form.value.id) return
-  ElMessage({ type: 'success', message: '图片在上传队列中（后台异步上传请勿重复提交）', duration: 5000 })
+  if (!Array.isArray(form.value.imageList)) form.value.imageList = []
+  let localImage = existingImage
+  if (!localImage) {
+    const previewUrl = URL.createObjectURL(file)
+    localImage = {
+      tempId: genTempId(),
+      imageId: null,
+      itemId: form.value.id,
+      url: previewUrl,
+      thumbUrl: previewUrl,
+      uploadStatus: 'uploading',
+      file,
+      sort: form.value.imageList.length,
+      isMain: form.value.imageList.length === 0 ? 1 : 0,
+      queuedAt: Date.now()
+    }
+    form.value.imageList.push(localImage)
+  } else {
+    localImage.file = file
+    localImage.uploadStatus = 'uploading'
+    localImage.queuedAt = Date.now()
+    if (localImage.errorMessage) delete localImage.errorMessage
+  }
+  normalizeUploadedImageMeta()
+  startImagePolling()
+  ElMessage({ type: 'success', message: '图片已加入上传队列，正在后台处理', duration: 3000 })
   try {
-    const sort = (form.value.imageList?.length ?? 0)
-    const res = await uploadItemImage(form.value.id, file, !(form.value.imageList?.length), sort)
+    const res = await uploadItemImage(form.value.id, file, localImage.sort === 0, localImage.sort)
     if (res.code === 200) {
-      if (!Array.isArray(form.value.imageList)) form.value.imageList = []
-      const previewUrl = URL.createObjectURL(file)
-      form.value.imageList.push({
-        ...(res.data || {}),
-        itemId: form.value.id,
-        isMain: !(form.value.imageList.length),
-        sort,
-        url: previewUrl,
-        thumbUrl: previewUrl,
-        _local: true
-      })
-      scheduleImagePollWhenHasLocal()
+      const data = res.data || {}
+      if (data.id != null && (data.url || data.thumbUrl || data.imageUrl)) {
+        const merged = normalizeServerImage({ ...localImage, ...data }, localImage.sort)
+        merged.uploadStatus = 'done'
+        Object.assign(localImage, merged)
+      } else if (data.id != null) {
+        localImage.imageId = data.id
+        localImage.id = data.id
+      }
+      localImage.itemId = form.value.id
+      localImage.uploadStatus = localImage.imageId != null && (localImage.url || localImage.thumbUrl) ? 'done' : 'uploading'
+      startImagePolling()
       nextTick(() => itemImageUploadRef.value?.clearFiles?.())
     } else {
-      proxy?.$modal.msgError(res.msg || '上传失败')
+      localImage.uploadStatus = 'failed'
+      localImage.errorMessage = res.msg || '上传失败'
+      proxy?.$modal.msgError(localImage.errorMessage)
     }
   } catch (e) {
+    localImage.uploadStatus = 'failed'
+    localImage.errorMessage = '上传失败'
     proxy?.$modal.msgError('上传失败')
   }
 }
@@ -947,16 +1019,17 @@ async function removeItemImage(index) {
   const list = form.value.imageList
   if (!list || !list[index]) return
   const img = list[index]
-  const imageId = img.id
+  const imageId = img.imageId ?? img.id
   if (imageId == null) {
-    if (img._local && img.url) URL.revokeObjectURL(img.url)
+    if (img.url && String(img.url).startsWith('blob:')) URL.revokeObjectURL(img.url)
     list.splice(index, 1)
+    normalizeUploadedImageMeta()
     return
   }
   await proxy?.$modal.confirm('确认删除该图片吗？')
   try {
     await deleteItemImage(imageId)
-    if (img._local && img.url) URL.revokeObjectURL(img.url)
+    if (img.url && String(img.url).startsWith('blob:')) URL.revokeObjectURL(img.url)
     list.splice(index, 1)
     normalizeUploadedImageMeta()
     proxy?.$modal.msgSuccess('删除成功')
@@ -1037,8 +1110,9 @@ const reset = () => {
   })
   pendingImageFiles.value = []
   ;(form.value.imageList || []).forEach((img) => {
-    if (img._local && img.url) URL.revokeObjectURL(img.url)
+    if (img.url && String(img.url).startsWith('blob:')) URL.revokeObjectURL(img.url)
   })
+  stopImagePolling()
   itemImageUploadRef.value?.clearFiles?.()
   form.value = {...initFormData};
   itemFormRef.value?.resetFields();
@@ -1092,7 +1166,8 @@ const handleUpdate = (row) => {
     ])
     Object.assign(skuForm.itemSkuList, skuRes.data)
     const itemData = itemRes.data || {}
-    form.value = { ...form.value, ...row.item, ...itemData, imageList: itemData.imageList || itemData.images || [] }
+    const imageList = (itemData.imageList || itemData.images || []).map((img, idx) => normalizeServerImage(img, idx))
+    form.value = { ...form.value, ...row.item, ...itemData, imageList }
     normalizeUploadedImageMeta()
     form.value.skuCode = skuForm.itemSkuList[0]?.skuCode ?? ''
     form.value.costPrice = skuForm.itemSkuList[0]?.costPrice ?? null
@@ -1132,6 +1207,10 @@ const submitForm = async () => {
   if (!skuForm.itemSkuList || skuForm.itemSkuList.length === 0) {
     proxy?.$modal.msgError("至少包含一个商品规格");
     return;
+  }
+  if (hasUploadingImages.value) {
+    proxy?.$modal.msgWarning('图片上传中，请稍后再保存')
+    return
   }
 
   buttonLoading.value = true;
@@ -1190,63 +1269,103 @@ function getImageListFromResponse(res) {
 /** 轮询商品图片列表，发现 _local 的图片在后端已有 url 时替换并提示上传成功 */
 async function pollItemImagesIfNeeded() {
   if (!form.value.id) return
-  const hasLocal = Array.isArray(form.value.imageList) && form.value.imageList.some(img => img._local)
-  if (!hasLocal) return
+  if (!Array.isArray(form.value.imageList) || !form.value.imageList.length) return
+  const now = Date.now()
+  const uploadingList = form.value.imageList.filter((img) => img.uploadStatus === 'uploading')
+  if (!uploadingList.length) {
+    stopImagePolling()
+    return
+  }
   try {
     const res = await getItemImages(form.value.id)
     const serverList = getImageListFromResponse(res)
-    if (!serverList || !serverList.length) return
+    if (!serverList || !serverList.length) {
+      form.value.imageList.forEach((img) => {
+        if (img.uploadStatus === 'uploading' && img.queuedAt && now - img.queuedAt > IMAGE_POLL_TIMEOUT_MS) {
+          img.uploadStatus = 'failed'
+          img.errorMessage = '上传超时，请重试'
+        }
+      })
+      return
+    }
     let updated = false
-    const skuCode = form.value.skuCode || ''
-    const list = form.value.imageList || []
-    form.value.imageList = list.map((localImg, index) => {
-      if (!localImg._local) return localImg
-      const matchById = localImg.id != null && serverList.find(s => s.id != null && s.id === localImg.id)
+    form.value.imageList = (form.value.imageList || []).map((localImg, index) => {
+      if (localImg.uploadStatus !== 'uploading') return localImg
+      const matchById = localImg.imageId != null && serverList.find(s => s.id != null && s.id === localImg.imageId)
       const matchBySort = localImg.sort != null && serverList.find(s => s.sort != null && s.sort === localImg.sort)
       const matchByIndex = serverList[index]
       const matched = matchById || matchBySort || matchByIndex
-      const hasUrl = matched && (matched.url || matched.thumbUrl || matched.imageUrl)
+      const hasUrl = matched && matched.id != null && (matched.url || matched.thumbUrl || matched.imageUrl)
       if (hasUrl) {
         updated = true
-        if (localImg.url && localImg.url.startsWith('blob:')) URL.revokeObjectURL(localImg.url)
-        return { ...localImg, ...matched, url: matched.url || matched.thumbUrl || matched.imageUrl, _local: false }
+        if (localImg.url && String(localImg.url).startsWith('blob:')) URL.revokeObjectURL(localImg.url)
+        return normalizeServerImage({ ...localImg, ...matched, uploadStatus: 'done' }, localImg.sort ?? index)
+      }
+      if (localImg.queuedAt && now - localImg.queuedAt > IMAGE_POLL_TIMEOUT_MS) {
+        return { ...localImg, uploadStatus: 'failed', errorMessage: '上传超时，请重试' }
       }
       return localImg
     })
     if (updated) {
-      ElMessage({ type: 'success', message: `SKU ${skuCode} 商品图片已经上传成功` })
+      ElMessage({ type: 'success', message: '商品图片上传成功' })
+    }
+    if (!form.value.imageList.some((img) => img.uploadStatus === 'uploading')) {
+      stopImagePolling()
     }
   } catch (e) {
     // 轮询失败静默
   }
 }
 
-/** 有 _local 图片时，延迟几秒后轮询一次并启动定时轮询，便于尽快提示上传成功 */
-function scheduleImagePollWhenHasLocal() {
-  if (!form.value.id) return
-  const hasLocal = Array.isArray(form.value.imageList) && form.value.imageList.some(img => img._local)
-  if (!hasLocal) return
-  setTimeout(() => pollItemImagesIfNeeded(), 3000)
+function startImagePolling() {
+  if (!form.value.id || !dialog.visible || !hasUploadingImages.value) return
+  if (imagePollTimer) return
+  imagePollTimer = setInterval(() => pollItemImagesIfNeeded(), IMAGE_POLL_INTERVAL_MS)
+  pollItemImagesIfNeeded()
+}
+
+function stopImagePolling() {
+  if (imagePollTimer) {
+    clearInterval(imagePollTimer)
+    imagePollTimer = null
+  }
+}
+
+function retryItemImage(img, index) {
+  if (!img || !form.value.id) return
+  const file = img.file
+  if (!file) {
+    proxy?.$modal.msgWarning('该图片缺少本地文件，请重新选择上传')
+    return
+  }
+  const list = form.value.imageList || []
+  const current = list[index]
+  if (!current) return
+  customUpload({ file, existingImage: current })
 }
 
 watch(
   () => dialog.visible,
   (visible) => {
     if (visible) {
-      if (imagePollTimer) {
-        clearInterval(imagePollTimer)
-        imagePollTimer = null
-      }
-      pollItemImagesIfNeeded()
-      imagePollTimer = setInterval(() => pollItemImagesIfNeeded(), 10000)
+      startImagePolling()
     } else {
-      if (imagePollTimer) {
-        clearInterval(imagePollTimer)
-        imagePollTimer = null
-      }
+      stopImagePolling()
     }
   }
 )
+
+watch(
+  () => hasUploadingImages.value,
+  (uploading) => {
+    if (uploading) startImagePolling()
+    else stopImagePolling()
+  }
+)
+
+onBeforeUnmount(() => {
+  stopImagePolling()
+})
 
 const submitCategoryForm = () => {
   itemCategoryFormRef.value.validate(async (valid) => {
@@ -1387,6 +1506,32 @@ onMounted(() => {
   color: #fff;
   border-radius: 4px;
 }
+.item-image-upload .image-item .btn-retry {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  padding: 2px 4px;
+  min-height: 0;
+  background: rgba(230, 162, 60, 0.95);
+  color: #fff;
+  border-radius: 4px;
+}
+.item-image-upload .image-item .status-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 2px 6px;
+  font-size: 12px;
+  line-height: 16px;
+  color: #fff;
+  border-bottom-right-radius: 6px;
+}
+.item-image-upload .image-item .status-uploading {
+  background: rgba(64, 158, 255, 0.95);
+}
+.item-image-upload .image-item .status-failed {
+  background: rgba(245, 108, 108, 0.95);
+}
 .item-image-upload .upload-unified {
   width: 280px;
 }
@@ -1414,6 +1559,12 @@ onMounted(() => {
   font-size: 12px;
   line-height: 17px;
   color: #909399;
+}
+.item-image-upload .upload-state-tip {
+  width: 100%;
+  margin-top: 6px;
+  color: #e6a23c;
+  font-size: 12px;
 }
 
 .mt8 { margin-top: 8px; }
