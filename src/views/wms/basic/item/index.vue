@@ -646,7 +646,6 @@ const insertNameTag = (tag) => {
     const cur = form.value.itemName || ''
     form.value.itemName = cur ? cur + ' ' + tag : tag
   }
-  nameTagDrawerVisible.value = false
 }
 
 /** 鉴定机构固定选项（仅可选，不可手输） */
