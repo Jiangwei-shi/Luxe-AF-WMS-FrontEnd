@@ -100,7 +100,7 @@
                     <el-statistic :value="Number(row.quantity)" :precision="0"/>
                   </template>
                 </el-table-column>
-                <el-table-column label="金额(元)" align="right">
+                <el-table-column label="金额($USD)" align="right">
                   <template #default="{ row }">
                     <el-statistic v-if="row.amount || row.amount === 0" :precision="2" :value="Number(row.amount)"/>
                     <div v-else>-</div>
@@ -121,7 +121,7 @@
             <div>{{ useWmsStore().warehouseMap.get(row.warehouseId)?.warehouseName }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="总数量/总金额(元)" align="left" min-width="100">
+        <el-table-column label="总数量/总金额(￥USD)" align="left" min-width="100">
           <template #default="{ row }">
             <div class="flex-space-between">
               <span>数量：</span>
