@@ -13,11 +13,11 @@ const HIDDEN_SIDEBAR_PATHS = [
   // 'inventoryHistory',
   // 'checkOrder',
   // 'movementOrder',
-
-  '/system', 
-  '/monitor',
-  'gen',
-  '/log'
+  // '/system', 
+  // '/monitor',
+  // 'config',
+  // 'gen',
+  // '/log'
 ]
 
 // 递归过滤 sidebar 路由
