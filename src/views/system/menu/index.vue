@@ -50,20 +50,22 @@
       <el-table
          v-if="refreshTable"
          v-loading="loading"
+         class="menu-list-table"
+         style="width: 100%"
          :data="menuList"
          row-key="menuId"
          :default-expand-all="isExpandAll"
          :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
       >
-         <el-table-column prop="menuName" label="菜单名称" :show-overflow-tooltip="true" width="160"></el-table-column>
+         <el-table-column prop="menuName" label="菜单名称" :show-overflow-tooltip="true" min-width="200"></el-table-column>
          <el-table-column prop="icon" label="图标" align="center" width="100">
             <template #default="scope">
                <svg-icon :icon-class="scope.row.icon" />
             </template>
          </el-table-column>
          <el-table-column prop="orderNum" label="排序" width="60"></el-table-column>
-         <el-table-column prop="perms" label="权限标识" :show-overflow-tooltip="true"></el-table-column>
-         <el-table-column prop="component" label="组件路径" :show-overflow-tooltip="true"></el-table-column>
+         <el-table-column prop="perms" label="权限标识" :show-overflow-tooltip="true" min-width="160"></el-table-column>
+         <el-table-column prop="component" label="组件路径" :show-overflow-tooltip="true" min-width="180"></el-table-column>
          <el-table-column prop="status" label="状态" width="80">
             <template #default="scope">
                <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
@@ -135,12 +137,12 @@
                      </el-popover>
                   </el-form-item>
                </el-col>
-               <el-col :span="12">
+               <el-col :span="16">
                   <el-form-item label="菜单名称" prop="menuName">
                      <el-input v-model="form.menuName" placeholder="请输入菜单名称" />
                   </el-form-item>
                </el-col>
-               <el-col :span="12">
+               <el-col :span="8">
                   <el-form-item label="显示排序" prop="orderNum">
                      <el-input-number v-model="form.orderNum" controls-position="right" :min="0" />
                   </el-form-item>
@@ -173,7 +175,7 @@
                      <el-input v-model="form.path" placeholder="请输入路由地址" />
                   </el-form-item>
                </el-col>
-               <el-col :span="12" v-if="form.menuType == 'C'">
+               <el-col :span="8" v-if="form.menuType == 'C'">
                   <el-form-item prop="component">
                      <template #label>
                         <span>
@@ -186,7 +188,7 @@
                      <el-input v-model="form.component" placeholder="请输入组件路径" />
                   </el-form-item>
                </el-col>
-               <el-col :span="12" v-if="form.menuType !== 'M'">
+               <el-col :span="8" v-if="form.menuType !== 'M'">
                   <el-form-item>
                      <el-input v-model="form.perms" placeholder="请输入权限标识" maxlength="100" />
                      <template #label>
