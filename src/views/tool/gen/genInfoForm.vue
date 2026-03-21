@@ -224,6 +224,7 @@
 
 <script setup>
 import { listMenu } from "@/api/system/menu";
+import { filterHiddenMenusFromTree } from "@/utils/hiddenMenus";
 
 const subColumns = ref([]);
 const menuOptions = ref([]);
@@ -269,7 +270,7 @@ function setSubTableColumns(value) {
 /** 查询菜单下拉树结构 */
 function getMenuTreeselect() {
   listMenu().then(response => {
-    menuOptions.value = proxy.handleTree(response.data, "menuId");
+    menuOptions.value = filterHiddenMenusFromTree(proxy.handleTree(response.data, "menuId"));
   });
 }
 
