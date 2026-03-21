@@ -282,6 +282,7 @@
 
 <script setup name="Menu">
 import { addMenu, delMenu, getMenu, listMenu, updateMenu } from "@/api/system/menu";
+import { filterHiddenMenusFromTree } from "@/utils/hiddenMenus";
 import SvgIcon from "@/components/SvgIcon";
 import IconSelect from "@/components/IconSelect";
 import { ClickOutside as vClickOutside } from 'element-plus'
@@ -319,7 +320,8 @@ const { queryParams, form, rules } = toRefs(data);
 function getList() {
   loading.value = true;
   listMenu(queryParams.value).then(response => {
-    menuList.value = proxy.handleTree(response.data, "menuId");
+    const filtered = filterHiddenMenusFromTree(proxy.handleTree(response.data, "menuId"));
+    menuList.value = filtered;
     loading.value = false;
   });
 }
@@ -328,7 +330,7 @@ function getTreeselect() {
   menuOptions.value = [];
   listMenu().then(response => {
     const menu = { menuId: 0, menuName: "主类目", children: [] };
-    menu.children = proxy.handleTree(response.data, "menuId");
+    menu.children = filterHiddenMenusFromTree(proxy.handleTree(response.data, "menuId"));
     menuOptions.value.push(menu);
   });
 }
