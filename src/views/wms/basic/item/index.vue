@@ -80,7 +80,7 @@
               />
             </el-form-item>
           </el-col>
-          <el-col :xs="24" :sm="24" :md="12" :lg="12">
+          <el-col :xs="24" :sm="24" :md="12" :lg="12" v-if="canViewSellingPrice">
             <el-form-item label="销售价" prop="sellingPriceMin">
               <div class="query-price-range">
                 <el-input-number v-model="queryParams.sellingPriceMin" :min="0" :precision="2" :controls="false" placeholder="最低" style="width: 100%"/>
@@ -172,13 +172,13 @@
                 <div v-if="row.itemSku.skuCode">SKU编码：{{ row.itemSku.skuCode }}</div>
               </template>
             </el-table-column>
-            <el-table-column label="金额(元)" width="160" align="left">
+            <el-table-column v-if="canViewCostPrice || canViewSellingPrice" label="金额(元)" width="160" align="left">
               <template #default="{ row }">
-                <div v-if="row.itemSku.costPrice" class="flex-space-between">
+                <div v-if="canViewCostPrice && (row.itemSku.costPrice || row.itemSku.costPrice === 0)" class="flex-space-between">
                   <span>成本价：</span>
                   <div>{{ (row.itemSku.costPrice || row.itemSku.costPrice === 0) ? row.itemSku.costPrice : '' }}</div>
                 </div>
-                <div v-if="row.itemSku.sellingPrice" class="flex-space-between">
+                <div v-if="canViewSellingPrice && (row.itemSku.sellingPrice || row.itemSku.sellingPrice === 0)" class="flex-space-between">
                   <span>销售价：</span>
                   <div>{{ (row.itemSku.sellingPrice || row.itemSku.sellingPrice === 0) ? row.itemSku.sellingPrice : '' }}</div>
                 </div>
@@ -270,14 +270,14 @@
             </el-row>
             <!-- 7.成本价 8.销售价 -->
             <el-row :gutter="24">
-              <el-col :span="12">
+              <el-col :span="12" v-if="canViewCostPrice">
                 <el-form-item label="成本价">
-                  <el-input-number v-model="form.costPrice" :min="0" :precision="2" :controls="false" style="width: 100%"/>
+                  <el-input-number v-model="form.costPrice" :disabled="!canEditCostPrice" :min="0" :precision="2" :controls="false" style="width: 100%"/>
                 </el-form-item>
               </el-col>
-              <el-col :span="12">
+              <el-col :span="12" v-if="canViewSellingPrice">
                 <el-form-item label="销售价">
-                  <el-input-number v-model="form.sellingPrice" :min="0" :precision="2" :controls="false" style="width: 100%"/>
+                  <el-input-number v-model="form.sellingPrice" :disabled="!canEditSellingPrice" :min="0" :precision="2" :controls="false" style="width: 100%"/>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -552,6 +552,10 @@ import {useWmsStore} from '@/store/modules/wms'
 const barcode = ref(null)
 const route = useRoute()
 const {proxy} = getCurrentInstance();
+const canViewSellingPrice = computed(() => proxy?.$auth?.hasPermi('wms:itemSellingPrice:view'));
+const canEditSellingPrice = computed(() => proxy?.$auth?.hasPermi('wms:itemSellingPrice:edit'));
+const canViewCostPrice = computed(() => proxy?.$auth?.hasPermi('wms:itemCostPrice:view'));
+const canEditCostPrice = computed(() => proxy?.$auth?.hasPermi('wms:itemCostPrice:edit'));
 const itemList = ref([]);
 const itemCategoryTreeSelectList = computed(() => useWmsStore().itemCategoryTreeList);
 const itemCategoryTreeOptionsList = computed(() => {
@@ -762,6 +766,10 @@ const currentType = ref()
 /** 查询物料列表 */
 const getList = async () => {
   const query = { ...queryParams.value };
+  if (!canViewSellingPrice.value) {
+    delete query.sellingPriceMin;
+    delete query.sellingPriceMax;
+  }
   if (query.createTimeRange && query.createTimeRange.length === 2) {
     query.startTime = query.createTimeRange[0];
     query.endTime = query.createTimeRange[1];
@@ -1169,8 +1177,8 @@ const handleUpdate = (row) => {
     form.value = { ...form.value, ...row.item, ...itemData, imageList }
     normalizeUploadedImageMeta()
     form.value.skuCode = skuForm.itemSkuList[0]?.skuCode ?? ''
-    form.value.costPrice = skuForm.itemSkuList[0]?.costPrice ?? null
-    form.value.sellingPrice = skuForm.itemSkuList[0]?.sellingPrice ?? null
+    form.value.costPrice = canViewCostPrice.value ? (skuForm.itemSkuList[0]?.costPrice ?? null) : null
+    form.value.sellingPrice = canViewSellingPrice.value ? (skuForm.itemSkuList[0]?.sellingPrice ?? null) : null
     skuLoading.value = false
   });
 }
@@ -1198,10 +1206,24 @@ const submitForm = async () => {
   // 将主表填的 SKU 编码同步到规格行，再提交
   if (skuForm.itemSkuList && skuForm.itemSkuList.length) {
     skuForm.itemSkuList[0].skuCode = form.value.skuCode;
-    skuForm.itemSkuList[0].costPrice = form.value.costPrice;
-    skuForm.itemSkuList[0].sellingPrice = form.value.sellingPrice;
+    if (canEditCostPrice.value) {
+      skuForm.itemSkuList[0].costPrice = form.value.costPrice;
+    }
+    if (canEditSellingPrice.value) {
+      skuForm.itemSkuList[0].sellingPrice = form.value.sellingPrice;
+    }
   }
-  form.value.sku = skuForm.itemSkuList;
+  const submitSkuList = (skuForm.itemSkuList || []).map((sku) => {
+    const nextSku = { ...sku };
+    if (!canEditCostPrice.value) {
+      delete nextSku.costPrice;
+    }
+    if (!canEditSellingPrice.value) {
+      delete nextSku.sellingPrice;
+    }
+    return nextSku;
+  });
+  form.value.sku = submitSkuList;
 
   if (!skuForm.itemSkuList || skuForm.itemSkuList.length === 0) {
     proxy?.$modal.msgError("至少包含一个商品规格");
@@ -1220,11 +1242,19 @@ const submitForm = async () => {
       normalizeUploadedImageMeta()
       const payload = {
         ...form.value,
+        ...(canEditCostPrice.value ? {} : { costPrice: undefined }),
+        ...(canEditSellingPrice.value ? {} : { sellingPrice: undefined }),
         imageList: buildImageListPayload()
       }
       await updateItem(payload);
     } else {
       const payload = { ...form.value };
+      if (!canEditCostPrice.value) {
+        delete payload.costPrice;
+      }
+      if (!canEditSellingPrice.value) {
+        delete payload.sellingPrice;
+      }
       delete payload.imageList;
       const res = await addItem(payload);
       itemId = res?.data?.id ?? res?.data?.itemId ?? res?.data;

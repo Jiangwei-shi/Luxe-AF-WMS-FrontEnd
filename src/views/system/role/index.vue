@@ -244,7 +244,8 @@
 
 <script setup name="Role">
 import { addRole, changeRoleStatus, dataScope, delRole, getRole, listRole, updateRole, deptTreeSelect } from "@/api/system/role";
-import { roleMenuTreeselect, treeselect as menuTreeselect } from "@/api/system/menu";
+import { listMenu, roleMenuTreeselect, treeselect as menuTreeselect } from "@/api/system/menu";
+import { buildHiddenMenuIdSet, filterTreeselectMenuTree } from "@/utils/hiddenMenus";
 
 const router = useRouter();
 const { proxy } = getCurrentInstance();
@@ -369,8 +370,9 @@ function handleAuthUser(row) {
 }
 /** 查询菜单树结构 */
 function getMenuTreeselect() {
-  menuTreeselect().then(response => {
-    menuOptions.value = response.data;
+  Promise.all([listMenu(), menuTreeselect()]).then(([listRes, treeRes]) => {
+    const { hiddenIds, menuTypeById } = buildHiddenMenuIdSet(listRes.data);
+    menuOptions.value = filterTreeselectMenuTree(treeRes.data, hiddenIds, menuTypeById);
   });
 }
 /** 所有部门节点数据 */
@@ -436,9 +438,14 @@ function handleUpdate(row) {
 }
 /** 根据角色ID查询菜单树结构 */
 function getRoleMenuTreeselect(roleId) {
-  return roleMenuTreeselect(roleId).then(response => {
-    menuOptions.value = response.data.menus;
-    return response;
+  return Promise.all([listMenu(), roleMenuTreeselect(roleId)]).then(([listRes, response]) => {
+    const { hiddenIds, menuTypeById } = buildHiddenMenuIdSet(listRes.data);
+    menuOptions.value = filterTreeselectMenuTree(response.data.menus, hiddenIds, menuTypeById);
+    const checkedKeys = (response.data.checkedKeys || []).filter(id => !hiddenIds.has(id));
+    return {
+      ...response,
+      data: { ...response.data, menus: menuOptions.value, checkedKeys }
+    };
   });
 }
 /** 根据角色ID查询部门树结构 */

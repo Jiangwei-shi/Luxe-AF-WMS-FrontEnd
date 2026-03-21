@@ -4,26 +4,12 @@ import { getRouters } from '@/api/menu'
 import Layout from '@/layout/index'
 import ParentView from '@/components/ParentView'
 import InnerLink from '@/layout/components/InnerLink'
-
-// 需要在前端隐藏的菜单路由 path（可以写一级或子级）
-const HIDDEN_SIDEBAR_PATHS = [
-  // 'itemBrand',
-  // 'merchant',
-  // 'inventory',
-  // 'inventoryHistory',
-  // 'checkOrder',
-  // 'movementOrder',
-
-  '/system', 
-  '/monitor',
-  'gen',
-  '/log'
-]
+import { HIDDEN_DYNAMIC_ROUTE_PATHS, isHiddenMenuPath } from '@/utils/hiddenMenus'
 
 // 递归过滤 sidebar 路由
 function filterSidebarRoutes(routes) {
   return routes
-    .filter(route => !HIDDEN_SIDEBAR_PATHS.includes(route.path))
+    .filter(route => !isHiddenMenuPath(route.path))
     .map(route => {
       if (route.children && route.children.length) {
         route.children = filterSidebarRoutes(route.children)
@@ -69,16 +55,20 @@ const usePermissionStore = defineStore(
             const sidebarRoutes = filterAsyncRouter(sdata)
             const rewriteRoutes = filterAsyncRouter(rdata, false, true)
             const defaultRoutes = filterAsyncRouter(defaultData)
-            const asyncRoutes = filterDynamicRoutes(dynamicRoutes)
+            const asyncRoutes = filterDynamicRoutes(dynamicRoutes).filter(
+              route => !HIDDEN_DYNAMIC_ROUTE_PATHS.includes(route.path)
+            )
             asyncRoutes.forEach(route => { router.addRoute(route) })
             const filteredSidebarRoutes = filterSidebarRoutes(sidebarRoutes)
-            this.setRoutes(rewriteRoutes)
+            const filteredRewriteRoutes = filterSidebarRoutes(rewriteRoutes)
+            const filteredTopbarRoutes = filterSidebarRoutes(defaultRoutes)
+            this.setRoutes(filteredRewriteRoutes)
             // this.setSidebarRouters(constantRoutes.concat(sidebarRoutes))
             this.setSidebarRouters(constantRoutes.concat(filteredSidebarRoutes))
             // this.setDefaultRoutes(sidebarRoutes)
             this.setDefaultRoutes(filteredSidebarRoutes)
-            this.setTopbarRoutes(defaultRoutes)
-            resolve(rewriteRoutes)
+            this.setTopbarRoutes(filteredTopbarRoutes)
+            resolve(filteredRewriteRoutes)
           })
         })
       }
