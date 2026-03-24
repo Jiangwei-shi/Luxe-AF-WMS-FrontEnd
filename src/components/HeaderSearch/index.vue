@@ -8,7 +8,7 @@
       filterable
       default-first-option
       remote
-      placeholder="Search"
+      :placeholder="$t('headerSearch.placeholder')"
       class="header-search-select"
       @change="change"
     >
@@ -22,6 +22,8 @@ import Fuse from 'fuse.js'
 import { getNormalPath } from '@/utils/ruoyi'
 import { isHttp } from '@/utils/validate'
 import usePermissionStore from '@/store/modules/permission'
+import useSettingsStore from '@/store/modules/settings'
+import { getRouteTitle } from '@/utils/routeTitle'
 
 const search = ref('');
 const options = ref([]);
@@ -31,6 +33,7 @@ const fuse = ref(undefined);
 const headerSearchSelectRef = ref(null);
 const router = useRouter();
 const routes = computed(() => usePermissionStore().routes);
+const settingsStore = useSettingsStore()
 
 function click() {
   show.value = !show.value
@@ -95,7 +98,7 @@ function generateRoutes(routes, basePath = '', prefixTitle = [], query = {}) {
     }
 
     if (r.meta && r.meta.title) {
-      data.title = [...data.title, r.meta.title]
+      data.title = [...data.title, getRouteTitle(r.meta, settingsStore.language || 'zh-cn')]
 
       if (r.redirect !== 'noRedirect') {
         // only push the routes with title

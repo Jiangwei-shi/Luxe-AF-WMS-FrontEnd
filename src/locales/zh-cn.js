@@ -7,7 +7,7 @@ export default {
     logoutConfirmOk: '确定',
     logoutConfirmCancel: '取消',
     langSwitchLabelZh: '中文',
-    langSwitchLabelEn: 'EN',
+    langSwitchLabelEn: 'English',
   },
   login: {
     title: 'Michael-库存管理系统',
@@ -17,6 +17,23 @@ export default {
     rememberMe: '记住密码',
     login: '登 录',
     loggingIn: '登 录 中...',
+    ruleUsernameRequired: '请输入您的账号',
+    rulePasswordRequired: '请输入您的密码',
+    ruleCodeRequired: '请输入验证码',
+  },
+  topNav: {
+    moreMenu: '更多菜单',
+  },
+  tagsView: {
+    refreshPage: '刷新页面',
+    closeCurrent: '关闭当前',
+    closeOthers: '关闭其他',
+    closeLeft: '关闭左侧',
+    closeRight: '关闭右侧',
+    closeAll: '全部关闭',
+  },
+  headerSearch: {
+    placeholder: '搜索页面',
   },
   home: {
     inbound: '入库',

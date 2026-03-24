@@ -7,7 +7,7 @@
           :key="item.value"
           :index="index"
           :class="item.elTagClass"
-        >{{ item.label + " " }}</span>
+        >{{ trLabel(item.label) + " " }}</span>
         <el-tag
           v-else
           :disable-transitions="true"
@@ -15,7 +15,7 @@
           :index="index"
           :type="item.elTagType === 'primary' ? '' : item.elTagType"
           :class="item.elTagClass"
-        >{{ item.label + " " }}</el-tag>
+        >{{ trLabel(item.label) + " " }}</el-tag>
       </template>
     </template>
     <template v-if="unmatch && showValue">
@@ -25,8 +25,12 @@
 </template>
 
 <script setup>
+import useSettingsStore from '@/store/modules/settings'
+import { translateByMap } from '@/locales/runtime-map'
+
 // 记录未匹配的项
 const unmatchArray = ref([]);
+const settingsStore = useSettingsStore()
 
 const props = defineProps({
   // 数据
@@ -72,6 +76,10 @@ function handleArray(array) {
   return array.reduce((pre, cur) => {
     return pre + " " + cur;
   });
+}
+
+function trLabel(text) {
+  return translateByMap(text, settingsStore.language || 'zh-cn')
 }
 </script>
 

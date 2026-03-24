@@ -1,6 +1,6 @@
 <template>
    <div class="app-container">
-      <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
+      <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" :label-width="isEn ? '108px' : '68px'" class="filter-form">
          <el-form-item label="登录地址" prop="ipaddr">
             <el-input
                v-model="queryParams.ipaddr"
@@ -34,7 +34,7 @@
                />
             </el-select>
          </el-form-item>
-         <el-form-item label="登录时间" style="width: 308px">
+         <el-form-item label="登录时间" class="filter-item-time">
             <el-date-picker
                v-model="dateRange"
                value-format="YYYY-MM-DD HH:mm:ss"
@@ -126,9 +126,12 @@
 
 <script setup name="Logininfor">
 import { list, delLogininfor, cleanLogininfor, unlockLogininfor } from "@/api/monitor/logininfor";
+import useSettingsStore from "@/store/modules/settings";
 
 const { proxy } = getCurrentInstance();
 const { sys_common_status } = proxy.useDict("sys_common_status");
+const settingsStore = useSettingsStore()
+const isEn = computed(() => settingsStore.language === 'en')
 
 const logininforList = ref([]);
 const loading = ref(true);
@@ -223,3 +226,18 @@ function handleExport() {
 
 getList();
 </script>
+<style scoped>
+.filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 12px;
+}
+.filter-item-time {
+  width: 360px;
+}
+@media (max-width: 1400px) {
+  .filter-item-time {
+    width: 100%;
+  }
+}
+</style>

@@ -1,3 +1,13 @@
+import { getRouteTitle } from '@/utils/routeTitle'
+
+function resolveTagTitle(view) {
+  const language = localStorage.getItem('language') || 'zh-cn'
+  if (view.meta && view.meta.title) {
+    return getRouteTitle(view.meta, language)
+  }
+  return 'no-name'
+}
+
 const useTagsViewStore = defineStore(
   'tags-view',
   {
@@ -15,7 +25,7 @@ const useTagsViewStore = defineStore(
         if (this.iframeViews.some(v => v.path === view.path)) return
         this.iframeViews.push(
           Object.assign({}, view, {
-            title: view.meta.title || 'no-name'
+            title: resolveTagTitle(view)
           })
         )
       },
@@ -23,7 +33,7 @@ const useTagsViewStore = defineStore(
         if (this.visitedViews.some(v => v.path === view.path)) return
         this.visitedViews.push(
           Object.assign({}, view, {
-            title: view.meta.title || 'no-name'
+            title: resolveTagTitle(view)
           })
         )
       },

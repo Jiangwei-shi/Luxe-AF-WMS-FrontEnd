@@ -55,7 +55,7 @@
           </el-col>
           <el-col :xs="24" :sm="12" :md="6" :lg="6">
             <el-form-item label="已护理" prop="cared">
-              <el-switch v-model="queryParams.cared" active-text="是" inactive-text="否" :active-value="true" :inactive-value="false"/>
+              <el-switch v-model="queryParams.cared" active-text="Yes" inactive-text="No" :active-value="true" :inactive-value="false"/>
             </el-form-item>
           </el-col>
           <el-col :xs="24" :sm="24" :md="12" :lg="12">
@@ -315,8 +315,8 @@
                 <el-form-item label="是否已护理">
                   <el-switch
                     v-model="form.cared"
-                    active-text="已护理"
-                    inactive-text="未护理"
+                    active-text="Cared"
+                    inactive-text="Not Cared"
                   />
                 </el-form-item>
               </el-col>

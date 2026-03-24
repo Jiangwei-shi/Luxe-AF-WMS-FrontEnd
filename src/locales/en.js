@@ -7,7 +7,7 @@ export default {
     logoutConfirmOk: 'OK',
     logoutConfirmCancel: 'Cancel',
     langSwitchLabelZh: '中文',
-    langSwitchLabelEn: 'EN',
+    langSwitchLabelEn: 'English',
   },
   login: {
     title: 'Michael warehouse management System',
@@ -17,6 +17,23 @@ export default {
     rememberMe: 'Remember me',
     login: 'Log in',
     loggingIn: 'Logging in...',
+    ruleUsernameRequired: 'Please input your username',
+    rulePasswordRequired: 'Please input your password',
+    ruleCodeRequired: 'Please input verification code',
+  },
+  topNav: {
+    moreMenu: 'More',
+  },
+  tagsView: {
+    refreshPage: 'Refresh page',
+    closeCurrent: 'Close current',
+    closeOthers: 'Close others',
+    closeLeft: 'Close left',
+    closeRight: 'Close right',
+    closeAll: 'Close all',
+  },
+  headerSearch: {
+    placeholder: 'Search page',
   },
   home: {
     inbound: 'Inbound',

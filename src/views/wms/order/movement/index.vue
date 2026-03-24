@@ -2,16 +2,16 @@
   <div class="app-container">
     <el-card>
       <el-form :model="queryParams" ref="queryRef" label-width="98px" class="filter-form">
-        <el-form-item class="filter-item filter-item-full" label="移库状态" prop="orderStatus">
+        <el-form-item class="filter-item filter-item-full" :label="tr('移库状态')" prop="orderStatus">
           <el-radio-group v-model="queryParams.orderStatus" @change="handleQuery">
             <el-radio-button
               :key="-2"
               :label="-2"
             >
-              全部
+              {{ tr('全部') }}
             </el-radio-button>
             <el-radio-button
-              v-for="item in wms_movement_status"
+              v-for="item in translatedMovementStatusOptions"
               :key="item.value"
               :label="item.value"
             >
@@ -19,17 +19,17 @@
             </el-radio-button>
           </el-radio-group>
         </el-form-item>
-        <el-form-item class="filter-item" label="移库单号" prop="orderNo">
+        <el-form-item class="filter-item" :label="tr('移库单号')" prop="orderNo">
           <el-input
             v-model="queryParams.orderNo"
-            placeholder="请输入移库单号"
+            :placeholder="tr('请输入移库单号')"
             clearable
             @keyup.enter="handleQuery"
           />
         </el-form-item>
         <el-form-item class="filter-item filter-item-actions">
-          <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-          <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+          <el-button type="primary" icon="Search" @click="handleQuery">{{ tr('搜索') }}</el-button>
+          <el-button icon="Refresh" @click="resetQuery">{{ tr('重置') }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -37,7 +37,7 @@
     <el-card class="mt20">
 
       <el-row :gutter="10" class="mb8" type="flex" justify="space-between">
-        <el-col :span="6"><span style="font-size: large">移库单</span></el-col>
+        <el-col :span="6"><span style="font-size: large">{{ tr('移库单') }}</span></el-col>
         <el-col :span="1.5">
           <el-button
             type="primary"
@@ -45,7 +45,7 @@
             icon="Plus"
             @click="handleAdd"
             v-hasPermi="['wms:movement:all']"
-          >新增</el-button>
+          >{{ tr('新增') }}</el-button>
         </el-col>
       </el-row>
 
@@ -53,30 +53,30 @@
                 @expand-change="handleExpandExchange"
                 :row-key="getRowKey"
                 :expand-row-keys="expandedRowKeys"
-                empty-text="暂无移库单"
+                :empty-text="tr('暂无移库单')"
                 cell-class-name="vertical-top-cell"
       >
         <el-table-column type="expand">
           <template #default="props">
             <div style="padding: 0 50px 20px 50px">
-              <h3>商品明细</h3>
-              <el-table :data="props.row.details" v-loading="detailLoading[props.$index]" empty-text="暂无商品明细">
-                <el-table-column label="商品名称">
+              <h3>{{ tr('商品明细') }}</h3>
+              <el-table :data="props.row.details" v-loading="detailLoading[props.$index]" :empty-text="tr('暂无商品明细')">
+                <el-table-column :label="tr('商品名称')">
                   <template #default="{ row }">
                     <div>{{ row?.item?.itemName }}</div>
                   </template>
                 </el-table-column>
-                <el-table-column label="SKU编号">
+                <el-table-column :label="tr('SKU编号')">
                   <template #default="{ row }">
                     <div>{{ row?.itemSku?.skuCode }}</div>
                   </template>
                 </el-table-column>
-                <el-table-column label="数量" prop="quantity" align="right">
+                <el-table-column :label="tr('数量')" prop="quantity" align="right">
                   <template #default="{ row }">
                     <el-statistic :value="Number(row.quantity)" :precision="0"/>
                   </template>
                 </el-table-column>
-                <el-table-column label="金额($USD)" align="right">
+                <el-table-column :label="tr('金额($USD)')" align="right">
                   <template #default="{ row }">
                     <el-statistic v-if="row.amount || row.amount === 0" :precision="2" :value="Number(row.amount)"/>
                     <div v-else>-</div>
@@ -86,78 +86,78 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="单号" align="left" prop="orderNo" min-width="100"/>
-        <el-table-column label="源仓库" align="left">
+        <el-table-column :label="tr('单号')" align="left" prop="orderNo" min-width="100"/>
+        <el-table-column :label="tr('源仓库')" align="left">
           <template #default="{ row }">
             <div>{{ useWmsStore().warehouseMap.get(row.sourceWarehouseId)?.warehouseName }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="目标仓库" align="left">
+        <el-table-column :label="tr('目标仓库')" align="left">
           <template #default="{ row }">
             <div>{{ useWmsStore().warehouseMap.get(row.targetWarehouseId)?.warehouseName }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="移库状态" align="center" prop="orderStatus" width="80">
+        <el-table-column :label="tr('移库状态')" align="center" prop="orderStatus" width="80">
           <template #default="{ row }">
-            <dict-tag :options="wms_movement_status" :value="row.orderStatus" />
+            <dict-tag :options="translatedMovementStatusOptions" :value="row.orderStatus" />
           </template>
         </el-table-column>
-        <el-table-column label="总数量/总金额($USD)" align="left">
+        <el-table-column :label="tr('总数量/总金额($USD)')" align="left">
           <template #default="{ row }">
             <div class="flex-space-between">
-              <span>数量：</span>
+              <span>{{ tr('数量：') }}</span>
               <el-statistic :value="Number(row.totalQuantity)" :precision="0"/>
             </div>
             <div class="flex-space-between" v-if="row.totalAmount || row.totalAmount === 0">
-              <span>金额：</span>
+              <span>{{ tr('金额：') }}</span>
               <el-statistic :value="Number(row.totalAmount)" :precision="2"/>
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="操作时间" align="left" width="150">
+        <el-table-column :label="tr('操作时间')" align="left" width="150">
           <template #default="{ row }">
-            <div>创建：{{ parseTime(row.createTime, '{mm}-{dd} {hh}:{ii}') }}</div>
-            <div>更新：{{ parseTime(row.updateTime, '{mm}-{dd} {hh}:{ii}') }}</div>
+            <div>{{ tr('创建：') }}{{ parseTime(row.createTime, '{mm}-{dd} {hh}:{ii}') }}</div>
+            <div>{{ tr('更新：') }}{{ parseTime(row.updateTime, '{mm}-{dd} {hh}:{ii}') }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="操作人" align="left">
+        <el-table-column :label="tr('操作人')" align="left">
           <template #default="{ row }">
             <div>{{ row.createBy }}</div>
             <div v-if="row.updateBy">{{ row.updateBy }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="备注" prop="remark" />
-        <el-table-column label="操作" align="right" class-name="small-padding fixed-width" width="120">
+        <el-table-column :label="tr('备注')" prop="remark" />
+        <el-table-column :label="tr('操作')" align="right" class-name="small-padding fixed-width" width="120">
           <template #default="scope">
             <div>
               <el-popover
                 placement="left"
-                title="提示"
+                :title="tr('提示')"
                 :width="300"
                 trigger="hover"
                 :disabled="scope.row.orderStatus === 0"
                 :content="'移库单【' + scope.row.orderNo + '】已' + (scope.row.orderStatus === 1 ? '移库' : '作废') + '，无法修改！' "
               >
                 <template #reference>
-                  <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['wms:movement:all']" :disabled="[-1, 1].includes(scope.row.orderStatus)">修改</el-button>
+                  <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['wms:movement:all']" :disabled="[-1, 1].includes(scope.row.orderStatus)">{{ tr('修改') }}</el-button>
                 </template>
               </el-popover>
-              <el-button link type="primary" @click="handleGoDetail(scope.row)" v-hasPermi="['wms:movement:all']">{{ expandedRowKeys.includes(scope.row.id) ? '收起' : '查看' }}</el-button>
+              <el-button link type="primary" @click="handleGoDetail(scope.row)" v-hasPermi="['wms:movement:all']">{{ expandedRowKeys.includes(scope.row.id) ? tr('收起') : tr('查看') }}</el-button>
             </div>
             <div class="mt10">
               <el-popover
                 placement="left"
-                title="提示"
+                :title="tr('提示')"
                 :width="300"
                 trigger="hover"
                 :disabled="[-1, 0].includes(scope.row.orderStatus)"
                 :content="'移库单【' + scope.row.orderNo + '】已移库，无法删除！' "
               >
                 <template #reference>
-                  <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['wms:movement:all']" :disabled="scope.row.orderStatus === 1">删除</el-button>
+                  <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['wms:movement:all']" :disabled="scope.row.orderStatus === 1">{{ tr('删除') }}</el-button>
                 </template>
               </el-popover>
-              <el-button link type="primary" @click="handlePrint(scope.row)" v-hasPermi="['wms:movement:all']">打印</el-button>
+              <el-button link type="primary" @click="handlePrint(scope.row)" v-hasPermi="['wms:movement:all']">{{ tr('打印') }}</el-button>
             </div>
           </template>
         </el-table-column>
@@ -179,13 +179,16 @@
 <script setup name="MovementOrder">
 import {listMovementOrder, delMovementOrder, getMovementOrder} from "@/api/wms/movementOrder";
 import {listByMovementOrderId} from "@/api/wms/movementOrderDetail";
-import {getCurrentInstance, reactive, ref, toRefs} from "vue";
+import {computed, getCurrentInstance, reactive, ref, toRefs} from "vue";
 import {useWmsStore} from "../../../../store/modules/wms";
 import {ElMessageBox} from "element-plus";
 import movementPanel from "@/components/PrintTemplate/movement-panel";
+import useSettingsStore from '@/store/modules/settings'
+import { translateByMap } from '@/locales/runtime-map'
 
 const { proxy } = getCurrentInstance();
 const { wms_movement_status } = proxy.useDict("wms_movement_status");
+const settingsStore = useSettingsStore()
 const movementOrderList = ref([]);
 const open = ref(false);
 const buttonLoading = ref(false);
@@ -207,6 +210,8 @@ const data = reactive({
 });
 
 const { queryParams } = toRefs(data);
+const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
+const translatedMovementStatusOptions = computed(() => (wms_movement_status.value || []).map(it => ({ ...it, label: tr(it.label) })))
 
 /** 查询入库单列表 */
 function getList() {
@@ -296,7 +301,7 @@ async function handlePrint(row) {
   }
   const printData = {
     orderNo: movementOrder.orderNo,
-    orderStatus: proxy.selectDictLabel(wms_movement_status.value, movementOrder.orderStatus),
+    orderStatus: tr(proxy.selectDictLabel(wms_movement_status.value, movementOrder.orderStatus)),
     sourceWarehouseName: useWmsStore().warehouseMap.get(movementOrder.sourceWarehouseId)?.warehouseName,
     targetWarehouseName: useWmsStore().warehouseMap.get(movementOrder.targetWarehouseId)?.warehouseName,
     totalQuantity: Number(movementOrder.totalQuantity).toFixed(0),
