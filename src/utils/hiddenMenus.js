@@ -5,7 +5,9 @@
 export const HIDDEN_FRONTEND_ROUTE_PATHS = [
   '/monitor',
   'monitor',
-  // 系统管理：字典、参数、公告、文件（OSS）
+  // 系统管理：菜单、字典、参数、公告、文件（OSS）
+  'menu',
+  '/system/menu',
   'dict',
   '/system/dict',
   'config',
@@ -30,6 +32,8 @@ export const HIDDEN_DYNAMIC_ROUTE_PATHS = [
 /** 组件路径：精确匹配目录名或以其为前缀的子路径，避免误伤如 system/dictionary */
 const HIDDEN_MENU_COMPONENT_MATCHERS = [
   { prefix: 'monitor/' },
+  { exact: 'system/menu/index' },
+  { prefix: 'system/menu/' },
   { exact: 'system/dict' },
   { prefix: 'system/dict/' },
   { exact: 'system/config' },
@@ -44,6 +48,7 @@ const HIDDEN_MENU_COMPONENT_MATCHERS = [
 
 const HIDDEN_PERMS_PREFIXES = [
   'monitor:',
+  'system:menu:',
   'system:dict:',
   'system:config:',
   'system:notice:',

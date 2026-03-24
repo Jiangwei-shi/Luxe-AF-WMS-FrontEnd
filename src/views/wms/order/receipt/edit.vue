@@ -141,6 +141,7 @@
                   :precision="2"
                   :min="0"
                   :max="2147483647"
+                  @change="updateTotals"
                 ></el-input-number>
               </template>
             </el-table-column>
@@ -279,7 +280,7 @@ const handleOkClick = (item) => {
       )
     }
   })
-  updateTotalQuantity()
+  updateTotals()
 }
 // 选择商品 end
 
@@ -408,6 +409,7 @@ const loadDetail = (id) => {
   loading.value = true
   getReceiptOrder(id).then((response) => {
     form.value = {...response.data}
+    updateTotals()
     if (response.data.details?.length) {
       selectedSku.value = response.data.details.map(it => {
         return {
@@ -422,14 +424,22 @@ const loadDetail = (id) => {
   })
 }
 
-const updateTotalQuantity = () => {
-  let sum = 0
+const updateTotals = () => {
+  let quantitySum = 0
+  let amountSum = undefined
   form.value.details.forEach(it => {
     if (it.quantity) {
-      sum += Number(it.quantity)
+      quantitySum += Number(it.quantity)
+    }
+    if (it.amount || it.amount === 0) {
+      if (amountSum === undefined) {
+        amountSum = 0
+      }
+      amountSum = numSub(amountSum, -Number(it.amount))
     }
   })
-  form.value.totalQuantity = sum
+  form.value.totalQuantity = quantitySum
+  form.value.totalAmount = amountSum
 }
 
 const handleChangeQuantity = (row) => {
@@ -438,20 +448,11 @@ const handleChangeQuantity = (row) => {
     const quantity = Number(row.quantity || 0)
     row.amount = quantity ? Number(costPrice) * quantity : 0
   }
-  updateTotalQuantity()
+  updateTotals()
 }
 
 const handleAutoCalc = () => {
-  let sum = undefined
-  form.value.details.forEach(it => {
-    if (it.amount >= 0) {
-      if (!sum) {
-        sum = 0
-      }
-      sum = numSub(sum, -Number(it.amount))
-    }
-  })
-  form.value.totalAmount = sum
+  updateTotals()
 }
 
 const handleDeleteDetail = (row, index) => {
@@ -461,15 +462,19 @@ const handleDeleteDetail = (row, index) => {
       return delReceiptOrderDetail(row.id);
     }).then(() => {
       form.value.details.splice(index, 1)
+      updateTotals()
       proxy.$modal.msgSuccess("删除成功");
     }).finally(() => {
       loading.value = false
     });
   } else {
     form.value.details.splice(index, 1)
+    updateTotals()
   }
   const indexOfSelected = selectedSku.value.findIndex(it => row.itemSku.id=== it.id)
-  selectedSku.value.splice(indexOfSelected, 1)
+  if (indexOfSelected !== -1) {
+    selectedSku.value.splice(indexOfSelected, 1)
+  }
 }
 </script>
 
