@@ -13,6 +13,7 @@ function isSkippableNode(node) {
 function isInDataArea(node) {
   const el = node?.parentElement
   if (!el || !el.closest) return false
+  if (el.closest('[data-runtime-i18n-ignore="true"]')) return true
   // Avoid mutating user-entered/business data in table/menu/tree/list contents.
   return Boolean(
     el.closest('.el-table__body') ||
@@ -38,6 +39,7 @@ function translateTextNode(node, language) {
 
 function translateElementAttrs(el, language) {
   if (!el || !el.getAttribute) return
+  if (el.closest('[data-runtime-i18n-ignore="true"]')) return
   let originMap = elementAttrOrigin.get(el)
   if (!originMap) {
     originMap = {}

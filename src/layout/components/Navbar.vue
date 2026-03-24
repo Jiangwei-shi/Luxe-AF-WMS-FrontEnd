@@ -5,7 +5,7 @@
     <top-nav id="topmenu-container" class="topmenu-container" v-if="settingsStore.topNav" />
 
     <div class="right-menu">
-      <el-button class="lang-switch-btn" type="primary" @click="toggleLanguage">
+      <el-button class="lang-switch-btn" data-runtime-i18n-ignore="true" type="primary" @click="toggleLanguage">
         {{ languageButtonText }}
       </el-button>
       <div class="avatar-container">
@@ -31,7 +31,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import Breadcrumb from '@/components/Breadcrumb'
 import TopNav from '@/components/TopNav'
@@ -61,14 +61,12 @@ function normalizeLanguage(lang) {
   return 'zh-cn'
 }
 
-const language = ref(normalizeLanguage(settingsStore.language || locale.value))
-const languageButtonText = computed(() => (language.value === 'en' ? 'English' : '中文'))
+const currentLanguage = computed(() => normalizeLanguage(settingsStore.language || locale.value))
+const languageButtonText = computed(() => (currentLanguage.value === 'en' ? 'English' : '中文'))
 
 function applyLanguage(nextRaw) {
   if (!nextRaw) return
   const next = normalizeLanguage(nextRaw)
-  // Local state drives immediate button rendering.
-  language.value = next
   if (locale.value !== next) {
     locale.value = next
   }
@@ -81,30 +79,9 @@ function applyLanguage(nextRaw) {
 }
 
 function toggleLanguage() {
-  const next = language.value === 'en' ? 'zh-cn' : 'en'
+  const next = currentLanguage.value === 'en' ? 'zh-cn' : 'en'
   applyLanguage(next)
 }
-
-watch(
-  () => settingsStore.language,
-  (lang) => {
-    const next = normalizeLanguage(lang)
-    if (next !== language.value) {
-      language.value = next
-    }
-  },
-  { immediate: true }
-)
-
-watch(
-  () => locale.value,
-  (lang) => {
-    const next = normalizeLanguage(lang)
-    if (next !== language.value) {
-      language.value = next
-    }
-  }
-)
 
 function toggleSideBar() {
   appStore.toggleSideBar()

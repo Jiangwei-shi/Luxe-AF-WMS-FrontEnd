@@ -168,6 +168,8 @@ const zhToEnMap = {
   生产出库: 'Production Outbound',
   退货出库: 'Return Outbound',
   品牌管理: 'Brand Management',
+  基础资料: 'Basic Data',
+  管理: 'Management',
   Item管理: 'item management',
   item管理: 'item management',
   部门管理: 'Department Management',
