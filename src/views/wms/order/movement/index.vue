@@ -1,8 +1,8 @@
 <template>
   <div class="app-container">
     <el-card>
-      <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="98px">
-        <el-form-item label="移库状态" prop="orderStatus">
+      <el-form :model="queryParams" ref="queryRef" label-width="98px" class="filter-form">
+        <el-form-item class="filter-item filter-item-full" label="移库状态" prop="orderStatus">
           <el-radio-group v-model="queryParams.orderStatus" @change="handleQuery">
             <el-radio-button
               :key="-2"
@@ -19,7 +19,7 @@
             </el-radio-button>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="移库单号" prop="orderNo">
+        <el-form-item class="filter-item" label="移库单号" prop="orderNo">
           <el-input
             v-model="queryParams.orderNo"
             placeholder="请输入移库单号"
@@ -27,7 +27,7 @@
             @keyup.enter="handleQuery"
           />
         </el-form-item>
-        <el-form-item>
+        <el-form-item class="filter-item filter-item-actions">
           <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
           <el-button icon="Refresh" @click="resetQuery">重置</el-button>
         </el-form-item>
@@ -212,6 +212,7 @@ const { queryParams } = toRefs(data);
 function getList() {
   loading.value = true;
   const query = {...queryParams.value}
+  query.orderNo = query.orderNo?.trim() || undefined
   if (query.orderStatus === -2) {
     query.orderStatus = null
   }
@@ -358,6 +359,44 @@ function getRowKey(row) {
 getList();
 </script>
 <style lang="scss">
+.filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 16px;
+}
+
+.filter-item {
+  width: calc(25% - 12px);
+  margin-right: 0;
+}
+
+.filter-item-full {
+  width: 100%;
+}
+
+.filter-item-actions {
+  width: 100%;
+}
+
+@media (max-width: 1600px) {
+  .filter-item {
+    width: calc(33.33% - 11px);
+  }
+}
+
+@media (max-width: 1200px) {
+  .filter-item {
+    width: calc(50% - 8px);
+  }
+}
+
+@media (max-width: 768px) {
+  .filter-item,
+  .filter-item-actions {
+    width: 100%;
+  }
+}
+
 .el-statistic__content {
   font-size: 14px;
 }
