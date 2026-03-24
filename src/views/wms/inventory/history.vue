@@ -1,8 +1,8 @@
 <template>
   <div class="app-container">
     <el-card>
-      <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-        <el-form-item label="订单类型" prop="orderType">
+      <el-form :model="queryParams" ref="queryRef" label-width="80px" class="filter-form">
+        <el-form-item class="filter-item filter-item-full" label="订单类型" prop="orderType">
           <el-radio-group v-model="queryParams.orderType" @change="handleQuery">
             <el-radio-button
               :key="-1"
@@ -19,30 +19,24 @@
             </el-radio-button>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="仓库" prop="warehouseId">
+        <el-form-item class="filter-item" label="仓库" prop="warehouseId">
           <el-select style="width: 100%" v-model="queryParams.warehouseId" placeholder="请选择仓库"
                      filterable clearable>
             <el-option v-for="item in useWmsStore().warehouseList" :key="item.id" :label="item.warehouseName"
                        :value="item.id"/>
           </el-select>
         </el-form-item>
-        <el-form-item label="操作单号" prop="orderNo">
+        <el-form-item class="filter-item" label="操作单号" prop="orderNo">
           <el-input v-model="queryParams.orderNo" clearable placeholder="请输入操作单号"></el-input>
         </el-form-item>
 
-        <el-form-item label="商品名称" prop="itemName">
+        <el-form-item class="filter-item" label="商品名称" prop="itemName">
           <el-input v-model="queryParams.itemName" clearable placeholder="请输入商品名称"></el-input>
         </el-form-item>
-        <el-form-item label="商品编号" prop="itemCode">
-          <el-input v-model="queryParams.itemCode" clearable placeholder="请输入商品编号"></el-input>
+        <el-form-item class="filter-item" label="SKU编号" prop="skuCode">
+          <el-input v-model="queryParams.skuCode" clearable placeholder="请输入SKU编号"></el-input>
         </el-form-item>
-        <el-form-item label="规格名称" prop="skuName">
-          <el-input v-model="queryParams.skuName" clearable placeholder="请输入规格名称"></el-input>
-        </el-form-item>
-        <el-form-item label="规格编号" prop="skuCode">
-          <el-input v-model="queryParams.skuCode" clearable placeholder="请输入规格编号"></el-input>
-        </el-form-item>
-        <el-form-item label="操作时间" prop="createTimeRange">
+        <el-form-item class="filter-item filter-item-time" label="操作时间" prop="createTimeRange">
           <el-date-picker
             v-model="queryParams.createTimeRange"
             type="datetimerange"
@@ -54,7 +48,7 @@
             end-placeholder="结束时间"
           />
         </el-form-item>
-        <el-form-item>
+        <el-form-item class="filter-item filter-item-actions">
           <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
           <el-button icon="Refresh" @click="resetQuery">重置</el-button>
         </el-form-item>
@@ -67,16 +61,15 @@
       </el-row>
       <el-table v-loading="loading" :data="inventoryHistoryList" border class="mt20" empty-text="暂无库存记录" cell-class-name="vertical-top-cell">
         <el-table-column label="操作单号" prop="orderNo"/>
-        <el-table-column label="商品信息">
+        <el-table-column label="商品名称">
           <template #default="{ row }">
             <div>{{ row.item.itemName }}</div>
-            <div v-if="row.item.itemCode">商品编号：{{ row.item.itemCode }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="规格信息">
+        <el-table-column label="SKU编号">
           <template #default="{ row }">
-            <div>{{ row.itemSku.skuName }}</div>
-            <div v-if="row.itemSku.skuCode">规格编号：{{ row.itemSku.skuCode }}</div>
+            <div v-if="row.itemSku?.skuCode">{{ row.itemSku.skuCode }}</div>
+            <div v-else>-</div>
           </template>
         </el-table-column>
         <el-table-column label="订单类型" align="center" width="100">
@@ -152,8 +145,6 @@ const queryParams = ref({
   orderType: -1,
   orderNo: undefined,
   itemName: undefined,
-  itemCode: undefined,
-  skuName: undefined,
   skuCode: undefined,
   warehouseId: undefined,
 })
@@ -191,6 +182,54 @@ function resetQuery() {
 getList();
 </script>
 <style lang="scss">
+.filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 16px;
+}
+
+.filter-item {
+  width: calc(25% - 12px);
+  margin-right: 0;
+}
+
+.filter-item-full {
+  width: 100%;
+}
+
+.filter-item-time {
+  width: calc(50% - 8px);
+}
+
+.filter-item-actions {
+  width: 100%;
+}
+
+@media (max-width: 1600px) {
+  .filter-item {
+    width: calc(33.33% - 11px);
+  }
+
+  .filter-item-time {
+    width: calc(66.66% - 6px);
+  }
+}
+
+@media (max-width: 1200px) {
+  .filter-item,
+  .filter-item-time {
+    width: calc(50% - 8px);
+  }
+}
+
+@media (max-width: 768px) {
+  .filter-item,
+  .filter-item-time,
+  .filter-item-actions {
+    width: 100%;
+  }
+}
+
 .el-statistic__content {
   font-size: 14px;
 }

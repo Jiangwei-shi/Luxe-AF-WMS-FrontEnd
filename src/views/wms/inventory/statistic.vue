@@ -1,33 +1,27 @@
 <template>
   <div class="app-container">
     <el-card>
-      <el-form :model="queryParams" ref="queryRef" label-width="90px" :inline="true">
-        <el-form-item class="col4" label="维度 " prop="itemId">
+      <el-form :model="queryParams" ref="queryRef" label-width="90px" class="filter-form">
+        <el-form-item class="filter-item filter-item-full" label="维度 " prop="itemId">
           <el-radio-group v-model="queryType" size="default" @change="handleSortTypeChange">
             <el-radio-button label="warehouse">仓库</el-radio-button>
             <el-radio-button label="item">商品</el-radio-button>
           </el-radio-group>
         </el-form-item>
-        <el-form-item class="col4" label="仓库" prop="warehouseId">
+        <el-form-item class="filter-item" label="仓库" prop="warehouseId">
           <el-select style="width: 100%" v-model="queryParams.warehouseId" placeholder="请选择仓库"
                      filterable clearable>
             <el-option v-for="item in useWmsStore().warehouseList" :key="item.id" :label="item.warehouseName"
                        :value="item.id"/>
           </el-select>
         </el-form-item>
-        <el-form-item class="col4" label="商品名称" prop="itemName">
+        <el-form-item class="filter-item" label="商品名称" prop="itemName">
           <el-input v-model="queryParams.itemName" clearable placeholder="商品名称"></el-input>
         </el-form-item>
-        <el-form-item class="col4" label="商品编号" prop="itemCode">
-          <el-input v-model="queryParams.itemCode" clearable placeholder="商品编号"></el-input>
+        <el-form-item class="filter-item" label="SKU编号" prop="skuCode">
+          <el-input v-model="queryParams.skuCode" clearable placeholder="SKU编号"></el-input>
         </el-form-item>
-        <el-form-item class="col4" label="规格名称" prop="skuName">
-          <el-input v-model="queryParams.skuName" clearable placeholder="规格名称"></el-input>
-        </el-form-item>
-        <el-form-item class="col4" label="规格编号" prop="skuCode">
-          <el-input v-model="queryParams.skuCode" clearable placeholder="规格编号"></el-input>
-        </el-form-item>
-        <el-form-item class="col4" style="margin-left: 32px">
+        <el-form-item class="filter-item filter-item-actions">
           <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
           <el-button icon="Refresh" @click="resetQuery">重置</el-button>
         </el-form-item>
@@ -46,30 +40,28 @@
               <div>{{ useWmsStore().warehouseMap.get(row.warehouseId)?.warehouseName }}</div>
             </template>
           </el-table-column>
-          <el-table-column label="商品信息" prop="warehouseIdAndItemId">
+          <el-table-column label="商品名称" prop="warehouseIdAndItemId">
             <template #default="{ row }">
               <div>{{ row.item.itemName }}</div>
-              <div v-if="row.item.itemCode">商品编号：{{ row.item.itemCode }}</div>
             </template>
           </el-table-column>
-          <el-table-column label="规格信息" :prop="skuId">
+          <el-table-column label="SKU编号" :prop="skuId">
             <template #default="{ row }">
-              <div>{{ row.itemSku.skuName }}</div>
-              <div v-if="row.itemSku.skuCode">规格编号：{{ row.itemSku.skuCode }}</div>
+              <div v-if="row.itemSku?.skuCode">{{ row.itemSku.skuCode }}</div>
+              <div v-else>-</div>
             </template>
           </el-table-column>
         </template>
         <template v-else>
-          <el-table-column label="商品信息" prop="itemId">
+          <el-table-column label="商品名称" prop="itemId">
             <template #default="{ row }">
               <div>{{ row.item.itemName }}</div>
-              <div v-if="row.item.itemCode">商品编号：{{ row.item.itemCode }}</div>
             </template>
           </el-table-column>
-          <el-table-column label="规格信息" prop="skuId">
+          <el-table-column label="SKU编号" prop="skuId">
             <template #default="{ row }">
-              <div>{{ row.itemSku.skuName }}</div>
-              <div v-if="row.itemSku.skuCode">规格编号：{{ row.itemSku.skuCode }}</div>
+              <div v-if="row.itemSku?.skuCode">{{ row.itemSku.skuCode }}</div>
+              <div v-else>-</div>
             </template>
           </el-table-column>
           <el-table-column label="仓库" prop="skuIdAndWarehouseId">
@@ -123,8 +115,6 @@ const queryParams = ref({
   skuId: undefined,
   warehouseId: undefined,
   itemName: undefined,
-  itemCode: undefined,
-  skuName: undefined,
   skuCode: undefined,
   minQuantity: undefined
 })
@@ -192,6 +182,44 @@ onMounted(() => {
 });
 </script>
 <style>
+.filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 16px;
+}
+
+.filter-item {
+  width: calc(25% - 12px);
+  margin-right: 0;
+}
+
+.filter-item-full {
+  width: 100%;
+}
+
+.filter-item-actions {
+  width: 100%;
+}
+
+@media (max-width: 1600px) {
+  .filter-item {
+    width: calc(33.33% - 11px);
+  }
+}
+
+@media (max-width: 1200px) {
+  .filter-item {
+    width: calc(50% - 8px);
+  }
+}
+
+@media (max-width: 768px) {
+  .filter-item,
+  .filter-item-actions {
+    width: 100%;
+  }
+}
+
 .el-statistic__content {
   font-size: 14px;
 }
