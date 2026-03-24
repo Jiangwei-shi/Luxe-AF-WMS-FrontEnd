@@ -1,6 +1,6 @@
 <template>
    <div class="app-container">
-      <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
+      <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" :label-width="isEn ? '108px' : '68px'" class="filter-form">
         <el-form-item label="操作地址" prop="operIp">
           <el-input
             v-model="queryParams.operIp"
@@ -58,7 +58,7 @@
                />
             </el-select>
          </el-form-item>
-         <el-form-item label="操作时间" style="width: 308px">
+         <el-form-item label="操作时间" class="filter-item-time">
             <el-date-picker
                v-model="dateRange"
                value-format="YYYY-MM-DD HH:mm:ss"
@@ -133,7 +133,7 @@
          </el-table-column>
          <el-table-column label="消耗时间" align="center" prop="costTime" width="110" :show-overflow-tooltip="true" sortable="custom" :sort-orders="['descending', 'ascending']">
             <template #default="scope">
-               <span>{{ scope.row.costTime }}毫秒</span>
+               <span>{{ scope.row.costTime }} ms</span>
             </template>
          </el-table-column>
          <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
@@ -203,9 +203,12 @@
 
 <script setup name="Operlog">
 import { list, delOperlog, cleanOperlog } from "@/api/monitor/operlog";
+import useSettingsStore from "@/store/modules/settings";
 
 const { proxy } = getCurrentInstance();
 const { sys_oper_type, sys_common_status } = proxy.useDict("sys_oper_type","sys_common_status");
+const settingsStore = useSettingsStore()
+const isEn = computed(() => settingsStore.language === 'en')
 
 const operlogList = ref([]);
 const open = ref(false);
@@ -303,3 +306,18 @@ function handleExport() {
 
 getList();
 </script>
+<style scoped>
+.filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 12px;
+}
+.filter-item-time {
+  width: 360px;
+}
+@media (max-width: 1400px) {
+  .filter-item-time {
+    width: 100%;
+  }
+}
+</style>

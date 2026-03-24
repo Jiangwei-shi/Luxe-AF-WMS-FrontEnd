@@ -5,11 +5,12 @@
   </template>
 
 <script setup>
-import { computed, nextTick, onMounted } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, watch } from 'vue'
 import zhCn from 'element-plus/lib/locale/lang/zh-cn'
 import en from 'element-plus/lib/locale/lang/en'
 import useSettingsStore from '@/store/modules/settings'
 import { handleThemeStyle } from '@/utils/theme'
+import { setupRuntimeI18nWatcher } from '@/utils/runtimeI18n'
 
 const settingsStore = useSettingsStore()
 
@@ -17,11 +18,27 @@ const elementLocale = computed(() =>
   settingsStore.language === 'en' ? en : zhCn
 )
 
+const runtimeI18n = setupRuntimeI18nWatcher(() => settingsStore.language || 'zh-cn')
+
 onMounted(() => {
   nextTick(() => {
     // 初始化主题样式
     handleThemeStyle(settingsStore.theme)
+    runtimeI18n.start()
   })
+})
+
+watch(
+  () => settingsStore.language,
+  () => {
+    nextTick(() => {
+      runtimeI18n.apply()
+    })
+  }
+)
+
+onBeforeUnmount(() => {
+  runtimeI18n.stop()
 })
 </script>
 

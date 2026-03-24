@@ -10,13 +10,13 @@
         <svg-icon
         v-if="item.meta && item.meta.icon && item.meta.icon !== '#'"
         :icon-class="item.meta.icon"/>
-        {{ item.meta.title }}
+        {{ getMenuTitle(item.meta) }}
       </el-menu-item>
     </template>
 
     <!-- 顶部菜单超出数量折叠 -->
     <el-sub-menu :style="{'--theme': theme}" index="more" v-if="topMenus.length > visibleNumber">
-      <template #title>更多菜单</template>
+      <template #title>{{ $t('topNav.moreMenu') }}</template>
       <template v-for="(item, index) in topMenus">
         <el-menu-item
           :index="item.path"
@@ -25,7 +25,7 @@
         <svg-icon
           v-if="item.meta && item.meta.icon && item.meta.icon !== '#'"
           :icon-class="item.meta.icon"/>
-        {{ item.meta.title }}
+        {{ getMenuTitle(item.meta) }}
         </el-menu-item>
       </template>
     </el-sub-menu>
@@ -38,6 +38,7 @@ import { isHttp } from '@/utils/validate'
 import useAppStore from '@/store/modules/app'
 import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'
+import { getRouteTitle } from '@/utils/routeTitle'
 
 // 顶部栏初始数
 const visibleNumber = ref(null);
@@ -155,6 +156,10 @@ function activeRoutes(key) {
     appStore.toggleSideBarHide(true);
   }
   return routes;
+}
+
+function getMenuTitle(meta) {
+  return getRouteTitle(meta, settingsStore.language || 'zh-cn')
 }
 
 onMounted(() => {

@@ -9,6 +9,7 @@ import useUserStore from '@/store/modules/user'
 import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'
 import {useWmsStore} from '@/store/modules/wms';
+import { getRouteTitle } from '@/utils/routeTitle'
 
 NProgress.configure({ showSpinner: false });
 
@@ -17,7 +18,10 @@ const whiteList = ['/login', '/register'];
 router.beforeEach((to, from, next) => {
   NProgress.start()
   if (getToken()) {
-    to.meta.title && useSettingsStore().setTitle(to.meta.title)
+    if (to.meta && to.meta.title) {
+      const settingsStore = useSettingsStore()
+      settingsStore.setTitle(getRouteTitle(to.meta, settingsStore.language || 'zh-cn'))
+    }
     /* has token*/
     if (to.path === '/login') {
       next({ path: '/' })
