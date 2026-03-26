@@ -1,18 +1,18 @@
 <template>
   <div>
-    <div class="receipt-order-edit-wrapper app-container" style="margin-bottom: 60px" v-loading="loading">
-      <el-card header="出库单基本信息">
-        <el-form label-width="108px" :model="form" ref="shipmentForm" :rules="rules">
+    <div class="receipt-order-edit-wrapper app-container shipment-edit-page" :class="{ 'is-en': isEn }" style="margin-bottom: 60px" v-loading="loading">
+      <el-card :header="tr('出库单') + tr('基本资料')">
+        <el-form :label-width="formLabelWidth" :model="form" ref="shipmentForm" :rules="rules">
           <el-row :gutter="24">
             <el-col :span="11">
-              <el-form-item label="出库单号" prop="orderNo">
-                <el-input class="w200" v-model="form.orderNo" placeholder="出库单号"
+              <el-form-item :label="tr('出库单号')" prop="orderNo">
+                <el-input class="w200" v-model="form.orderNo" :placeholder="tr('出库单号')"
                           :disabled="form.id"></el-input>
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item label="仓库" prop="warehouseId">
-                <el-select v-model="form.warehouseId" placeholder="请选择仓库" @change="handleChangeWarehouse"
+              <el-form-item :label="tr('仓库')" prop="warehouseId">
+                <el-select v-model="form.warehouseId" :placeholder="tr('请选择仓库')" @change="handleChangeWarehouse"
                            filterable>
                   <el-option v-for="item in useWmsStore().warehouseList" :key="item.id" :label="item.warehouseName"
                              :value="item.id"/>
@@ -20,7 +20,7 @@
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item label="总数量" prop="totalQuantity">
+              <el-form-item :label="tr('总数量')" prop="totalQuantity">
                 <el-input-number style="width: 100%" v-model="form.totalQuantity" :controls="false" :precision="0"
                                  :disabled="true"></el-input-number>
               </el-form-item>
@@ -28,7 +28,7 @@
           </el-row>
           <el-row :gutter="24">
             <el-col :span="11">
-              <el-form-item label="出库类型" prop="optType">
+              <el-form-item :label="tr('出库类型')" prop="optType">
                 <el-radio-group v-model="form.optType">
                   <el-radio-button
                     v-for="item in wms_shipment_type"
@@ -41,22 +41,22 @@
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item label="客户" prop="merchantId">
-                <el-select v-model="form.merchantId" placeholder="请选择客户" clearable filterable>
+              <el-form-item :label="tr('客户')" prop="merchantId">
+                <el-select v-model="form.merchantId" :placeholder="tr('请选择') + tr('客户')" clearable filterable>
                   <el-option v-for="item in useWmsStore().merchantList" :key="item.id" :label="item.merchantName"
                              :value="item.id"/>
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item label="业务单号" prop="bizOrderNo">
-                <el-input v-model="form.bizOrderNo" placeholder="请输入业务单号"></el-input>
+              <el-form-item :label="tr('业务单号')" prop="bizOrderNo">
+                <el-input v-model="form.bizOrderNo" :placeholder="tr('请输入') + tr('业务单号')"></el-input>
               </el-form-item>
             </el-col>
           </el-row>
           <el-row :gutter="24">
             <el-col :span="11">
-              <el-form-item label="备注" prop="remark">
+              <el-form-item :label="tr('备注')" prop="remark">
                 <el-input
                   v-model="form.remark"
                   placeholder="备注...100个字符以内"
@@ -69,7 +69,7 @@
             </el-col>
             <el-col :span="6">
               <div style="display: flex;align-items: start">
-                <el-form-item label="总金额" prop="totalAmount">
+                <el-form-item :label="tr('总金额')" prop="totalAmount">
                   <el-input-number style="width: 100%;" v-model="form.totalAmount" :precision="2" :min="0"></el-input-number>
                 </el-form-item>
                 <el-button link type="primary" @click="handleAutoCalc" style="line-height: 32px">自动计算
@@ -79,7 +79,7 @@
           </el-row>
         </el-form>
       </el-card>
-      <el-card header="商品明细" class="mt10">
+      <el-card :header="tr('商品明细')" class="mt10">
         <div class="receipt-order-content">
           <div class="flex-space-between mb8">
             <el-popover
@@ -116,7 +116,7 @@
               </template>
             </el-popover>
           </div>
-          <el-table :data="form.details" border empty-text="暂无商品明细">
+          <el-table :data="form.details" border :empty-text="tr('暂无商品明细')">
             <el-table-column label="商品信息" prop="itemSku.itemName">
               <template #default="{ row }">
                 <div>{{
@@ -181,12 +181,12 @@
     <div class="footer-global">
       <div class="btn-box">
         <div>
-          <el-button @click="doShipment" type="primary" class="ml10">完成出库</el-button>
-          <el-button @click="updateToInvalid" type="danger" v-if="form.id">作废</el-button>
+          <el-button @click="doShipment" type="primary" class="ml10 action-btn">{{ tr('完成出库') }}</el-button>
+          <el-button @click="updateToInvalid" type="danger" v-if="form.id" class="action-btn">{{ tr('作废') }}</el-button>
         </div>
         <div>
-          <el-button @click="save" type="primary">暂存</el-button>
-          <el-button @click="cancel" class="mr10">取消</el-button>
+          <el-button @click="save" type="primary" class="action-btn">{{ tr('暂存') }}</el-button>
+          <el-button @click="cancel" class="mr10 action-btn">{{ tr('取消') }}</el-button>
         </div>
       </div>
     </div>
@@ -203,9 +203,15 @@ import {useWmsStore} from '@/store/modules/wms'
 import {numSub, generateNo} from '@/utils/ruoyi'
 import InventorySelect from "@/views/components/InventorySelect.vue";
 import {getWarehouseAndSkuKey} from "@/utils/wmsUtil"
+import useSettingsStore from '@/store/modules/settings'
+import { translateByMap } from '@/locales/runtime-map'
 
 const {proxy} = getCurrentInstance();
 const {wms_shipment_type} = proxy.useDict("wms_shipment_type");
+const settingsStore = useSettingsStore()
+const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
+const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
+const formLabelWidth = computed(() => (isEn.value ? '138px' : '108px'))
 
 const loading = ref(false)
 const initFormData = {
@@ -480,6 +486,9 @@ const handleDeleteDetail = (row, index) => {
 
 <style lang="scss" scoped>
 @import "@/assets/styles/variables.module";
+.shipment-edit-page.is-en .el-form-item__label { white-space: nowrap; }
+.shipment-edit-page .action-btn { min-width: 96px; }
+.shipment-edit-page.is-en .action-btn { min-width: 112px; }
 
 .btn-box {
   width: calc(100% - #{$base-sidebar-width});

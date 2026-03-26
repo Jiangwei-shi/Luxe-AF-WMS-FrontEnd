@@ -1,6 +1,6 @@
 <template>
-   <div class="app-container">
-      <el-form :model="queryParams" ref="queryRef" v-show="showSearch" :inline="true" label-width="68px">
+   <div class="app-container role-page" :class="{ 'is-en': isEn }">
+      <el-form :model="queryParams" ref="queryRef" v-show="showSearch" :inline="true" :label-width="queryLabelWidth">
          <el-form-item label="角色名称" prop="roleName">
             <el-input
                v-model="queryParams.roleName"
@@ -46,8 +46,8 @@
             ></el-date-picker>
          </el-form-item>
          <el-form-item>
-            <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-            <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+            <el-button type="primary" icon="Search" class="action-btn" @click="handleQuery">{{ tr('搜索') }}</el-button>
+            <el-button icon="Refresh" class="action-btn" @click="resetQuery">{{ tr('重置') }}</el-button>
          </el-form-item>
       </el-form>
       <el-row :gutter="10" class="mb8">
@@ -58,7 +58,7 @@
                icon="Plus"
                @click="handleAdd"
                v-hasPermi="['system:role:add']"
-            >新增</el-button>
+            class="action-btn">{{ tr('新增') }}</el-button>
          </el-col>
          <el-col :span="1.5">
             <el-button
@@ -68,7 +68,7 @@
                :disabled="single"
                @click="handleUpdate"
                v-hasPermi="['system:role:edit']"
-            >修改</el-button>
+            class="action-btn">{{ tr('修改') }}</el-button>
          </el-col>
          <el-col :span="1.5">
             <el-button
@@ -78,7 +78,7 @@
                :disabled="multiple"
                @click="handleDelete"
                v-hasPermi="['system:role:remove']"
-            >删除</el-button>
+            class="action-btn">{{ tr('删除') }}</el-button>
          </el-col>
          <el-col :span="1.5">
             <el-button
@@ -87,7 +87,7 @@
                icon="Download"
                @click="handleExport"
                v-hasPermi="['system:role:export']"
-            >导出</el-button>
+            class="action-btn">{{ tr('导出') }}</el-button>
          </el-col>
          <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
       </el-row>
@@ -190,8 +190,8 @@
          </el-form>
          <template #footer>
             <div class="dialog-footer">
-               <el-button type="primary" @click="submitForm">确 定</el-button>
-               <el-button @click="cancel">取 消</el-button>
+               <el-button type="primary" class="action-btn" @click="submitForm">{{ tr('确认') }}</el-button>
+               <el-button class="action-btn" @click="cancel">{{ tr('取消') }}</el-button>
             </div>
          </template>
       </el-dialog>
@@ -234,8 +234,8 @@
          </el-form>
          <template #footer>
             <div class="dialog-footer">
-               <el-button type="primary" @click="submitDataScope">确 定</el-button>
-               <el-button @click="cancelDataScope">取 消</el-button>
+               <el-button type="primary" class="action-btn" @click="submitDataScope">{{ tr('确认') }}</el-button>
+               <el-button class="action-btn" @click="cancelDataScope">{{ tr('取消') }}</el-button>
             </div>
          </template>
       </el-dialog>
@@ -246,10 +246,17 @@
 import { addRole, changeRoleStatus, dataScope, delRole, getRole, listRole, updateRole, deptTreeSelect } from "@/api/system/role";
 import { listMenu, roleMenuTreeselect, treeselect as menuTreeselect } from "@/api/system/menu";
 import { buildHiddenMenuIdSet, filterTreeselectMenuTree } from "@/utils/hiddenMenus";
+import { computed } from "vue";
+import useSettingsStore from '@/store/modules/settings'
+import { translateByMap } from '@/locales/runtime-map'
 
 const router = useRouter();
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable");
+const settingsStore = useSettingsStore()
+const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
+const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
+const queryLabelWidth = computed(() => (isEn.value ? '120px' : '68px'))
 
 const roleList = ref([]);
 const open = ref(false);
@@ -321,7 +328,7 @@ function resetQuery() {
 /** 删除按钮操作 */
 function handleDelete(row) {
   const roleIds = row.roleId || ids.value;
-  proxy.$modal.confirm('是否确认删除角色编号为"' + roleIds + '"的数据项?').then(function () {
+  proxy.$modal.confirm((isEn.value ? 'Confirm delete role ID ' : '是否确认删除角色编号为"') + roleIds + (isEn.value ? '?' : '"的数据项?')).then(function () {
     return delRole(roleIds);
   }).then(() => {
     getList();
@@ -342,8 +349,8 @@ function handleSelectionChange(selection) {
 }
 /** 角色状态修改 */
 function handleStatusChange(row) {
-  let text = row.status === "1" ? "启用" : "停用";
-  proxy.$modal.confirm('确认要"' + text + '""' + row.roleName + '"角色吗?').then(function () {
+  let text = row.status === "1" ? (isEn.value ? "Enable" : "启用") : (isEn.value ? "Disable" : "停用");
+  proxy.$modal.confirm((isEn.value ? 'Confirm to ' : '确认要"') + text + (isEn.value ? ' role "' : '""') + row.roleName + (isEn.value ? '"?' : '"角色吗?')).then(function () {
     return changeRoleStatus(row.roleId, row.status);
   }).then(() => {
     proxy.$modal.msgSuccess(text + "成功");
@@ -412,7 +419,7 @@ function handleAdd() {
   reset();
   getMenuTreeselect();
   open.value = true;
-  title.value = "添加角色";
+  title.value = isEn.value ? "Add Role" : "添加角色";
 }
 /** 修改角色 */
 function handleUpdate(row) {
@@ -433,7 +440,7 @@ function handleUpdate(row) {
         });
       });
     });
-    title.value = "修改角色";
+    title.value = isEn.value ? "Edit Role" : "修改角色";
   });
 }
 /** 根据角色ID查询菜单树结构 */
@@ -543,7 +550,7 @@ function handleDataScope(row) {
         });
       });
     });
-    title.value = "分配数据权限";
+    title.value = isEn.value ? "Assign Data Scope" : "分配数据权限";
   });
 }
 /** 提交按钮（数据权限） */
@@ -565,3 +572,8 @@ function cancelDataScope() {
 
 getList();
 </script>
+<style scoped>
+.role-page.is-en .el-form-item__label { white-space: nowrap; }
+.role-page .action-btn { min-width: 96px; }
+.role-page.is-en .action-btn { min-width: 110px; }
+</style>

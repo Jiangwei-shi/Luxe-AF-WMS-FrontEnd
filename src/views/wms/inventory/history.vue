@@ -1,9 +1,9 @@
 <template>
-  <div class="app-container">
+  <div class="app-container inventory-history-page" :class="{ 'is-en': isEn }">
     <el-card>
-      <el-form :model="queryParams" ref="queryRef" label-width="80px" class="filter-form">
+      <el-form :model="queryParams" ref="queryRef" :label-width="formLabelWidth" class="filter-form">
         <el-form-item class="filter-item filter-item-full" :label="tr('订单类型')" prop="orderType">
-          <el-radio-group v-model="queryParams.orderType" @change="handleQuery">
+          <el-radio-group v-model="queryParams.orderType" @change="handleQuery" class="order-type-group">
             <el-radio-button
               :key="-1"
               :label="-1"
@@ -49,8 +49,8 @@
           />
         </el-form-item>
         <el-form-item class="filter-item filter-item-actions">
-          <el-button type="primary" icon="Search" @click="handleQuery">{{ tr('搜索') }}</el-button>
-          <el-button icon="Refresh" @click="resetQuery">{{ tr('重置') }}</el-button>
+          <el-button type="primary" icon="Search" class="action-btn" @click="handleQuery">{{ tr('搜索') }}</el-button>
+          <el-button icon="Refresh" class="action-btn" @click="resetQuery">{{ tr('重置') }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -60,29 +60,29 @@
         <el-col :span="6"><span style="font-size: large">{{ tr('库存记录') }}</span></el-col>
       </el-row>
       <el-table v-loading="loading" :data="inventoryHistoryList" border class="mt20" :empty-text="tr('暂无库存记录')" cell-class-name="vertical-top-cell">
-        <el-table-column :label="tr('操作单号')" prop="orderNo"/>
-        <el-table-column :label="tr('商品名称')">
+        <el-table-column :label="tr('操作单号')" prop="orderNo" width="220" show-overflow-tooltip header-class-name="nowrap-header" class-name="nowrap-cell"/>
+        <el-table-column :label="tr('商品名称')" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">
             <div>{{ row.item.itemName }}</div>
           </template>
         </el-table-column>
-        <el-table-column :label="tr('SKU编号')">
+        <el-table-column :label="tr('SKU编号')" min-width="150" show-overflow-tooltip>
           <template #default="{ row }">
             <div v-if="row.itemSku?.skuCode">{{ row.itemSku.skuCode }}</div>
             <div v-else>-</div>
           </template>
         </el-table-column>
-        <el-table-column :label="tr('订单类型')" align="center" width="100">
+        <el-table-column :label="tr('订单类型')" align="center" min-width="120">
           <template #default="{ row }">
             <dict-tag :options="translatedHistoryTypeOptions" :value="row.orderType"/>
           </template>
         </el-table-column>
-        <el-table-column :label="tr('仓库')">
+        <el-table-column :label="tr('仓库')" min-width="160" show-overflow-tooltip>
           <template #default="{ row }">
             <div>{{ useWmsStore().warehouseMap.get(row.warehouseId)?.warehouseName }}</div>
           </template>
         </el-table-column>
-        <el-table-column :label="tr('操作前')" align="right">
+        <el-table-column :label="tr('操作前')" align="right" min-width="110">
           <template #default="{ row }">
             <div >
               <el-statistic :value="Number(row.beforeQuantity)" :precision="0" v-if="row.beforeQuantity"/>
@@ -90,7 +90,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column :label="tr('操作后')" align="right">
+        <el-table-column :label="tr('操作后')" align="right" min-width="110">
           <template #default="{ row }">
             <div>
               <el-statistic :value="Number(row.afterQuantity)" :precision="0" v-if="row.afterQuantity"/>
@@ -98,7 +98,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column :label="tr('数量/金额($USD)')">
+        <el-table-column :label="tr('数量/金额($USD)')" min-width="180">
           <template #default="{ row }">
             <div class="flex-space-between">
               <div>{{ tr('数量：') }}</div>
@@ -110,7 +110,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column :label="tr('操作时间')" prop="createTime"/>
+        <el-table-column :label="tr('操作时间')" prop="createTime" min-width="180"/>
       </el-table>
 
       <el-row>
@@ -154,6 +154,9 @@ const queryParams = ref({
 
 const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
 
+const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
+const formLabelWidth = computed(() => (isEn.value ? '120px' : '80px'))
+
 const translatedHistoryTypeOptions = computed(() => {
   return (wms_inventory_history_type.value || []).map(item => ({
     ...item,
@@ -194,58 +197,84 @@ function resetQuery() {
 getList();
 </script>
 <style lang="scss">
-.filter-form {
+.inventory-history-page .filter-form {
   display: flex;
   flex-wrap: wrap;
   column-gap: 16px;
 }
 
-.filter-item {
+.inventory-history-page .filter-item {
   width: calc(25% - 12px);
   margin-right: 0;
 }
 
-.filter-item-full {
+.inventory-history-page .filter-item-full {
   width: 100%;
 }
 
-.filter-item-time {
+.inventory-history-page .filter-item-time {
   width: calc(50% - 8px);
 }
 
-.filter-item-actions {
+.inventory-history-page .filter-item-actions {
   width: 100%;
 }
 
+.inventory-history-page .order-type-group {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.inventory-history-page .action-btn {
+  min-width: 96px;
+}
+
+.inventory-history-page.is-en .action-btn {
+  min-width: 110px;
+}
+
 @media (max-width: 1600px) {
-  .filter-item {
+  .inventory-history-page .filter-item {
     width: calc(33.33% - 11px);
   }
 
-  .filter-item-time {
+  .inventory-history-page .filter-item-time {
     width: calc(66.66% - 6px);
   }
 }
 
 @media (max-width: 1200px) {
-  .filter-item,
-  .filter-item-time {
+  .inventory-history-page .filter-item,
+  .inventory-history-page .filter-item-time {
     width: calc(50% - 8px);
   }
 }
 
 @media (max-width: 768px) {
-  .filter-item,
-  .filter-item-time,
-  .filter-item-actions {
+  .inventory-history-page .filter-item,
+  .inventory-history-page .filter-item-time,
+  .inventory-history-page .filter-item-actions {
     width: 100%;
   }
 }
 
-.el-statistic__content {
+.inventory-history-page .el-statistic__content {
   font-size: 14px;
+  white-space: nowrap;
 }
-.el-table .vertical-top-cell {
+
+.inventory-history-page .flex-space-between {
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.inventory-history-page .el-table .vertical-top-cell {
   vertical-align: top
+}
+
+.inventory-history-page .el-table .nowrap-header .cell,
+.inventory-history-page .el-table .nowrap-cell .cell {
+  white-space: nowrap;
 }
 </style>

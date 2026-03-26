@@ -3,11 +3,11 @@
     <el-row class="pl20 pr20 pb20 pt20" :gutter="10">
       <el-col :span="12">
         <el-card shadow="always" style="padding-bottom: 20px;font-size: 14px" >
-          <div slot="header">
-            <span style="font-size: large;font-weight: bold">商品字段结构说明（Item 2.26更新）</span>
+          <div slot="header" data-runtime-i18n-ignore="true">
+            <span style="font-size: large;font-weight: bold" >商品字段结构说明（Item 2.26更新）</span>
           </div>
           <div style="display: flex;align-items: center">
-            <div class="first" style="font-size:16px;line-height: 32px;">
+            <div class="first" style="font-size:16px;line-height: 32px;" data-runtime-i18n-ignore="true">
               基础信息：<br/>
               · 商品名称（itemName）：String，必填，用于展示和搜索。<br/>
               · 商品分类（itemCategory）：Long，必填，分类 ID。<br/>
@@ -33,11 +33,11 @@
       </el-col>
       <el-col :span="12">
         <el-card shadow="always" style="padding-bottom: 20px;font-size: 14px" >
-          <div slot="header">
+          <div slot="header" data-runtime-i18n-ignore="true">
             <span style="font-size: large;font-weight: bold">商品过滤结构说明（Item Filter 2.26更新）</span>
           </div>
           <div style="display: flex;align-items: center">
-            <div class="first" style="font-size:16px;line-height: 30px;">
+            <div class="first" style="font-size:16px;line-height: 30px;" data-runtime-i18n-ignore="true">
               基础筛选字段：<br/>
               · 商品名称（itemName）：String，模糊匹配名称。<br/>
               · SKU 编码（skuCode）：String，精确匹配 SKU。<br/>
@@ -61,10 +61,10 @@
     <el-row class="pl20 pr20 pb20" :gutter="10">
       <el-col :span="24">
         <el-card shadow="always" style="padding-bottom: 20px;font-size: 14px">
-          <div slot="header">
+          <div slot="header" data-runtime-i18n-ignore="true">
             <span style="font-size: large;font-weight: bold">更新记录（2.28）</span>
           </div>
-          <div class="first" style="font-size:16px;line-height: 28px;">
+          <div class="first" style="font-size:16px;line-height: 28px;" data-runtime-i18n-ignore="true">
             · 商品字段新增：材质（material）、瑕疵（defect）、配件（accessories）。<br/>
             · 成色（itemCondition）改为 Enum 可选（如 S/A/B/C/D）。<br/>
             · 鉴定机构（authAgency）改为 Enum 可选（如 Entrupy、Real Authentication 等）。

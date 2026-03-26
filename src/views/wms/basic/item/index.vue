@@ -1,5 +1,5 @@
 <template>
-  <div class="app-container">
+  <div class="app-container item-page" :class="{ 'is-en': isEn }">
     <el-card>
       <el-form :model="queryParams" ref="queryFormRef" label-width="88px" class="query-form">
         <el-row :gutter="16">
@@ -468,8 +468,8 @@
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button :loading="buttonLoading" :disabled="hasUploadingImages" type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
+          <el-button :loading="buttonLoading" :disabled="hasUploadingImages" type="primary" class="action-btn" @click="submitForm">{{ tr('确认') }}</el-button>
+          <el-button class="action-btn" @click="cancel">{{ tr('取消') }}</el-button>
         </div>
       </template>
     </el-drawer>
@@ -495,8 +495,8 @@
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button :loading="buttonLoading" type="primary" @click="submitCategoryForm">确 定</el-button>
-          <el-button @click="cancelType">取 消</el-button>
+          <el-button :loading="buttonLoading" type="primary" class="action-btn" @click="submitCategoryForm">{{ tr('确认') }}</el-button>
+          <el-button class="action-btn" @click="cancelType">{{ tr('取消') }}</el-button>
         </div>
       </template>
       <div id="qrcode"></div>
@@ -548,10 +548,15 @@ import {useRoute} from "vue-router";
 import Qrcode from 'qrcode'
 import JSBarcode from 'jsbarcode'
 import {useWmsStore} from '@/store/modules/wms'
+import useSettingsStore from '@/store/modules/settings'
+import { translateByMap } from '@/locales/runtime-map'
 
 const barcode = ref(null)
 const route = useRoute()
 const {proxy} = getCurrentInstance();
+const settingsStore = useSettingsStore()
+const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
+const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
 const canViewSellingPrice = computed(() => proxy?.$auth?.hasPermi('wms:itemSellingPrice:view'));
 const canEditSellingPrice = computed(() => proxy?.$auth?.hasPermi('wms:itemSellingPrice:edit'));
 const canViewCostPrice = computed(() => proxy?.$auth?.hasPermi('wms:itemCostPrice:view'));
@@ -592,9 +597,9 @@ const append = (data) => {
 
 const remove = async (node, data) => {
   const ids = data.id
-  await proxy?.$modal.confirm('确认删除分类【' + data.label + '】吗？');
+  await proxy?.$modal.confirm(tr('确认删除') + tr('分类') + '【' + data.label + '】' + '？');
   await delItemCategory(ids);
-  proxy?.$modal.msgSuccess("删除成功");
+  proxy?.$modal.msgSuccess(tr("删除成功"));
   useWmsStore().getItemCategoryList();
   useWmsStore().getItemCategoryTreeList();
 }
@@ -605,7 +610,7 @@ const edit = (node, data) => {
   categoryForm.value.id = data.id;
   // resetType();
   categoryForm.value.categoryName = data.label;
-  categoryDialog.title = "修改商品分类";
+  categoryDialog.title = isEn.value ? 'Edit Item Category' : "修改商品分类";
   categoryDialog.visible = true;
 }
 const dialog = reactive({
@@ -782,7 +787,7 @@ const getList = async () => {
   loading.value = false;
 }
 const handleAddType = (show) => {
-  categoryDialog.title = "新增商品分类";
+  categoryDialog.title = isEn.value ? 'Add Item Category' : "新增商品分类";
   showParent.value = show
   categoryDialog.visible = true;
   if (show) {
@@ -1153,7 +1158,7 @@ const handleSelectionChange = (selection) => {
 const handleAdd = () => {
   resetItemSkuList()
   dialog.visible = true;
-  dialog.title = "新增商品";
+  dialog.title = isEn.value ? 'Add Item' : "新增商品";
   nextTick(async () => {
     reset();
   });
@@ -1163,7 +1168,7 @@ const handleUpdate = (row) => {
   resetItemSkuList()
   skuLoading.value = true
   dialog.visible = true;
-  dialog.title = "修改商品";
+  dialog.title = isEn.value ? 'Edit Item' : "修改商品";
   nextTick(async () => {
     reset();
     const _id = row?.itemId || ids.value[0]
@@ -1274,12 +1279,12 @@ const submitForm = async () => {
       });
     }
 
-    proxy?.$modal.msgSuccess('修改成功');
+      proxy?.$modal.msgSuccess(tr('修改成功'));
     dialog.visible = false;
     pendingImageFiles.value = [];
     await getList();
   } catch (err) {
-    proxy?.$modal.msgError(err?.message || err?.msg || '操作失败');
+    proxy?.$modal.msgError(err?.message || err?.msg || tr('失败'));
   } finally {
     buttonLoading.value = false;
   }
@@ -1405,7 +1410,7 @@ const submitCategoryForm = () => {
       } else {
         await addItemCategory(categoryForm.value).finally(() => buttonLoading.value = false);
       }
-      proxy?.$modal.msgSuccess(categoryForm.value.id ? '修改成功' : '新增成功');
+      proxy?.$modal.msgSuccess(categoryForm.value.id ? tr('修改成功') : tr('新增成功'));
       categoryDialog.visible = false;
       useWmsStore().getItemCategoryList();
       useWmsStore().getItemCategoryTreeList();
@@ -1415,10 +1420,10 @@ const submitCategoryForm = () => {
 /** 删除按钮操作 */
 const handleDelete = async (row) => {
   const _ids = row?.itemId || ids.value;
-  await proxy?.$modal.confirm('确认删除商品【' + row?.item.itemName + '】吗？');
+  await proxy?.$modal.confirm(tr('确认删除') + tr('商品') + '【' + row?.item.itemName + '】' + '？');
   loading.value = true;
   await delItem(_ids).finally(()=> loading.value = false);
-  proxy?.$modal.msgSuccess("删除成功");
+  proxy?.$modal.msgSuccess(tr("删除成功"));
   await getList();
 }
 const treeRef = ref(null)
@@ -1656,6 +1661,18 @@ onMounted(() => {
 .name-tag-drawer .name-tag-item:hover { opacity: 0.85; }
 .name-tag-drawer .name-tag-empty {
   font-size: 13px; color: #909399;
+}
+
+.item-page.is-en .el-form-item__label {
+  white-space: nowrap;
+}
+
+.item-page .action-btn {
+  min-width: 96px;
+}
+
+.item-page.is-en .action-btn {
+  min-width: 110px;
 }
 
 </style>

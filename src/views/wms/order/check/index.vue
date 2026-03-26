@@ -1,9 +1,9 @@
 <template>
-  <div class="app-container">
+  <div class="app-container check-order-page" :class="{ 'is-en': isEn }">
     <el-card>
-      <el-form :model="queryParams" ref="queryRef" label-width="80px" class="filter-form">
-        <el-form-item class="filter-item filter-item-full" :label="tr('盘库状态')" prop="orderStatus">
-          <el-radio-group v-model="queryParams.orderStatus" @change="handleQuery">
+      <el-form :model="queryParams" ref="queryRef" :label-width="formLabelWidth" class="filter-form">
+        <el-form-item class="filter-item filter-item-full" :label="tr('盘库状态')" prop="orderStatus" :label-width="isEn ? '170px' : undefined">
+          <el-radio-group v-model="queryParams.orderStatus" @change="handleQuery" class="filter-radio-group">
             <el-radio-button
               :key="-2"
               :label="-2"
@@ -19,7 +19,7 @@
             </el-radio-button>
           </el-radio-group>
         </el-form-item>
-        <el-form-item class="filter-item" :label="tr('盘库单号')" prop="orderNo">
+        <el-form-item class="filter-item" :label="tr('盘库单号')" prop="orderNo" :label-width="isEn ? '170px' : undefined">
           <el-input
             v-model="queryParams.orderNo"
             :placeholder="tr('请输入盘库单号')"
@@ -28,8 +28,8 @@
           />
         </el-form-item>
         <el-form-item class="filter-item filter-item-actions">
-          <el-button type="primary" icon="Search" @click="handleQuery">{{ tr('搜索') }}</el-button>
-          <el-button icon="Refresh" @click="resetQuery">{{ tr('重置') }}</el-button>
+          <el-button type="primary" icon="Search" class="action-btn" @click="handleQuery">{{ tr('搜索') }}</el-button>
+          <el-button icon="Refresh" class="action-btn" @click="resetQuery">{{ tr('重置') }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -54,23 +54,23 @@
                 :empty-text="tr('暂无盘库单')"
                 cell-class-name="vertical-top-cell"
       >
-        <el-table-column :label="tr('单号')" align="left" prop="orderNo" />
-        <el-table-column :label="tr('仓库')" align="left" width="200">
+        <el-table-column :label="tr('单号')" align="left" prop="orderNo" min-width="180" show-overflow-tooltip />
+        <el-table-column :label="tr('仓库')" align="left" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">
             <div>{{ useWmsStore().warehouseMap.get(row.warehouseId)?.warehouseName }}</div>
           </template>
         </el-table-column>
-        <el-table-column :label="tr('盘库状态')" align="center" prop="orderStatus" width="120">
+        <el-table-column :label="tr('盘库状态')" align="center" prop="orderStatus" min-width="90">
           <template #default="{ row }">
             <dict-tag :options="translatedCheckStatusOptions" :value="row.orderStatus" />
           </template>
         </el-table-column>
-        <el-table-column :label="tr('盈亏数')" align="right">
+        <el-table-column :label="tr('盈亏数')" align="right" min-width="120">
           <template #default="{ row }">
             <el-statistic :value="Number(row.totalQuantity)" :precision="0"/>
           </template>
         </el-table-column>
-        <el-table-column :label="tr('操作时间')" align="left" width="200">
+        <el-table-column :label="tr('操作时间')" align="left" width="170">
           <template #default="{ row }">
             <div>{{ tr('创建：') }}{{ parseTime(row.createTime, '{mm}-{dd} {hh}:{ii}') }}</div>
             <div>{{ tr('更新：') }}{{ parseTime(row.updateTime, '{mm}-{dd} {hh}:{ii}') }}</div>
@@ -174,6 +174,8 @@ const watchDetailObj = ref({
 const checkOrderDetailRef = ref(null)
 const { queryParams } = toRefs(data);
 const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
+const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
+const formLabelWidth = computed(() => '80px')
 const translatedCheckStatusOptions = computed(() => (wms_check_status.value || []).map(it => ({ ...it, label: tr(it.label) })))
 
 /** 查询入库单列表 */
@@ -276,48 +278,72 @@ function getRowKey(row) {
 getList();
 </script>
 <style lang="scss">
-.filter-form {
+.check-order-page .filter-form {
   display: flex;
   flex-wrap: wrap;
   column-gap: 16px;
 }
 
-.filter-item {
+.check-order-page .filter-item {
   width: calc(25% - 12px);
   margin-right: 0;
 }
 
-.filter-item-full {
+.check-order-page .filter-item-full {
   width: 100%;
 }
 
-.filter-item-actions {
+.check-order-page .filter-item-actions {
   width: 100%;
+}
+
+.check-order-page .filter-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.check-order-page .action-btn {
+  min-width: 96px;
+}
+
+.check-order-page.is-en .action-btn {
+  min-width: 110px;
+}
+
+.check-order-page.is-en .el-form-item__label {
+  white-space: nowrap;
+}
+
+.check-order-page.is-en .filter-item-actions .el-form-item__content {
+  margin-left: 170px !important;
 }
 
 @media (max-width: 1600px) {
-  .filter-item {
+  .check-order-page .filter-item {
     width: calc(33.33% - 11px);
   }
 }
 
 @media (max-width: 1200px) {
-  .filter-item {
+  .check-order-page .filter-item {
     width: calc(50% - 8px);
   }
 }
 
 @media (max-width: 768px) {
-  .filter-item,
-  .filter-item-actions {
+  .check-order-page .filter-item,
+  .check-order-page .filter-item-actions {
     width: 100%;
   }
 }
 
-.el-statistic__content {
+.check-order-page .el-statistic__content {
   font-size: 14px;
+  white-space: nowrap;
 }
-.el-table .vertical-top-cell {
+
+.check-order-page .el-table .vertical-top-cell {
   vertical-align: top
 }
 </style>
