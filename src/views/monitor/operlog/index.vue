@@ -1,37 +1,37 @@
 <template>
-   <div class="app-container">
-      <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" :label-width="isEn ? '108px' : '68px'" class="filter-form">
-        <el-form-item label="操作地址" prop="operIp">
+   <div class="app-container operlog-page" :class="{ 'is-en': isEn }">
+      <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" :label-width="isEn ? '150px' : '68px'" class="filter-form">
+        <el-form-item :label="tr('操作地址')" prop="operIp">
           <el-input
             v-model="queryParams.operIp"
-            placeholder="请输入操作地址"
+            :placeholder="tr('请输入操作地址')"
             clearable
             style="width: 240px;"
             @keyup.enter="handleQuery"
           />
         </el-form-item>
-        <el-form-item label="系统模块" prop="title">
+        <el-form-item :label="tr('系统模块')" prop="title">
             <el-input
                v-model="queryParams.title"
-               placeholder="请输入系统模块"
+               :placeholder="tr('请输入系统模块')"
                clearable
                style="width: 240px;"
                @keyup.enter="handleQuery"
             />
          </el-form-item>
-         <el-form-item label="操作人员" prop="operName">
+         <el-form-item :label="tr('操作人员')" prop="operName">
             <el-input
                v-model="queryParams.operName"
-               placeholder="请输入操作人员"
+               :placeholder="tr('请输入操作人员')"
                clearable
                style="width: 240px;"
                @keyup.enter="handleQuery"
             />
          </el-form-item>
-         <el-form-item label="类型" prop="businessType">
+         <el-form-item :label="tr('类型')" prop="businessType">
             <el-select
                v-model="queryParams.businessType"
-               placeholder="操作类型"
+               :placeholder="tr('操作类型')"
                clearable
                style="width: 240px"
             >
@@ -43,10 +43,10 @@
                />
             </el-select>
          </el-form-item>
-         <el-form-item label="状态" prop="status">
+         <el-form-item :label="tr('状态')" prop="status">
             <el-select
                v-model="queryParams.status"
-               placeholder="操作状态"
+               :placeholder="tr('操作状态')"
                clearable
                style="width: 240px"
             >
@@ -58,20 +58,20 @@
                />
             </el-select>
          </el-form-item>
-         <el-form-item label="操作时间" class="filter-item-time">
+         <el-form-item :label="tr('操作时间')" class="filter-item-time">
             <el-date-picker
                v-model="dateRange"
                value-format="YYYY-MM-DD HH:mm:ss"
                type="daterange"
                range-separator="-"
-               start-placeholder="开始日期"
-               end-placeholder="结束日期"
+               :start-placeholder="tr('开始日期')"
+               :end-placeholder="tr('结束日期')"
                :default-time="[new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]"
             ></el-date-picker>
          </el-form-item>
          <el-form-item>
-            <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-            <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+            <el-button type="primary" icon="Search" class="action-btn" @click="handleQuery">{{ tr('搜索') }}</el-button>
+            <el-button icon="Refresh" class="action-btn" @click="resetQuery">{{ tr('重置') }}</el-button>
          </el-form-item>
       </el-form>
 
@@ -84,7 +84,8 @@
                :disabled="multiple"
                @click="handleDelete"
                v-hasPermi="['monitor:operlog:remove']"
-            >删除</el-button>
+               class="action-btn"
+            >{{ tr('删除') }}</el-button>
          </el-col>
          <el-col :span="1.5">
             <el-button
@@ -93,7 +94,8 @@
                icon="Delete"
                @click="handleClean"
                v-hasPermi="['monitor:operlog:remove']"
-            >清空</el-button>
+               class="action-btn"
+            >{{ tr('清空') }}</el-button>
          </el-col>
          <el-col :span="1.5">
             <el-button
@@ -102,43 +104,44 @@
                icon="Download"
                @click="handleExport"
                v-hasPermi="['monitor:operlog:export']"
-            >导出</el-button>
+               class="action-btn"
+            >{{ tr('导出') }}</el-button>
          </el-col>
          <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
       </el-row>
 
       <el-table ref="operlogRef" v-loading="loading" :data="operlogList" @selection-change="handleSelectionChange" :default-sort="defaultSort" @sort-change="handleSortChange">
          <el-table-column type="selection" width="50" align="center" />
-         <el-table-column label="日志编号" align="center" prop="operId" />
-         <el-table-column label="系统模块" align="center" prop="title" :show-overflow-tooltip="true" />
-         <el-table-column label="操作类型" align="center" prop="businessType">
+         <el-table-column :label="tr('日志编号')" align="center" prop="operId" />
+         <el-table-column :label="tr('系统模块')" align="center" prop="title" :show-overflow-tooltip="true" />
+         <el-table-column :label="tr('操作类型')" align="center" prop="businessType">
             <template #default="scope">
                <dict-tag :options="sys_oper_type" :value="scope.row.businessType" />
             </template>
          </el-table-column>
-         <el-table-column label="请求方式" align="center" prop="requestMethod" />
-         <el-table-column label="操作人员" align="center" width="110" prop="operName" :show-overflow-tooltip="true" sortable="custom" :sort-orders="['descending', 'ascending']" />
-         <el-table-column label="部门" align="center" prop="deptName" width="130" :show-overflow-tooltip="true" />
-         <el-table-column label="操作地址" align="center" prop="operIp" width="130" :show-overflow-tooltip="true" />
-         <el-table-column label="操作地点" align="center" prop="operLocation" :show-overflow-tooltip="true" />
-        <el-table-column label="操作状态" align="center" prop="status">
+         <el-table-column :label="tr('请求方式')" align="center" prop="requestMethod" />
+         <el-table-column :label="tr('操作人员')" align="center" width="120" prop="operName" :show-overflow-tooltip="true" sortable="custom" :sort-orders="['descending', 'ascending']" />
+         <el-table-column :label="tr('部门')" align="center" prop="deptName" width="130" :show-overflow-tooltip="true" />
+         <el-table-column :label="tr('操作地址')" align="center" prop="operIp" width="140" :show-overflow-tooltip="true" />
+         <el-table-column :label="tr('操作地点')" align="center" prop="operLocation" :show-overflow-tooltip="true" />
+        <el-table-column :label="tr('操作状态')" align="center" prop="status">
             <template #default="scope">
                <dict-tag :options="sys_common_status" :value="scope.row.status" />
             </template>
          </el-table-column>
-         <el-table-column label="操作日期" align="center" prop="operTime" width="180" sortable="custom" :sort-orders="['descending', 'ascending']">
+         <el-table-column :label="tr('操作日期')" align="center" prop="operTime" width="180" sortable="custom" :sort-orders="['descending', 'ascending']">
             <template #default="scope">
                <span>{{ parseTime(scope.row.operTime) }}</span>
             </template>
          </el-table-column>
-         <el-table-column label="消耗时间" align="center" prop="costTime" width="110" :show-overflow-tooltip="true" sortable="custom" :sort-orders="['descending', 'ascending']">
+         <el-table-column :label="isEn ? 'Cost (ms)' : '消耗时间'" align="center" prop="costTime" width="110" :show-overflow-tooltip="true" sortable="custom" :sort-orders="['descending', 'ascending']">
             <template #default="scope">
                <span>{{ scope.row.costTime }} ms</span>
             </template>
          </el-table-column>
-         <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
+         <el-table-column :label="tr('操作')" align="center" class-name="small-padding fixed-width">
             <template #default="scope">
-               <el-button link type="primary" icon="View" @click="handleView(scope.row, scope.index)" v-hasPermi="['monitor:operlog:query']">详细</el-button>
+               <el-button link type="primary" icon="View" @click="handleView(scope.row, scope.index)" v-hasPermi="['monitor:operlog:query']">{{ tr('详细') }}</el-button>
             </template>
          </el-table-column>
       </el-table>
@@ -152,49 +155,49 @@
       />
 
       <!-- 操作日志详细 -->
-      <el-dialog title="操作日志详细" v-model="open" width="700px" append-to-body>
+      <el-dialog :title="isEn ? 'Operation Log Detail' : '操作日志详细'" v-model="open" width="700px" append-to-body>
          <el-form :model="form" label-width="100px">
             <el-row>
                <el-col :span="24">
                   <el-form-item
-                    label="登录信息："
+                    :label="isEn ? 'Login Info:' : '登录信息：'"
                   >{{ form.operName }} / {{form.deptName}} / {{ form.operIp }} / {{ form.operLocation }}</el-form-item>
                </el-col>
                <el-col :span="12">
-                  <el-form-item label="请求信息：">{{ form.requestMethod }} {{form.operUrl }}</el-form-item>
+                  <el-form-item :label="isEn ? 'Request Info:' : '请求信息：'">{{ form.requestMethod }} {{form.operUrl }}</el-form-item>
                </el-col>
                <el-col :span="12">
-                  <el-form-item label="操作模块：">{{ form.title }} / {{ typeFormat(form) }}</el-form-item>
+                  <el-form-item :label="isEn ? 'Module:' : '操作模块：'">{{ form.title }} / {{ typeFormat(form) }}</el-form-item>
                </el-col>
                <el-col :span="24">
-                  <el-form-item label="操作方法：">{{ form.method }}</el-form-item>
+                  <el-form-item :label="isEn ? 'Method:' : '操作方法：'">{{ form.method }}</el-form-item>
                </el-col>
                <el-col :span="24">
-                  <el-form-item label="请求参数：">{{ form.operParam }}</el-form-item>
+                  <el-form-item :label="isEn ? 'Params:' : '请求参数：'">{{ form.operParam }}</el-form-item>
                </el-col>
                <el-col :span="24">
-                  <el-form-item label="返回参数：">{{ form.jsonResult }}</el-form-item>
+                  <el-form-item :label="isEn ? 'Response:' : '返回参数：'">{{ form.jsonResult }}</el-form-item>
                </el-col>
                <el-col :span="6">
-                  <el-form-item label="操作状态：">
-                     <div v-if="form.status === 0">正常</div>
-                     <div v-else-if="form.status === 1">失败</div>
+                  <el-form-item :label="isEn ? 'Status:' : '操作状态：'">
+                     <div v-if="form.status === 0">{{ tr('成功') }}</div>
+                     <div v-else-if="form.status === 1">{{ tr('失败') }}</div>
                   </el-form-item>
                </el-col>
                <el-col :span="8">
-                  <el-form-item label="消耗时间：">{{ form.costTime }}毫秒</el-form-item>
+                  <el-form-item :label="isEn ? 'Cost:' : '消耗时间：'">{{ form.costTime }}{{ tr('毫秒') }}</el-form-item>
                </el-col>
                <el-col :span="10">
-                  <el-form-item label="操作时间：">{{ parseTime(form.operTime) }}</el-form-item>
+                  <el-form-item :label="isEn ? 'Time:' : '操作时间：'">{{ parseTime(form.operTime) }}</el-form-item>
                </el-col>
                <el-col :span="24">
-                  <el-form-item label="异常信息：" v-if="form.status === 1">{{ form.errorMsg }}</el-form-item>
+                  <el-form-item :label="isEn ? 'Error:' : '异常信息：'" v-if="form.status === 1">{{ form.errorMsg }}</el-form-item>
                </el-col>
             </el-row>
          </el-form>
          <template #footer>
             <div class="dialog-footer">
-               <el-button @click="open = false">关 闭</el-button>
+               <el-button class="action-btn" @click="open = false">{{ tr('关闭') }}</el-button>
             </div>
          </template>
       </el-dialog>
@@ -204,11 +207,13 @@
 <script setup name="Operlog">
 import { list, delOperlog, cleanOperlog } from "@/api/monitor/operlog";
 import useSettingsStore from "@/store/modules/settings";
+import { translateByMap } from '@/locales/runtime-map'
 
 const { proxy } = getCurrentInstance();
 const { sys_oper_type, sys_common_status } = proxy.useDict("sys_oper_type","sys_common_status");
 const settingsStore = useSettingsStore()
 const isEn = computed(() => settingsStore.language === 'en')
+const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
 
 const operlogList = ref([]);
 const open = ref(false);
@@ -281,20 +286,20 @@ function handleView(row) {
 /** 删除按钮操作 */
 function handleDelete(row) {
   const operIds = row.operId || ids.value;
-  proxy.$modal.confirm('是否确认删除日志编号为"' + operIds + '"的数据项?').then(function () {
+  proxy.$modal.confirm((isEn.value ? 'Confirm delete log ID ' : '是否确认删除日志编号为"') + operIds + (isEn.value ? '?' : '"的数据项?')).then(function () {
     return delOperlog(operIds);
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("删除成功");
+    proxy.$modal.msgSuccess(tr("删除成功"));
   }).catch(() => {});
 }
 /** 清空按钮操作 */
 function handleClean() {
-  proxy.$modal.confirm("是否确认清空所有操作日志数据项?").then(function () {
+  proxy.$modal.confirm(isEn.value ? "Confirm clear all operation logs?" : "是否确认清空所有操作日志数据项?").then(function () {
     return cleanOperlog();
   }).then(() => {
     getList();
-    proxy.$modal.msgSuccess("清空成功");
+    proxy.$modal.msgSuccess(tr("清空成功"));
   }).catch(() => {});
 }
 /** 导出按钮操作 */
@@ -307,6 +312,9 @@ function handleExport() {
 getList();
 </script>
 <style scoped>
+.operlog-page.is-en .el-form-item__label { white-space: nowrap; }
+.operlog-page .action-btn { min-width: 96px; }
+.operlog-page.is-en .action-btn { min-width: 110px; }
 .filter-form {
   display: flex;
   flex-wrap: wrap;

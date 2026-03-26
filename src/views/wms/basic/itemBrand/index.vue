@@ -1,18 +1,18 @@
 <template>
-  <div class="app-container">
+  <div class="app-container item-brand-page" :class="{ 'is-en': isEn }">
     <el-card>
-      <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-        <el-form-item label="品牌名称" prop="brandName">
+      <el-form :model="queryParams" ref="queryRef" :inline="true" :label-width="queryLabelWidth" class="brand-query-form">
+        <el-form-item :label="tr('品牌名称')" prop="brandName" :label-width="isEn ? '110px' : undefined">
           <el-input
             v-model="queryParams.brandName"
-            placeholder="请输入品牌名称"
+            :placeholder="tr('请输入') + tr('品牌名称')"
             clearable
             @keyup.enter="handleQuery"
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-          <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+          <el-button type="primary" icon="Search" class="action-btn" @click="handleQuery">{{ tr('搜索') }}</el-button>
+          <el-button icon="Refresh" class="action-btn" @click="resetQuery">{{ tr('重置') }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -20,7 +20,7 @@
     <el-card class="mt20">
 
       <el-row :gutter="10" class="mb8" type="flex" justify="space-between">
-        <el-col :span="6"><span style="font-size: large">品牌列表</span></el-col>
+        <el-col :span="6"><span style="font-size: large">{{ tr('品牌列表') }}</span></el-col>
         <el-col :span="1.5">
           <el-button
             type="primary"
@@ -28,17 +28,17 @@
             icon="Plus"
             @click="handleAdd"
             v-hasPermi="['wms:itemBrand:add']"
-          >新增</el-button>
+          >{{ tr('新增') }}</el-button>
         </el-col>
       </el-row>
 
-      <el-table v-loading="loading" :data="itemBrandList" border class="mt20" empty-text="暂无品牌">
-        <el-table-column label="品牌名称" prop="brandName" />
-        <el-table-column label="创建时间" prop="createTime" width="180"/>
-        <el-table-column label="操作" align="right" class-name="small-padding fixed-width" width="180">
+      <el-table v-loading="loading" :data="itemBrandList" border class="mt20" :empty-text="tr('暂无') + tr('品牌')">
+        <el-table-column :label="tr('品牌名称')" prop="brandName" min-width="220" show-overflow-tooltip />
+        <el-table-column :label="tr('创建时间')" prop="createTime" width="200"/>
+        <el-table-column :label="tr('操作')" align="right" class-name="small-padding fixed-width" width="180">
           <template #default="scope">
-            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['wms:itemBrand:edit']">修改</el-button>
-            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['wms:itemBrand:remove']">删除</el-button>
+            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['wms:itemBrand:edit']">{{ tr('修改') }}</el-button>
+            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['wms:itemBrand:remove']">{{ tr('删除') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -46,15 +46,15 @@
     </el-card>
     <!-- 添加或修改商品品牌对话框 -->
     <el-drawer :title="title" v-model="open" size="50%" append-to-body>
-      <el-form ref="itemBrandRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="品牌名称" prop="brandName">
-          <el-input v-model="form.brandName" placeholder="请输入品牌名称" />
+      <el-form ref="itemBrandRef" :model="form" :rules="rules" :label-width="drawerLabelWidth">
+        <el-form-item :label="tr('品牌名称')" prop="brandName">
+          <el-input v-model="form.brandName" :placeholder="tr('请输入') + tr('品牌名称')" />
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button :loading="buttonLoading" type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
+          <el-button :loading="buttonLoading" type="primary" class="action-btn" @click="submitForm">{{ tr('确认') }}</el-button>
+          <el-button class="action-btn" @click="cancel">{{ tr('取消') }}</el-button>
         </div>
       </template>
     </el-drawer>
@@ -65,8 +65,12 @@
 import { listItemBrand, getItemBrand, delItemBrand, addItemBrand, updateItemBrand, listItemBrandPage } from "@/api/wms/itemBrand";
 import {ElMessageBox} from "element-plus";
 import {useWmsStore} from '@/store/modules/wms'
+import { computed } from "vue";
+import useSettingsStore from '@/store/modules/settings'
+import { translateByMap } from '@/locales/runtime-map'
 
 const { proxy } = getCurrentInstance();
+const settingsStore = useSettingsStore()
 
 const itemBrandList = ref([]);
 const open = ref(false);
@@ -94,6 +98,10 @@ const data = reactive({
 });
 
 const { queryParams, form, rules } = toRefs(data);
+const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
+const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
+const queryLabelWidth = computed(() => (isEn.value ? '90px' : '68px'))
+const drawerLabelWidth = computed(() => (isEn.value ? '110px' : '80px'))
 
 /** 查询商品品牌列表 */
 async function getList() {
@@ -142,7 +150,7 @@ function resetQuery() {
 function handleAdd() {
   reset();
   open.value = true;
-  title.value = "添加商品品牌";
+  title.value = tr("新增") + tr("品牌");
 }
 
 /** 修改按钮操作 */
@@ -152,7 +160,7 @@ function handleUpdate(row) {
   getItemBrand(_id).then(response => {
     form.value = response.data;
     open.value = true;
-    title.value = "修改商品品牌";
+    title.value = tr("修改") + tr("品牌");
   });
 }
 
@@ -205,3 +213,17 @@ function handleExport() {
 
 getList();
 </script>
+
+<style lang="scss">
+.item-brand-page.is-en .el-form-item__label {
+  white-space: nowrap;
+}
+
+.item-brand-page .action-btn {
+  min-width: 96px;
+}
+
+.item-brand-page.is-en .action-btn {
+  min-width: 110px;
+}
+</style>
