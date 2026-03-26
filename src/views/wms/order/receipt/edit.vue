@@ -1,30 +1,30 @@
 <template>
   <div>
-    <div class="receipt-order-edit-wrapper app-container" style="margin-bottom: 60px" v-loading="loading">
-      <el-card header="入库单基本信息">
-        <el-form label-width="108px" :model="form" ref="receiptForm" :rules="rules">
+    <div class="receipt-order-edit-wrapper app-container receipt-edit-page" :class="{ 'is-en': isEn }" style="margin-bottom: 60px" v-loading="loading">
+      <el-card :header="tr('入库单') + tr('基本资料')">
+        <el-form :label-width="formLabelWidth" :model="form" ref="receiptForm" :rules="rules">
           <el-row :gutter="24">
             <el-col :span="11">
-              <el-form-item label="入库单号" prop="orderNo">
-                <el-input class="w200" v-model="form.orderNo" placeholder="入库单号" :disabled="form.id"></el-input>
+              <el-form-item :label="tr('入库单号')" prop="orderNo">
+                <el-input class="w200" v-model="form.orderNo" :placeholder="tr('入库单号')" :disabled="form.id"></el-input>
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item label="仓库" prop="warehouseId">
-                <el-select v-model="form.warehouseId" placeholder="请选择仓库" filterable>
+              <el-form-item :label="tr('仓库')" prop="warehouseId">
+                <el-select v-model="form.warehouseId" :placeholder="tr('请选择仓库')" filterable>
                   <el-option v-for="item in useWmsStore().warehouseList" :key="item.id" :label="item.warehouseName" :value="item.id"/>
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item label="总数量" prop="totalQuantity">
+              <el-form-item :label="tr('总数量')" prop="totalQuantity">
                 <el-input-number style="width:100%" v-model="form.totalQuantity" :controls="false" :precision="0" :disabled="true"></el-input-number>
               </el-form-item>
             </el-col>
           </el-row>
           <el-row :gutter="24">
             <el-col :span="11">
-              <el-form-item label="入库类型" prop="optType">
+              <el-form-item :label="tr('入库类型')" prop="optType">
                 <el-radio-group v-model="form.optType">
                   <el-radio-button
                     v-for="item in wms_receipt_type"
@@ -36,21 +36,21 @@
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item label="供应商" prop="merchantId">
-                <el-select v-model="form.merchantId" placeholder="请选择供应商" clearable filterable>
+              <el-form-item :label="tr('供应商')" prop="merchantId">
+                <el-select v-model="form.merchantId" :placeholder="tr('请选择') + tr('供应商')" clearable filterable>
                   <el-option v-for="item in useWmsStore().merchantList" :key="item.id" :label="item.merchantName" :value="item.id"/>
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item label="业务单号" prop="bizOrderNo">
-                <el-input v-model="form.bizOrderNo" placeholder="请输入业务单号"></el-input>
+              <el-form-item :label="tr('业务单号')" prop="bizOrderNo">
+                <el-input v-model="form.bizOrderNo" :placeholder="tr('请输入') + tr('业务单号')"></el-input>
               </el-form-item>
             </el-col>
           </el-row>
           <el-row :gutter="24">
             <el-col :span="11">
-              <el-form-item label="备注" prop="remark">
+              <el-form-item :label="tr('备注')" prop="remark">
                 <el-input
                   v-model="form.remark"
                   placeholder="备注...100个字符以内"
@@ -63,25 +63,25 @@
             </el-col>
             <el-col :span="6">
               <div style="display: flex;align-items: start">
-                <el-form-item label="总金额" prop="totalAmount">
+                <el-form-item :label="tr('总金额')" prop="totalAmount">
                   <el-input-number style="width:100%" v-model="form.totalAmount" :precision="2" :min="0"></el-input-number>
                 </el-form-item>
-                <el-button link type="primary" @click="handleAutoCalc" style="line-height: 32px">自动计算</el-button>
+                <el-button link type="primary" @click="handleAutoCalc" style="line-height: 32px">{{ tr('自动计算') || 'Auto Calc' }}</el-button>
               </div>
             </el-col>
           </el-row>
         </el-form>
       </el-card>
-      <el-card header="商品明细" class="mt10">
+      <el-card :header="tr('商品明细')" class="mt10">
         <div class="receipt-order-content">
           <div class="flex-space-between mb8">
             <el-popover
               placement="left"
-              title="提示"
+              :title="tr('提示')"
               :width="200"
               trigger="hover"
               :disabled="form.warehouseId"
-              content="请先选择仓库！"
+              :content="tr('请先选择仓库') + '！'"
             >
               <template #reference>
                 <div>
@@ -93,7 +93,7 @@
                     icon="Plus"
                     :disabled="!form.warehouseId"
                   >
-                    添加商品
+                    {{ tr('新增') + tr('商品') }}
                   </el-button>
                   <el-button
                     type="primary"
@@ -103,41 +103,41 @@
                     @click="showScanAddItem"
                     :disabled="!form.warehouseId"
                   >
-                    扫码枪模式
+                    {{ isEn ? 'Scan Mode' : '扫码枪模式' }}
                   </el-button>
                 </div>
               </template>
             </el-popover>
           </div>
-          <el-table :data="form.details" border empty-text="暂无商品明细">
-            <el-table-column label="商品信息" prop="itemSku.itemName">
+          <el-table :data="form.details" border :empty-text="tr('暂无商品明细')">
+            <el-table-column :label="tr('商品信息')" prop="itemSku.itemName">
               <template #default="{ row }">
                 <div>{{ row.item.itemName + (row.item.itemCode ? ('(' + row.item.itemCode + ')') : '') }}</div>
-                <div v-if="row.item.itemBrand">品牌：{{ useWmsStore().itemBrandMap.get(row.item.itemBrand).brandName }}</div>
+                <div v-if="row.item.itemBrand">{{ tr('品牌') }}：{{ useWmsStore().itemBrandMap.get(row.item.itemBrand).brandName }}</div>
               </template>
             </el-table-column>
-            <el-table-column label="规格信息">
+            <el-table-column :label="tr('规格信息')">
               <template #default="{ row }">
                 <div>{{ row.itemSku.skuCode }}</div>
-                <div v-if="row.itemSku.barcode">条码：{{row.itemSku.barcode}}</div>
+                <div v-if="row.itemSku.barcode">{{ tr('条码') }}：{{row.itemSku.barcode}}</div>
               </template>
             </el-table-column>
-            <el-table-column label="数量" prop="quantity" width="180">
+            <el-table-column :label="tr('数量')" prop="quantity" width="180">
               <template #default="scope">
                 <el-input-number
                   v-model="scope.row.quantity"
-                  placeholder="数量"
+                  :placeholder="tr('数量')"
                   :min="1"
                   :precision="0"
                   @change="handleChangeQuantity(scope.row)"
                 ></el-input-number>
               </template>
             </el-table-column>
-            <el-table-column label="金额" prop="amount" width="180">
+            <el-table-column :label="tr('金额')" prop="amount" width="180">
               <template #default="scope">
                 <el-input-number
                   v-model="scope.row.amount"
-                  placeholder="金额"
+                  :placeholder="tr('金额')"
                   :precision="2"
                   :min="0"
                   :max="2147483647"
@@ -145,9 +145,9 @@
                 ></el-input-number>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="100" align="right" fixed="right">
+            <el-table-column :label="tr('操作')" width="100" align="right" fixed="right">
               <template #default="scope">
-                <el-button icon="Delete" type="danger" plain size="small" @click="handleDeleteDetail(scope.row, scope.$index)" link>删除</el-button>
+                <el-button icon="Delete" type="danger" plain size="small" @click="handleDeleteDetail(scope.row, scope.$index)" link>{{ tr('删除') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -166,12 +166,12 @@
     <div class="footer-global">
       <div class="btn-box">
         <div>
-          <el-button @click="doWarehousing" type="primary" class="ml10">完成入库</el-button>
-          <el-button @click="updateToInvalid" type="danger" v-if="form.id">作废</el-button>
+          <el-button @click="doWarehousing" type="primary" class="ml10 action-btn">{{ tr('完成入库') }}</el-button>
+          <el-button @click="updateToInvalid" type="danger" v-if="form.id" class="action-btn">{{ tr('作废') }}</el-button>
         </div>
         <div>
-          <el-button @click="save" type="primary">暂存</el-button>
-          <el-button @click="cancel" class="mr10">取消</el-button>
+          <el-button @click="save" type="primary" class="action-btn">{{ tr('暂存') }}</el-button>
+          <el-button @click="cancel" class="mr10 action-btn">{{ tr('取消') }}</el-button>
         </div>
       </div>
     </div>
@@ -188,9 +188,15 @@ import {useWmsStore} from '@/store/modules/wms'
 import { numSub, generateNo } from '@/utils/ruoyi'
 import { delReceiptOrderDetail } from '@/api/wms/receiptOrderDetail'
 import {getWarehouseAndSkuKey} from "@/utils/wmsUtil";
+import useSettingsStore from '@/store/modules/settings'
+import { translateByMap } from '@/locales/runtime-map'
 
 const {proxy} = getCurrentInstance();
 const { wms_receipt_type } = proxy.useDict("wms_receipt_type");
+const settingsStore = useSettingsStore()
+const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
+const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
+const formLabelWidth = computed(() => (isEn.value ? '138px' : '108px'))
 const selectedSku = ref([])
 const mode = ref(false)
 const loading = ref(false)
@@ -480,6 +486,10 @@ const handleDeleteDetail = (row, index) => {
 
 <style lang="scss" scoped>
 @import "@/assets/styles/variables.module";
+
+.receipt-edit-page.is-en .el-form-item__label { white-space: nowrap; }
+.receipt-edit-page .action-btn { min-width: 96px; }
+.receipt-edit-page.is-en .action-btn { min-width: 112px; }
 
 .btn-box {
   width: calc(100% - #{$base-sidebar-width});
