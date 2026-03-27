@@ -75,6 +75,7 @@ const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
 const open = ref(false);
 const visible = ref(false);
 const title = computed(() => (isEn.value ? "Edit Avatar" : "修改头像"));
+const baseApi = import.meta.env.VITE_APP_BASE_API || "";
 
 //图片裁剪数据
 const options = reactive({
@@ -88,13 +89,69 @@ const options = reactive({
   previews: {} //预览数据
 });
 
+function isAbsoluteUrl(url) {
+  return /^https?:\/\//i.test(url);
+}
+
+function getAvatarUrl(avatar) {
+  if (!avatar) return "";
+  if (/^(data:|blob:)/i.test(avatar)) return avatar;
+  if (isAbsoluteUrl(avatar)) return avatar;
+  if (avatar.startsWith("/")) return avatar;
+  if (!baseApi) return avatar;
+  const cleanBase = baseApi.endsWith("/") ? baseApi.slice(0, -1) : baseApi;
+  return `${cleanBase}/${avatar}`;
+}
+
+function inferFileName(url) {
+  if (!url) return "avatar.png";
+  const pureUrl = String(url).split("?")[0];
+  const parts = pureUrl.split("/");
+  const tail = parts[parts.length - 1];
+  return tail || "avatar.png";
+}
+
+async function urlToDataUrl(url) {
+  const resp = await fetch(url, { mode: "cors", credentials: "omit" });
+  if (!resp.ok) {
+    throw new Error("avatar fetch failed");
+  }
+  const blob = await resp.blob();
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function initAvatarCrop() {
+  options.previews = {};
+  const avatarUrl = getAvatarUrl(userStore.avatar);
+  options.filename = inferFileName(avatarUrl);
+  if (!avatarUrl) {
+    options.img = "";
+    visible.value = true;
+    return;
+  }
+  try {
+    options.img = await urlToDataUrl(avatarUrl);
+  } catch (e) {
+    // 远程图片不支持 CORS 时，回退到直接 URL，保证至少尝试展示
+    options.img = avatarUrl;
+  }
+  visible.value = true;
+}
+
 /** 编辑头像 */
 function editCropper() {
   open.value = true;
 }
 /** 打开弹出层结束时的回调 */
-function modalOpened() {
-  visible.value = true;
+async function modalOpened() {
+  visible.value = false;
+  await nextTick();
+  await initAvatarCrop();
 }
 /** 覆盖默认上传行为 */
 function requestUpload() {}
@@ -144,8 +201,9 @@ function realTime(data) {
 }
 /** 关闭窗口 */
 function closeDialog() {
-  options.img = userStore.avatar;
-  options.visible = false;
+  options.img = getAvatarUrl(userStore.avatar);
+  options.previews = {};
+  visible.value = false;
 }
 </script>
 
