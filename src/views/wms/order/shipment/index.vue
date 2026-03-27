@@ -1,7 +1,7 @@
 <template>
   <div class="app-container shipment-order-page" :class="{ 'is-en': isEn }">
     <el-card>
-      <el-form :model="queryParams" ref="queryRef" :label-width="formLabelWidth" class="filter-form">
+      <el-form :model="queryParams" ref="queryRef" :label-width="formLabelWidth" class="filter-form" @submit.prevent>
         <el-form-item class="filter-item filter-item-full" :label="tr('出库状态')" prop="orderStatus" :label-width="isEn ? '170px' : undefined">
           <el-radio-group v-model="queryParams.orderStatus" @change="handleQuery" class="filter-radio-group">
             <el-radio-button
@@ -41,7 +41,7 @@
             v-model="queryParams.orderNo"
             :placeholder="tr('请输入出库单号')"
             clearable
-            @keyup.enter="handleQuery"
+            @keyup.enter.prevent="handleQuery"
           />
         </el-form-item>
         <el-form-item class="filter-item filter-item-actions">

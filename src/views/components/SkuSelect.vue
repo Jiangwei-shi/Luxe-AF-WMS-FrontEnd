@@ -26,10 +26,10 @@
                   <div v-if="row.item.itemBrand">品牌：{{ useWmsStore().itemBrandMap.get(row.item.itemBrand).brandName }}</div>
                 </template>
               </el-table-column>
-              <el-table-column label="规格信息" min-width="200" show-overflow-tooltip>
+              <el-table-column label="SKU编号" min-width="200" show-overflow-tooltip>
                 <template #default="{ row }">
                   <div>{{ row.itemSku.skuName }}</div>
-                  <div v-if="row.itemSku.skuCode">编号：{{ row.itemSku.skuCode }}</div>
+                  <div v-if="row.itemSku.skuCode">{{ row.itemSku.skuCode }}</div>
                 </template>
               </el-table-column>
               <el-table-column label="价格(元)" min-width="100" align="left" class-name="price-col">
