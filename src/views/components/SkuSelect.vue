@@ -71,7 +71,7 @@
 <script setup lang="ts" name="SkuSelect">
 /* eslint-disable */
 // @ts-nocheck
-import {computed, getCurrentInstance, onMounted, reactive, ref, watch} from 'vue';
+import {computed, getCurrentInstance, nextTick, onMounted, reactive, ref, watch} from 'vue';
 import { ElMessage } from "element-plus";
 import {listItemSkuPage} from "@/api/wms/itemSku";
 import {useRouter} from "vue-router";
@@ -104,7 +104,7 @@ const rightListKeySet = computed(() => {
 
 const loadAll = () => {
   pageReq.page = 1
-  getList()
+  return getList()
 };
 
 const resetQuery = () => {
@@ -145,8 +145,12 @@ async function handleSkuEnter() {
       skuSelectFormRef.value?.toggleRowSelection(normalized, true)
     }
     selectItemSkuVoCheck.value = [normalized]
-    handleOkClick()
+    // 顺序保证：先确认，再刷新
+    await Promise.resolve(handleOkClick())
     query.skuCode = ''
+    // 等待父组件同步 selectedSku 后再刷新，避免“已加载/禁用”状态丢失
+    await nextTick()
+    await Promise.resolve(loadAll())
 
     if (rows.length > 1 && !exactMatched) {
       ElMessage.warning('匹配到多个SKU，已自动选择第一条')
@@ -158,6 +162,20 @@ async function handleSkuEnter() {
 const getRowKey = (row: any) => {
   return row.id;
 }
+const getLoadedSkuIdSet = () => {
+  return new Set((props.selectedSku || []).map((it) => Number(it.id)))
+}
+
+const markLoadedItems = (rows = []) => {
+  const selectedIdSet = getLoadedSkuIdSet()
+  return rows.map((it) => ({
+    ...it,
+    id: it.skuId,
+    isLoaded: selectedIdSet.has(Number(it.skuId)),
+    checked: selectedIdSet.has(Number(it.skuId))
+  }))
+}
+
 const getList = () => {
   const data = {
     ...query,
@@ -165,9 +183,9 @@ const getList = () => {
     pageSize: pageReq.size
   }
   loading.value = true
-  listItemSkuPage(data).then((res) => {
+  return listItemSkuPage(data).then((res) => {
     const content = [...res.rows];
-    list.value = content.map((it) => ({...it, id: it.skuId, checked: false}));
+    list.value = markLoadedItems(content);
     total.value = res.total;
   }).then(() => toggleSelection()).finally(() => loading.value = false);
 }
@@ -215,6 +233,11 @@ watch(show, (visible) => {
   }
 })
 
+watch(() => props.selectedSku, () => {
+  // 已存在商品集合变化后，对当前列表执行一次全量状态回填
+  list.value = markLoadedItems(list.value || [])
+}, { deep: true })
+
 // 定义事件
 const emit = defineEmits<{
   (e: 'handleCancelClick')
@@ -242,7 +265,7 @@ const handleSelectionChange = (selection) => {
 
 const toggleSelection = () => {
   props.selectedSku.forEach(selected => {
-    const index = list.value.findIndex(it => selected.id=== it.id)
+    const index = list.value.findIndex(it => Number(it.skuId) === Number(selected.id))
     if (index !== -1) {
       skuSelectFormRef.value.toggleRowSelection(list.value[index], true)
     }
@@ -250,7 +273,7 @@ const toggleSelection = () => {
 }
 
 const judgeSelectable = (row) => {
-  if (props.selectedSku.find(selected => selected.id === row.id)) {
+  if (row.isLoaded || getLoadedSkuIdSet().has(Number(row.skuId))) {
     return false;
   }
   return true

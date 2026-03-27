@@ -266,7 +266,12 @@ const handleOkClick = (item) => {
   if (!scanMode.value) {
     skuSelectShow.value = false
   }
-  selectedSku.value = [...item]
+  const selectedMap = new Map((selectedSku.value || []).map((it) => [it.id, it]))
+  item.forEach((it) => {
+    selectedMap.set(it.id, it)
+  })
+  // 维护“当前入库单全部已存在商品”集合，避免后续刷新丢失灰色禁用状态
+  selectedSku.value = Array.from(selectedMap.values())
   item.forEach((it) => {
     if (!form.value.details.find(detail => detail.itemSku.id === it.id)) {
       const quantity = 1
