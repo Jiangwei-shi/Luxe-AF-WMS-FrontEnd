@@ -160,7 +160,7 @@
         :selected-sku="selectedSku"
         @handleOkClick="handleOkClick"
         @handleCancelClick="skuSelectShow = false"
-        :size="'80%'"
+        :size="'50%'"
       />
     </div>
     <div class="footer-global">
