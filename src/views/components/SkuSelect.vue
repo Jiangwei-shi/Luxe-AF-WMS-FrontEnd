@@ -1,43 +1,44 @@
 <template>
-  <el-drawer :model-value="show" title="商品选择" @close="handleCancelClick" :size="size" :close-on-click-modal="false" append-to-body>
-        <el-form :inline="true" label-width="68px">
+  <el-drawer :model-value="show" title="商品选择" @close="handleCancelClick" :size="size" :close-on-click-modal="false" append-to-body class="sku-select-drawer">
+        <el-form :inline="true" label-width="68px" @submit.prevent :model="query" ref="queryRef">
           <el-row :gutter="20">
             <el-col :span="8">
               <el-form-item label="商品名称">
-                <el-input v-model="query.itemName" clearable placeholder="商品名称"></el-input>
+                <el-input v-model="query.itemName" clearable placeholder="商品名称" @keyup.enter.prevent="loadAll"></el-input>
               </el-form-item>
             </el-col>
             <el-col :span="8">
               <el-form-item label="SKU">
-                <el-input class="w200" v-model="query.skuCode" clearable placeholder="SKU查询" @keyup.enter="handleSkuEnter"></el-input>
+                <el-input class="w200" v-model="query.skuCode" clearable placeholder="SKU查询" @keyup.enter.prevent="handleSkuEnter"></el-input>
               </el-form-item>
             </el-col>
             <el-col :span="8">
-              <el-button type="primary" @click="loadAll">查询</el-button>
+              <el-button type="primary" icon="Search" @click="loadAll">查询</el-button>
+              <el-button icon="Refresh" @click="resetQuery">重置</el-button>
             </el-col>
           </el-row>
         </el-form>
-            <el-table :data="list" @selection-change="handleSelectionChange" border :row-key="getRowKey" empty-text="暂无商品" v-loading="loading" ref="skuSelectFormRef" cell-class-name="my-cell">
+            <el-table :data="list" @selection-change="handleSelectionChange" border :row-key="getRowKey" empty-text="暂无商品" v-loading="loading" ref="skuSelectFormRef" cell-class-name="my-cell sku-select-cell">
               <el-table-column type="selection" width="55" :reserve-selection="true" v-if="!singleSelect" :selectable="judgeSelectable"/>
-              <el-table-column label="商品信息" prop="itemId">
+              <el-table-column label="商品信息" prop="itemId" min-width="150" show-overflow-tooltip>
                 <template #default="{ row }">
                   <div>{{ row.item.itemName }}</div>
                   <div v-if="row.item.itemBrand">品牌：{{ useWmsStore().itemBrandMap.get(row.item.itemBrand).brandName }}</div>
                 </template>
               </el-table-column>
-              <el-table-column label="规格信息">
+              <el-table-column label="SKU编号" min-width="200" show-overflow-tooltip>
                 <template #default="{ row }">
                   <div>{{ row.itemSku.skuName }}</div>
-                  <div v-if="row.itemSku.skuCode">编号：{{ row.itemSku.skuCode }}</div>
+                  <div v-if="row.itemSku.skuCode">{{ row.itemSku.skuCode }}</div>
                 </template>
               </el-table-column>
-              <el-table-column label="价格(元)" width="160" align="left">
+              <el-table-column label="价格(元)" min-width="100" align="left" class-name="price-col">
                 <template #default="{ row }">
-                  <div v-if="row.itemSku.costPrice" class="flex-space-between">
+                  <div v-if="row.itemSku.costPrice" class="flex-space-between price-line">
                     <span>成本价：</span>
                     <div>{{ (row.itemSku.costPrice || row.itemSku.costPrice === 0) ? row.itemSku.costPrice : '' }}</div>
                   </div>
-                  <div v-if="row.itemSku.sellingPrice" class="flex-space-between">
+                  <div v-if="row.itemSku.sellingPrice" class="flex-space-between price-line">
                     <span>销售价：</span>
                     <div>{{ (row.itemSku.sellingPrice || row.itemSku.sellingPrice === 0) ? row.itemSku.sellingPrice : '' }}</div>
                   </div>
@@ -70,7 +71,7 @@
 <script setup lang="ts" name="SkuSelect">
 /* eslint-disable */
 // @ts-nocheck
-import {computed, getCurrentInstance, onMounted, reactive, ref, watch} from 'vue';
+import {computed, getCurrentInstance, nextTick, onMounted, reactive, ref, watch} from 'vue';
 import { ElMessage } from "element-plus";
 import {listItemSkuPage} from "@/api/wms/itemSku";
 import {useRouter} from "vue-router";
@@ -85,6 +86,7 @@ const query = reactive({
   itemName: '',
   skuCode: ''
 });
+const queryRef = ref(null)
 const selectItemSkuVoCheck = ref([])
 const skuSelectFormRef = ref(null)
 const total = ref(0);
@@ -102,36 +104,56 @@ const rightListKeySet = computed(() => {
 
 const loadAll = () => {
   pageReq.page = 1
-  getList()
+  return getList()
 };
+
+const resetQuery = () => {
+  proxy?.resetForm('queryRef')
+  query.itemName = ''
+  query.skuCode = ''
+  loadAll()
+}
 
 /** SKU 输入框回车 */
 async function handleSkuEnter() {
+  if (!props.scanMode) {
+    loadAll()
+    return
+  }
   const skuCode = query.skuCode?.trim()
   if (!skuCode) return
   loading.value = true
   try {
     const res = await listItemSkuPage({
-      ...query,
+      itemName: undefined,
+      skuCode,
       pageNum: 1,
-      pageSize: 2
+      pageSize: 10
     })
     const rows = res.rows || []
-    if (rows.length === 1) {
-      const row = rows[0]
-      const normalized = { ...row, id: row.skuId }
-      emit('handleOkClick', [normalized])
-      if (props.scanMode) {
-        // 扫码枪模式：不关闭抽屉，只清空 SKU 输入，便于连续扫码
-        query.skuCode = ''
-      } else {
-        // 普通模式：选中后直接关闭抽屉
-        emit('handleCancelClick')
-      }
-    } else if (rows.length === 0) {
+    if (!rows.length) {
       ElMessage.warning('未找到该SKU')
-    } else {
-      loadAll()
+      return
+    }
+
+    const exactMatched = rows.find((it) => (it.itemSku?.skuCode || '').trim() === skuCode)
+    const pickedRow = exactMatched || rows[0]
+    const normalized = { ...pickedRow, id: pickedRow.skuId, checked: false }
+
+    if (!props.selectedSku.find(selected => selected.id === normalized.id)) {
+      // 与当前表格选择方式保持一致，先自动勾选再走确认逻辑
+      skuSelectFormRef.value?.toggleRowSelection(normalized, true)
+    }
+    selectItemSkuVoCheck.value = [normalized]
+    // 顺序保证：先确认，再刷新
+    await Promise.resolve(handleOkClick())
+    query.skuCode = ''
+    // 等待父组件同步 selectedSku 后再刷新，避免“已加载/禁用”状态丢失
+    await nextTick()
+    await Promise.resolve(loadAll())
+
+    if (rows.length > 1 && !exactMatched) {
+      ElMessage.warning('匹配到多个SKU，已自动选择第一条')
     }
   } finally {
     loading.value = false
@@ -140,6 +162,20 @@ async function handleSkuEnter() {
 const getRowKey = (row: any) => {
   return row.id;
 }
+const getLoadedSkuIdSet = () => {
+  return new Set((props.selectedSku || []).map((it) => Number(it.id)))
+}
+
+const markLoadedItems = (rows = []) => {
+  const selectedIdSet = getLoadedSkuIdSet()
+  return rows.map((it) => ({
+    ...it,
+    id: it.skuId,
+    isLoaded: selectedIdSet.has(Number(it.skuId)),
+    checked: selectedIdSet.has(Number(it.skuId))
+  }))
+}
+
 const getList = () => {
   const data = {
     ...query,
@@ -147,9 +183,9 @@ const getList = () => {
     pageSize: pageReq.size
   }
   loading.value = true
-  listItemSkuPage(data).then((res) => {
+  return listItemSkuPage(data).then((res) => {
     const content = [...res.rows];
-    list.value = content.map((it) => ({...it, id: it.skuId, checked: false}));
+    list.value = markLoadedItems(content);
     total.value = res.total;
   }).then(() => toggleSelection()).finally(() => loading.value = false);
 }
@@ -197,6 +233,11 @@ watch(show, (visible) => {
   }
 })
 
+watch(() => props.selectedSku, () => {
+  // 已存在商品集合变化后，对当前列表执行一次全量状态回填
+  list.value = markLoadedItems(list.value || [])
+}, { deep: true })
+
 // 定义事件
 const emit = defineEmits<{
   (e: 'handleCancelClick')
@@ -224,7 +265,7 @@ const handleSelectionChange = (selection) => {
 
 const toggleSelection = () => {
   props.selectedSku.forEach(selected => {
-    const index = list.value.findIndex(it => selected.id=== it.id)
+    const index = list.value.findIndex(it => Number(it.skuId) === Number(selected.id))
     if (index !== -1) {
       skuSelectFormRef.value.toggleRowSelection(list.value[index], true)
     }
@@ -232,7 +273,7 @@ const toggleSelection = () => {
 }
 
 const judgeSelectable = (row) => {
-  if (props.selectedSku.find(selected => selected.id === row.id)) {
+  if (row.isLoaded || getLoadedSkuIdSet().has(Number(row.skuId))) {
     return false;
   }
   return true
@@ -248,8 +289,33 @@ defineExpose({
 })
 </script>
 <style lang="scss">
-.el-table .my-cell {
+.sku-select-drawer .el-drawer__header {
+  margin-bottom: 8px;
+  padding: 12px 14px 0;
+}
+
+.sku-select-drawer .el-drawer__body {
+  padding: 8px 14px 12px;
+}
+
+.sku-select-drawer .el-form-item {
+  margin-bottom: 8px;
+}
+
+.sku-select-drawer .el-table .el-table__cell {
+  padding: 8px 0;
+}
+
+.sku-select-drawer .sku-select-cell {
   vertical-align: top
+}
+
+.sku-select-drawer .price-col .cell {
+  font-size: 13px;
+}
+
+.sku-select-drawer .price-line {
+  min-height: 22px;
 }
 </style>
 

@@ -1,44 +1,42 @@
 <template>
   <el-drawer :model-value="show" title="选择库存" @close="handleCancelClick" :size="size" :close-on-click-modal="false"
-             append-to-body>
-    <el-form :inline="true" label-width="68px">
-      <el-form-item label="商品名称">
-        <el-input v-model="query.itemName" clearable placeholder="商品名称"></el-input>
-      </el-form-item>
-      <el-form-item label="商品编号">
-        <el-input class="w200" v-model="query.itemCode" clearable placeholder="商品编号"></el-input>
-      </el-form-item>
-      <el-form-item label="规格名称">
-        <el-input class="w200" v-model="query.skuName" clearable placeholder="规格名称"></el-input>
-      </el-form-item>
-      <el-form-item label="SKU">
-        <el-input
-          class="w200"
-          v-model="query.skuCode"
-          clearable
-          placeholder="SKU查询"
-          @keyup.enter="handleSkuEnter"
-        ></el-input>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" @click="loadAll">查询</el-button>
-      </el-form-item>
+             append-to-body class="inventory-select-drawer">
+    <el-form :inline="true" label-width="68px" @submit.prevent :model="query" ref="queryRef">
+      <el-row :gutter="20">
+        <el-col :span="8">
+          <el-form-item label="商品名称">
+            <el-input v-model="query.itemName" clearable placeholder="商品名称" @keyup.enter.prevent="loadAll"></el-input>
+          </el-form-item>
+        </el-col>
+        <el-col :span="8">
+          <el-form-item label="SKU">
+            <el-input
+              class="w200"
+              v-model="query.skuCode"
+              clearable
+              placeholder="SKU查询"
+              @keyup.enter.prevent="handleSkuEnter"
+            ></el-input>
+          </el-form-item>
+        </el-col>
+        <el-col :span="8">
+          <el-button type="primary" icon="Search" @click="loadAll">查询</el-button>
+          <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+        </el-col>
+      </el-row>
     </el-form>
     <el-table :data="list" @selection-change="handleSelectionChange" border :row-key="getRowKey" empty-text="暂无库存"
-              v-loading="loading" ref="inventorySelectFormRef" cell-class-name="my-cell" class="mt20">
+              v-loading="loading" ref="inventorySelectFormRef" cell-class-name="my-cell inventory-select-cell" class="mt20">
       <el-table-column type="selection" width="55" :reserve-selection="true" :selectable="judgeSelectable"/>
       <el-table-column label="商品信息" prop="itemId">
         <template #default="{ row }">
           <div>{{ row.item.itemName }}</div>
-          <div v-if="row.item.itemCode">编号：{{ row.item.itemCode }}</div>
           <div v-if="row.item.itemBrand">品牌：{{ useWmsStore().itemBrandMap.get(row.item.itemBrand).brandName }}</div>
         </template>
       </el-table-column>
-      <el-table-column label="规格信息">
+      <el-table-column label="SKU编号">
         <template #default="{ row }">
-          <div>{{ row.itemSku.skuName }}</div>
-          <div v-if="row.itemSku.skuCode">编号：{{ row.itemSku.skuCode }}</div>
-          <div v-if="row.itemSku.barcode">条码：{{ row.itemSku.barcode }}</div>
+          <div v-if="row.itemSku.skuCode">{{ row.itemSku.skuCode }}</div>
         </template>
       </el-table-column>
       <el-table-column label="剩余库存" prop="quantity" align="right">
@@ -61,6 +59,7 @@
     <template v-slot:footer>
       <div style="width: 100%;display: flex;justify-content: space-between">
         <span>
+          <el-button @click="loadAll" icon="Refresh">刷新</el-button>
         </span>
         <span>
           <el-button @click="handleCancelClick">取消</el-button>
@@ -72,28 +71,22 @@
 </template>
 <script setup name="InventorySelect">
 import {computed, getCurrentInstance, nextTick, onMounted, reactive, ref, watch} from 'vue';
-import {ElForm} from "element-plus";
-import {getRowspanMethod} from "@/utils/getRowSpanMethod";
-import {useRouter} from "vue-router";
 import {useWmsStore} from '@/store/modules/wms'
 import {listInventory} from "@/api/wms/inventory";
 import {getWarehouseAndSkuKey} from "@/utils/wmsUtil";
 
 const {proxy} = getCurrentInstance()
 
-const spanMethod = computed(() => getRowspanMethod(list.value, ['itemId']))
-const router = useRouter()
 const loading = ref(false)
 const deptOptions = ref([]);
 const query = reactive({
   itemName: '',
-  itemCode: '',
-  skuName: '',
   skuCode: '',
   minQuantity: 1,
   areaId: null,
   warehouseId: null
 });
+const queryRef = ref(null)
 const selectInventoryVoCheck = ref([])
 const inventorySelectFormRef = ref(null)
 const total = ref(0);
@@ -115,11 +108,35 @@ const editableList = computed(() => {
 
 const loadAll = () => {
   pageReq.page = 1
-  getList()
+  return getList()
 };
+const resetQuery = () => {
+  proxy?.resetForm('queryRef')
+  query.itemName = ''
+  query.skuCode = ''
+  loadAll()
+}
 const getRowKey = (row) => {
   return row.id;
 }
+const getLoadedInventoryKeySet = () => {
+  return new Set((props.selectedInventory || []).map((it) => getWarehouseAndSkuKey(it)))
+}
+
+const markLoadedItems = (rows = []) => {
+  const loadedKeySet = getLoadedInventoryKeySet()
+  return rows.map((item) => {
+    const key = getWarehouseAndSkuKey(item)
+    const isLoaded = loadedKeySet.has(key)
+    return {
+      ...item,
+      warehouseName: useWmsStore().warehouseMap.get(item.warehouseId)?.warehouseName,
+      isLoaded,
+      checked: isLoaded
+    }
+  })
+}
+
 const getList = () => {
   const data = {
     ...query,
@@ -127,14 +144,9 @@ const getList = () => {
     pageSize: pageReq.size
   }
   loading.value = true
-  listInventory(data).then((res) => {
+  return listInventory(data).then((res) => {
     const content = [...res.rows];
-    list.value = content.map((item) => (
-      {
-        ...item,
-        warehouseName: useWmsStore().warehouseMap.get(item.warehouseId)?.warehouseName
-      }
-    ));
+    list.value = markLoadedItems(content);
     total.value = res.total;
   }).then(() => toggleSelection()).finally(() => loading.value = false);
 }
@@ -165,32 +177,39 @@ const show = computed(() => {
 
 const emit = defineEmits(["handleCancelClick", 'handleOkClick']);
 
-// SKU 输入框回车：根据 SKU 精确查一条库存并回传给父组件
+// SKU 输入框回车：扫码枪模式执行“选中 -> 确认 -> 刷新”
 async function handleSkuEnter() {
+  if (!props.scanMode) {
+    loadAll()
+    return
+  }
   const skuCode = query.skuCode?.trim()
   if (!skuCode) return
   loading.value = true
   try {
     const res = await listInventory({
-      ...query,
+      itemName: undefined,
+      skuCode,
+      minQuantity: query.minQuantity,
+      areaId: query.areaId,
+      warehouseId: query.warehouseId,
       pageNum: 1,
-      pageSize: 2
+      pageSize: 10
     })
     const rows = res.rows || []
-    if (rows.length === 1) {
-      const row = rows[0]
-      emit('handleOkClick', [row])
-      if (props.scanMode) {
-        // 扫码枪模式：不关闭抽屉，只清空 SKU 输入
-        query.skuCode = ''
-      } else {
-        // 普通模式：选中后直接关闭抽屉
-        emit('handleCancelClick')
-      }
-    } else if (rows.length > 1) {
-      // 多条时，按当前条件刷新列表让用户自己勾选
-      loadAll()
+    if (!rows.length) {
+      return
     }
+    const exactMatched = rows.find((it) => (it.itemSku?.skuCode || '').trim() === skuCode)
+    const pickedRow = exactMatched || rows[0]
+    if (!props.selectedInventory.find(selected => getWarehouseAndSkuKey(selected) === getWarehouseAndSkuKey(pickedRow))) {
+      inventorySelectFormRef.value?.toggleRowSelection(pickedRow, true)
+    }
+    selectInventoryVoCheck.value = [pickedRow]
+    await Promise.resolve(handleOkClick())
+    query.skuCode = ''
+    await nextTick()
+    await Promise.resolve(loadAll())
   } finally {
     loading.value = false
   }
@@ -225,7 +244,7 @@ function clearSelected() {
 }
 
 const judgeSelectable = (row) => {
-  if (props.selectedInventory.find(selected => getWarehouseAndSkuKey(selected) === getWarehouseAndSkuKey(row))) {
+  if (row.isLoaded || props.selectedInventory.find(selected => getWarehouseAndSkuKey(selected) === getWarehouseAndSkuKey(row))) {
     return false;
   }
   return true
@@ -242,13 +261,34 @@ defineExpose({
 onMounted(() => {
   loadAll();
 })
+
+watch(() => props.selectedInventory, () => {
+  list.value = markLoadedItems(list.value || [])
+}, {deep: true})
 </script>
 <style lang="scss">
-.el-table .my-cell {
+.inventory-select-drawer .el-drawer__header {
+  margin-bottom: 8px;
+  padding: 12px 14px 0;
+}
+
+.inventory-select-drawer .el-drawer__body {
+  padding: 8px 14px 12px;
+}
+
+.inventory-select-drawer .el-form-item {
+  margin-bottom: 8px;
+}
+
+.inventory-select-drawer .el-table .el-table__cell {
+  padding: 8px 0;
+}
+
+.inventory-select-drawer .inventory-select-cell {
   vertical-align: top
 }
 
-.el-statistic__content {
+.inventory-select-drawer .el-statistic__content {
   font-size: 14px;
 }
 </style>

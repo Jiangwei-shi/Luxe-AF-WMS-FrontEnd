@@ -70,7 +70,7 @@
             <el-col :span="6">
               <div style="display: flex;align-items: start">
                 <el-form-item :label="tr('总金额')" prop="totalAmount">
-                  <el-input-number style="width: 100%;" v-model="form.totalAmount" :precision="2" :min="0"></el-input-number>
+                  <el-input-number style="width: 100%;" v-model="form.totalAmount" :precision="2" :min="0" :disabled="true"></el-input-number>
                 </el-form-item>
                 <el-button link type="primary" @click="handleAutoCalc" style="line-height: 32px">自动计算
                 </el-button>
@@ -130,8 +130,7 @@
             </el-table-column>
             <el-table-column label="规格信息">
               <template #default="{ row }">
-                <div>{{ row.itemSku.Code }}</div>
-                <div v-if="row.itemSku.barcode">条码：{{row.itemSku.barcode}}</div>
+                <div>{{ row.itemSku.skuCode }}</div>
               </template>
             </el-table-column>
             <el-table-column label="出库数量" prop="quantity" width="180">
@@ -153,6 +152,7 @@
                   :precision="2"
                   :min="0"
                   :max="2147483647"
+                  @change="updateTotals"
                 ></el-input-number>
               </template>
             </el-table-column>
@@ -172,7 +172,7 @@
         :scan-mode="scanMode"
         @handleOkClick="handleOkClick"
         @handleCancelClick="inventorySelectShow = false"
-        :size="'90%'"
+        :size="'50%'"
         :select-warehouse-disable="false"
         :warehouse-id="form.warehouseId"
         :selected-inventory="selectedInventory"
@@ -274,21 +274,33 @@ const handleOkClick = (item) => {
   if (!scanMode.value) {
     inventorySelectShow.value = false
   }
-  selectedInventory.value = [...item]
+  const selectedMap = new Map((selectedInventory.value || []).map((it) => [getWarehouseAndSkuKey(it), it]))
+  item.forEach((it) => {
+    selectedMap.set(getWarehouseAndSkuKey(it), it)
+  })
+  // 维护“当前出库单全部已存在库存”集合，保证刷新后已加载状态可全量回填
+  selectedInventory.value = Array.from(selectedMap.values())
   item.forEach(it => {
     if (!form.value.details.find(detail => getWarehouseAndSkuKey(detail) === getWarehouseAndSkuKey(it))) {
+      const quantity = 1
+      const sellingPrice = it.itemSku?.sellingPrice
+      let amount = undefined
+      if (sellingPrice || sellingPrice === 0) {
+        amount = Number(sellingPrice) * quantity
+      }
       form.value.details.push(
         {
           itemSku: it.itemSku,
           item: it.item,
           skuId: it.skuId,
-          amount: undefined,
-          quantity: undefined,
+          amount,
+          quantity,
           warehouseId: form.value.warehouseId,
           inventoryId: it.id,
         })
     }
   })
+  updateTotals()
 }
 // 选择商品 end
 
@@ -430,6 +442,7 @@ const loadDetail = (id) => {
     }
     form.value = {...response.data}
     inventorySelectRef.value.setWarehouseId(form.value.warehouseId)
+    updateTotals()
     Promise.resolve();
   }).then(() => {
   }).finally(() => {
@@ -442,27 +455,35 @@ const handleChangeWarehouse = (e) => {
   inventorySelectRef.value.setWarehouseId(form.value.warehouseId)
 }
 
-const handleChangeQuantity = () => {
-  let sum = 0
+const updateTotals = () => {
+  let quantitySum = 0
+  let amountSum = undefined
   form.value.details.forEach(it => {
     if (it.quantity) {
-      sum += Number(it.quantity)
+      quantitySum += Number(it.quantity)
+    }
+    if (it.amount || it.amount === 0) {
+      if (amountSum === undefined) {
+        amountSum = 0
+      }
+      amountSum = numSub(amountSum, -Number(it.amount))
     }
   })
-  form.value.totalQuantity = sum
+  form.value.totalQuantity = quantitySum
+  form.value.totalAmount = amountSum
+}
+
+const handleChangeQuantity = (row) => {
+  const sellingPrice = row.itemSku?.sellingPrice
+  if (sellingPrice || sellingPrice === 0) {
+    const quantity = Number(row.quantity || 0)
+    row.amount = quantity ? Number(sellingPrice) * quantity : 0
+  }
+  updateTotals()
 }
 
 const handleAutoCalc = () => {
-  let sum = undefined
-  form.value.details.forEach(it => {
-    if (it.amount >= 0) {
-      if (!sum) {
-        sum = 0
-      }
-      sum = numSub(sum, -Number(it.amount))
-    }
-  })
-  form.value.totalAmount = sum
+  updateTotals()
 }
 
 const handleDeleteDetail = (row, index) => {
@@ -479,8 +500,11 @@ const handleDeleteDetail = (row, index) => {
   } else {
     form.value.details.splice(index, 1)
   }
+  updateTotals()
   const indexOfSelected = selectedInventory.value.findIndex(it => getWarehouseAndSkuKey(it) === getWarehouseAndSkuKey(row))
-  selectedInventory.value.splice(indexOfSelected, 1)
+  if (indexOfSelected !== -1) {
+    selectedInventory.value.splice(indexOfSelected, 1)
+  }
 }
 </script>
 
