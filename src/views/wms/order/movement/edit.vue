@@ -46,7 +46,7 @@
             <el-col :span="6">
               <div style="display: flex;align-items: start">
                 <el-form-item :label="tr('总金额')" prop="totalAmount">
-                  <el-input-number style="width: 100%;" v-model="form.totalAmount" :precision="2" :min="0"></el-input-number>
+                  <el-input-number style="width: 100%;" v-model="form.totalAmount" :precision="2" :min="0" :disabled="true"></el-input-number>
                 </el-form-item>
                 <el-button link type="primary" @click="handleAutoCalc" style="line-height: 32px">{{ tr('自动计算') || 'Auto Calc' }}
                 </el-button>
@@ -135,6 +135,7 @@
                   :precision="2"
                   :min="0"
                   :max="2147483647"
+                  @change="updateTotals"
                 ></el-input-number>
               </template>
             </el-table-column>
@@ -154,7 +155,7 @@
         :scan-mode="scanMode"
         @handleOkClick="handleOkClick"
         @handleCancelClick="inventorySelectShow = false"
-        :size="'90%'"
+        :size="'50%'"
         :select-warehouse-disable="false"
         :warehouse-id="form.sourceWarehouseId"
         :selected-inventory="selectedInventory"
@@ -256,20 +257,31 @@ const handleOkClick = (item) => {
   if (!scanMode.value) {
     inventorySelectShow.value = false
   }
-  selectedInventory.value = [...item]
+  const selectedMap = new Map((selectedInventory.value || []).map((it) => [getWarehouseAndSkuKey(it), it]))
+  item.forEach((it) => {
+    selectedMap.set(getWarehouseAndSkuKey(it), it)
+  })
+  selectedInventory.value = Array.from(selectedMap.values())
   item.forEach(it => {
     if (!form.value.details.find(detail => getSourceWarehouseAndSkuKey(detail) === getWarehouseAndSkuKey(it))) {
+      const quantity = 1
+      const costPrice = it.itemSku?.costPrice
+      let amount = undefined
+      if (costPrice || costPrice === 0) {
+        amount = Number(costPrice) * quantity
+      }
       form.value.details.push(
         {
           itemSku: it.itemSku,
           item: it.item,
           skuId: it.skuId,
-          quantity: undefined,
-          amount: undefined,
+          quantity,
+          amount,
           sourceWarehouseId: form.value.sourceWarehouseId
         })
     }
   })
+  updateTotals()
 }
 // 选择商品 end
 
@@ -277,16 +289,7 @@ const handleOkClick = (item) => {
 const movementForm = ref()
 
 const handleAutoCalc = () => {
-  let sum = undefined
-  form.value.details.forEach(it => {
-    if (it.amount >= 0) {
-      if (!sum) {
-        sum = 0
-      }
-      sum = numSub(sum, -Number(it.amount))
-    }
-  })
-  form.value.totalAmount = sum
+  updateTotals()
 }
 
 const save = async () => {
@@ -419,6 +422,7 @@ const loadDetail = (id) => {
     }
     form.value = {...response.data}
     inventorySelectRef.value.setWarehouseId(form.value.sourceWarehouseId)
+    updateTotals()
     Promise.resolve();
   }).then(() => {
   }).finally(() => {
@@ -428,6 +432,8 @@ const loadDetail = (id) => {
 
 const handleChangeSourceWarehouse = (e) => {
   form.value.details = []
+  selectedInventory.value = []
+  updateTotals()
   inventorySelectRef.value.setWarehouseId(form.value.sourceWarehouseId)
 }
 
@@ -438,14 +444,31 @@ const handleChangeTargetWarehouse = (e) => {
 
 }
 
-const handleChangeQuantity = () => {
-  let sum = 0
+const updateTotals = () => {
+  let quantitySum = 0
+  let amountSum = undefined
   form.value.details.forEach(it => {
     if (it.quantity) {
-      sum += Number(it.quantity)
+      quantitySum += Number(it.quantity)
+    }
+    if (it.amount || it.amount === 0) {
+      if (amountSum === undefined) {
+        amountSum = 0
+      }
+      amountSum = numSub(amountSum, -Number(it.amount))
     }
   })
-  form.value.totalQuantity = sum
+  form.value.totalQuantity = quantitySum
+  form.value.totalAmount = amountSum
+}
+
+const handleChangeQuantity = (row) => {
+  const costPrice = row.itemSku?.costPrice
+  if (costPrice || costPrice === 0) {
+    const quantity = Number(row.quantity || 0)
+    row.amount = quantity ? Number(costPrice) * quantity : 0
+  }
+  updateTotals()
 }
 
 const handleDeleteDetail = (row, index) => {
@@ -462,8 +485,11 @@ const handleDeleteDetail = (row, index) => {
   } else {
     form.value.details.splice(index, 1)
   }
+  updateTotals()
   const indexOfSelected = selectedInventory.value.findIndex(it => getWarehouseAndSkuKey(it) === getSourceWarehouseAndSkuKey(row))
-  selectedInventory.value.splice(indexOfSelected, 1)
+  if (indexOfSelected !== -1) {
+    selectedInventory.value.splice(indexOfSelected, 1)
+  }
 }
 </script>
 

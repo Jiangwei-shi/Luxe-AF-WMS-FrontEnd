@@ -61,9 +61,21 @@
       <el-card :header="tr('商品明细')" class="mt10">
         <div class="receipt-order-content">
           <div class="flex-space-between mb8">
-            <el-button type="primary" plain="plain" size="default" @click="showSkuSelect" icon="Plus"
-              :disabled="!form.warehouseId">新增库存
-            </el-button>
+            <div>
+              <el-button type="primary" plain="plain" size="default" @click="showSkuSelect" icon="Plus"
+                :disabled="!form.warehouseId">{{ tr('新增') + tr('库存') }}
+              </el-button>
+              <el-button
+                type="primary"
+                plain="plain"
+                size="default"
+                class="ml10"
+                @click="showScanAddItem"
+                :disabled="!form.warehouseId"
+              >
+                {{ isEn ? 'Scan Mode' : '扫码枪模式' }}
+              </el-button>
+            </div>
           </div>
           <el-table :data="form.details" border :empty-text="tr('暂无商品明细')">
             <el-table-column label="商品信息" prop="itemSku.itemName">
@@ -123,10 +135,11 @@
       <SkuSelect
         ref="skuSelectRef"
         :model-value="skuSelectShow"
+        :scan-mode="scanMode"
         :selected-sku="selectedSku"
         @handleOkClick="handleOkClick"
         @handleCancelClick="skuSelectShow = false"
-        :size="'80%'"
+        :size="'50%'"
       />
     </div>
     <div class="footer-global" v-if="checking">
@@ -200,6 +213,8 @@ const skuSelectShow = ref(false)
 const currentSkuSelectIndex = ref(null)
 // 盘库中标识
 const checking = ref(false)
+// 扫码枪模式标记
+const scanMode = ref(false)
 
 // 选择商品 start
 const startCheck = () => {
@@ -230,12 +245,19 @@ const startCheck = () => {
           }
         )
     })
+    handleChangeQuantity()
   }).finally(() => loading.value = false)
 }
 // 选择成功
 const handleOkClick = (item) => {
-  skuSelectShow.value = false
-  selectedSku.value = [...item]
+  if (!scanMode.value) {
+    skuSelectShow.value = false
+  }
+  const selectedMap = new Map((selectedSku.value || []).map((it) => [it.id, it]))
+  item.forEach((it) => {
+    selectedMap.set(it.id, it)
+  })
+  selectedSku.value = Array.from(selectedMap.values())
   item.forEach(it => {
     if (!form.value.details.find(detail => detail.itemSku.id === it.id)) {
       form.value.details.push(
@@ -251,9 +273,17 @@ const handleOkClick = (item) => {
         })
     }
   })
+  handleChangeQuantity()
 }
 
 const showSkuSelect = () => {
+  scanMode.value = false
+  skuSelectRef.value.getList()
+  skuSelectShow.value = true
+}
+
+const showScanAddItem = () => {
+  scanMode.value = true
   skuSelectRef.value.getList()
   skuSelectShow.value = true
 }
@@ -382,6 +412,7 @@ const loadDetail = (id) => {
       })
     }
     form.value = {...response.data}
+    handleChangeQuantity()
     Promise.resolve();
   }).then(() => {
   }).finally(() => {
@@ -401,7 +432,10 @@ const handleDeleteDetail = (row, index) => {
     form.value.details.splice(index, 1)
   }
   const indexOfSelected = selectedSku.value.findIndex(it => row.itemSku.id=== it.id)
-  selectedSku.value.splice(indexOfSelected, 1)
+  if (indexOfSelected !== -1) {
+    selectedSku.value.splice(indexOfSelected, 1)
+  }
+  handleChangeQuantity()
 }
 
 const handleChangeQuantity = () => {
