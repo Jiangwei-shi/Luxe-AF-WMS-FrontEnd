@@ -141,8 +141,6 @@ const zhToEnMap = {
   未入库商品: 'Unstocked SKUs',
   商品品牌: 'Item Brand',
   暂无未入库商品: 'No unstocked SKUs',
-  未入库列表说明:
-    'Listed SKUs have no row in wms_inventory in any warehouse (if any warehouse has a row, the SKU is not shown here).',
   SKU编码精确匹配: 'Exact match on SKU code (=)',
   商品名称模糊匹配: 'Fuzzy match on item name',
   年份精准匹配: 'Exact match on year',

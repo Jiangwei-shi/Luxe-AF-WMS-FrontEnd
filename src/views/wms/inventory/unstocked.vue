@@ -1,9 +1,6 @@
 <template>
   <div class="app-container inventory-unstocked-page" :class="{ 'is-en': isEn }">
     <el-card>
-      <el-alert type="info" :closable="false" show-icon class="unstocked-scope-alert">
-        {{ tr('未入库列表说明') }}
-      </el-alert>
       <el-form
         :model="queryParams"
         ref="queryRef"
@@ -505,10 +502,6 @@ getList()
 </script>
 
 <style scoped lang="scss">
-.unstocked-scope-alert {
-  margin-bottom: 0;
-}
-
 .page-title {
   font-size: large;
 }
