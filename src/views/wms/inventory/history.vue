@@ -1,7 +1,13 @@
 <template>
   <div class="app-container inventory-history-page" :class="{ 'is-en': isEn }">
     <el-card>
-      <el-form :model="queryParams" ref="queryRef" :label-width="formLabelWidth" class="filter-form">
+      <el-form
+        :model="queryParams"
+        ref="queryRef"
+        :label-width="formLabelWidth"
+        class="filter-form"
+        @submit.prevent="handleQuery"
+      >
         <el-form-item class="filter-item filter-item-full" :label="tr('订单类型')" prop="orderType">
           <el-radio-group v-model="queryParams.orderType" @change="handleQuery" class="order-type-group">
             <el-radio-button
@@ -49,8 +55,8 @@
           />
         </el-form-item>
         <el-form-item class="filter-item filter-item-actions">
-          <el-button type="primary" icon="Search" class="action-btn" @click="handleQuery">{{ tr('搜索') }}</el-button>
-          <el-button icon="Refresh" class="action-btn" @click="resetQuery">{{ tr('重置') }}</el-button>
+          <el-button type="primary" icon="Search" class="action-btn" native-type="submit">{{ tr('搜索') }}</el-button>
+          <el-button icon="Refresh" class="action-btn" native-type="button" @click="resetQuery">{{ tr('重置') }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>

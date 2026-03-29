@@ -1,7 +1,13 @@
 <template>
   <div class="app-container">
     <el-card>
-      <el-form :model="queryParams" ref="queryRef" label-width="90px" class="filter-form">
+      <el-form
+        :model="queryParams"
+        ref="queryRef"
+        label-width="90px"
+        class="filter-form"
+        @submit.prevent="handleQuery"
+      >
         <el-form-item class="filter-item filter-item-full" :label="tr('维度')" prop="itemId">
           <el-radio-group v-model="queryType" size="default" @change="handleSortTypeChange">
             <el-radio-button label="warehouse">{{ tr('仓库') }}</el-radio-button>
@@ -22,8 +28,8 @@
           <el-input v-model="queryParams.skuCode" clearable :placeholder="tr('SKU编号')"></el-input>
         </el-form-item>
         <el-form-item class="filter-item filter-item-actions">
-          <el-button type="primary" icon="Search" @click="handleQuery">{{ tr('搜索') }}</el-button>
-          <el-button icon="Refresh" @click="resetQuery">{{ tr('重置') }}</el-button>
+          <el-button type="primary" icon="Search" native-type="submit">{{ tr('搜索') }}</el-button>
+          <el-button icon="Refresh" native-type="button" @click="resetQuery">{{ tr('重置') }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
