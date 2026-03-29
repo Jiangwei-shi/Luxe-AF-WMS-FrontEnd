@@ -4,7 +4,7 @@
       <app-link v-if="onlyOneChild.meta" :to="resolvePath(onlyOneChild.path, onlyOneChild.query)">
         <el-menu-item :index="resolvePath(onlyOneChild.path)" :class="{ 'submenu-title-noDropdown': !isNest }">
           <svg-icon :icon-class="onlyOneChild.meta.icon || (item.meta && item.meta.icon)"/>
-          <template #title><span class="menu-title" :title="hasTitle(onlyOneChild.meta.title)">{{ onlyOneChild.meta.title }}</span></template>
+          <template #title><span class="menu-title" :title="hasTitle(getMenuTitle(onlyOneChild.meta.title))">{{ getMenuTitle(onlyOneChild.meta.title) }}</span></template>
         </el-menu-item>
       </app-link>
     </template>
@@ -12,7 +12,7 @@
     <el-sub-menu v-else ref="subMenu" :index="resolvePath(item.path)" popper-append-to-body>
       <template v-if="item.meta" #title>
         <svg-icon :icon-class="item.meta && item.meta.icon" />
-        <span class="menu-title" :title="hasTitle(item.meta.title)">{{ item.meta.title }}</span>
+        <span class="menu-title" :title="hasTitle(getMenuTitle(item.meta.title))">{{ getMenuTitle(item.meta.title) }}</span>
       </template>
 
       <sidebar-item
@@ -31,6 +31,8 @@
 import { isExternal } from '@/utils/validate'
 import AppLink from './Link'
 import { getNormalPath } from '@/utils/ruoyi'
+import useSettingsStore from '@/store/modules/settings'
+import { getTitleByText } from '@/utils/routeTitle'
 
 const props = defineProps({
   // route object
@@ -49,6 +51,7 @@ const props = defineProps({
 })
 
 const onlyOneChild = ref({});
+const settingsStore = useSettingsStore()
 
 function hasOneShowingChild(children = [], parent) {
   if (!children) {
@@ -98,5 +101,9 @@ function hasTitle(title){
   } else {
     return "";
   }
+}
+
+function getMenuTitle(title) {
+  return getTitleByText(title, settingsStore.language || 'zh-cn')
 }
 </script>

@@ -1,84 +1,82 @@
 <template>
   <div class="app-container">
     <el-card>
-      <el-form :model="queryParams" ref="queryRef" label-width="90px" :inline="true">
-        <el-form-item class="col4" label="维度 " prop="itemId">
+      <el-form
+        :model="queryParams"
+        ref="queryRef"
+        label-width="90px"
+        class="filter-form"
+        @submit.prevent="handleQuery"
+      >
+        <el-form-item class="filter-item filter-item-full" :label="tr('维度')" prop="itemId">
           <el-radio-group v-model="queryType" size="default" @change="handleSortTypeChange">
-            <el-radio-button label="warehouse">仓库</el-radio-button>
-            <el-radio-button label="item">商品</el-radio-button>
+            <el-radio-button label="warehouse">{{ tr('仓库') }}</el-radio-button>
+            <el-radio-button label="item">{{ tr('商品') }}</el-radio-button>
           </el-radio-group>
         </el-form-item>
-        <el-form-item class="col4" label="仓库" prop="warehouseId">
-          <el-select style="width: 100%" v-model="queryParams.warehouseId" placeholder="请选择仓库"
+        <el-form-item class="filter-item" :label="tr('仓库')" prop="warehouseId">
+          <el-select style="width: 100%" v-model="queryParams.warehouseId" :placeholder="tr('请选择仓库')"
                      filterable clearable>
             <el-option v-for="item in useWmsStore().warehouseList" :key="item.id" :label="item.warehouseName"
                        :value="item.id"/>
           </el-select>
         </el-form-item>
-        <el-form-item class="col4" label="商品名称" prop="itemName">
-          <el-input v-model="queryParams.itemName" clearable placeholder="商品名称"></el-input>
+        <el-form-item class="filter-item" :label="tr('商品名称')" prop="itemName">
+          <el-input v-model="queryParams.itemName" clearable :placeholder="tr('商品名称')"></el-input>
         </el-form-item>
-        <el-form-item class="col4" label="商品编号" prop="itemCode">
-          <el-input v-model="queryParams.itemCode" clearable placeholder="商品编号"></el-input>
+        <el-form-item class="filter-item" :label="tr('SKU编号')" prop="skuCode">
+          <el-input v-model="queryParams.skuCode" clearable :placeholder="tr('SKU编号')"></el-input>
         </el-form-item>
-        <el-form-item class="col4" label="规格名称" prop="skuName">
-          <el-input v-model="queryParams.skuName" clearable placeholder="规格名称"></el-input>
-        </el-form-item>
-        <el-form-item class="col4" label="规格编号" prop="skuCode">
-          <el-input v-model="queryParams.skuCode" clearable placeholder="规格编号"></el-input>
-        </el-form-item>
-        <el-form-item class="col4" style="margin-left: 32px">
-          <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-          <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+        <el-form-item class="filter-item filter-item-actions">
+          <el-button type="primary" icon="Search" native-type="submit">{{ tr('搜索') }}</el-button>
+          <el-button icon="Refresh" native-type="button" @click="resetQuery">{{ tr('重置') }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
     <el-card class="mt20">
       <div class="mb8 flex-space-between">
-        <div style="font-size: large">库存统计</div>
-        <el-checkbox v-model="filterable" label="过滤掉库存为0的商品" size="large" @change="handleChangeFilterZero"/>
+        <div style="font-size: large">{{ tr('库存统计') }}</div>
+        <el-checkbox v-model="filterable" :label="tr('过滤掉库存为0的商品')" size="large" @change="handleChangeFilterZero"/>
       </div>
       <el-table :data="inventoryList" border :span-method="spanMethod"
-                cell-class-name="vertical-top-cell" v-loading="loading" empty-text="暂无库存">
+                cell-class-name="vertical-top-cell" v-loading="loading" :empty-text="tr('暂无库存')">
         <template v-if="queryType == 'warehouse'">
-          <el-table-column label="仓库" prop="warehouseId">
+          <el-table-column :label="tr('仓库')" prop="warehouseId">
             <template #default="{ row }">
               <div>{{ useWmsStore().warehouseMap.get(row.warehouseId)?.warehouseName }}</div>
             </template>
           </el-table-column>
-          <el-table-column label="商品信息" prop="warehouseIdAndItemId">
+          <el-table-column :label="tr('商品名称')" prop="warehouseIdAndItemId">
             <template #default="{ row }">
               <div>{{ row.item.itemName }}</div>
-              <div v-if="row.item.itemCode">商品编号：{{ row.item.itemCode }}</div>
             </template>
           </el-table-column>
-          <el-table-column label="规格信息" :prop="skuId">
+          <el-table-column :label="tr('SKU编号')" prop="skuId">
             <template #default="{ row }">
-              <div>{{ row.itemSku.skuName }}</div>
-              <div v-if="row.itemSku.skuCode">规格编号：{{ row.itemSku.skuCode }}</div>
+              <div v-if="row.itemSku?.skuCode">{{ row.itemSku.skuCode }}</div>
+              <div v-else>-</div>
             </template>
           </el-table-column>
         </template>
         <template v-else>
-          <el-table-column label="商品信息" prop="itemId">
+          <el-table-column :label="tr('商品名称')" prop="itemId">
             <template #default="{ row }">
               <div>{{ row.item.itemName }}</div>
-              <div v-if="row.item.itemCode">商品编号：{{ row.item.itemCode }}</div>
             </template>
           </el-table-column>
-          <el-table-column label="规格信息" prop="skuId">
+          <el-table-column :label="tr('SKU编号')" prop="skuId">
             <template #default="{ row }">
-              <div>{{ row.itemSku.skuName }}</div>
-              <div v-if="row.itemSku.skuCode">规格编号：{{ row.itemSku.skuCode }}</div>
+              <div v-if="row.itemSku?.skuCode">{{ row.itemSku.skuCode }}</div>
+              <div v-else>-</div>
             </template>
           </el-table-column>
-          <el-table-column label="仓库" prop="skuIdAndWarehouseId">
+          <el-table-column :label="tr('仓库')" prop="skuIdAndWarehouseId">
             <template #default="{row}">
               <div>{{ useWmsStore().warehouseMap.get(row.warehouseId)?.warehouseName }}</div>
             </template>
           </el-table-column>
         </template>
-        <el-table-column label="库存" prop="quantity" align="right">
+        <el-table-column :label="tr('库存')" prop="quantity" align="right">
           <template #default="{ row }">
             <el-statistic :value="Number(row.quantity)" :precision="0"/>
           </template>
@@ -101,8 +99,11 @@ import {computed, getCurrentInstance, onMounted, ref} from 'vue';
 import {ElForm} from 'element-plus';
 import {getRowspanMethod} from "@/utils/getRowSpanMethod";
 import {useWmsStore} from '@/store/modules/wms'
+import useSettingsStore from '@/store/modules/settings'
+import { translateByMap } from '@/locales/runtime-map'
 
 const {proxy} = getCurrentInstance();
+const settingsStore = useSettingsStore()
 const spanMethod = computed(() => getRowspanMethod(inventoryList.value, rowSpanArray.value))
 
 const inventoryList = ref([]);
@@ -123,8 +124,6 @@ const queryParams = ref({
   skuId: undefined,
   warehouseId: undefined,
   itemName: undefined,
-  itemCode: undefined,
-  skuName: undefined,
   skuCode: undefined,
   minQuantity: undefined
 })
@@ -139,7 +138,12 @@ const getList = async () => {
   }
   loading.value = true;
   const res = await listInventoryBoard(query,queryType.value);
-  inventoryList.value = res.rows;
+  let rows = res.rows || []
+  // 后端未生效时，前端兜底过滤库存为0数据
+  if (filterable.value) {
+    rows = rows.filter(it => Number(it.quantity) !== 0)
+  }
+  inventoryList.value = rows;
   inventoryList.value.forEach(it => {
     if (queryType.value == "warehouse") {
       it.warehouseIdAndItemId = it.warehouseId + '-' + it.item.id
@@ -148,7 +152,7 @@ const getList = async () => {
       it.skuIdAndWarehouseId = it.skuId + '-' + it.warehouseId
     }
   })
-  total.value = res.total;
+  total.value = filterable.value ? inventoryList.value.length : res.total;
   loading.value = false;
 }
 
@@ -187,11 +191,53 @@ const handleChangeFilterZero = (e) => {
   getList()
 }
 
+const tr = (text) => {
+  return translateByMap(text, settingsStore.language || 'zh-cn')
+}
+
 onMounted(() => {
   getList();
 });
 </script>
 <style>
+.filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 16px;
+}
+
+.filter-item {
+  width: calc(25% - 12px);
+  margin-right: 0;
+}
+
+.filter-item-full {
+  width: 100%;
+}
+
+.filter-item-actions {
+  width: 100%;
+}
+
+@media (max-width: 1600px) {
+  .filter-item {
+    width: calc(33.33% - 11px);
+  }
+}
+
+@media (max-width: 1200px) {
+  .filter-item {
+    width: calc(50% - 8px);
+  }
+}
+
+@media (max-width: 768px) {
+  .filter-item,
+  .filter-item-actions {
+    width: 100%;
+  }
+}
+
 .el-statistic__content {
   font-size: 14px;
 }

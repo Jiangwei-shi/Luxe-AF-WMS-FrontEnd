@@ -5,12 +5,8 @@
     <top-nav id="topmenu-container" class="topmenu-container" v-if="settingsStore.topNav" />
 
     <div class="right-menu">
-      <el-button
-        class="right-menu-item hover-effect"
-        text
-        @click="toggleLanguage"
-      >
-        {{ currentLanguage === 'en' ? $t('navbar.langSwitchLabelZh') : $t('navbar.langSwitchLabelEn') }}
+      <el-button class="lang-switch-btn" data-runtime-i18n-ignore="true" type="primary" @click="toggleLanguage">
+        {{ languageButtonText }}
       </el-button>
       <div class="avatar-container">
         <el-dropdown @command="handleCommand" class="right-menu-item hover-effect" trigger="click">
@@ -21,10 +17,10 @@
           <template #dropdown>
             <el-dropdown-menu>
               <router-link to="/user/profile">
-                <el-dropdown-item>个人中心</el-dropdown-item>
+                <el-dropdown-item>{{ $t('navbar.profile') }}</el-dropdown-item>
               </router-link>
               <el-dropdown-item divided command="logout">
-                <span>退出登录</span>
+                <span>{{ $t('navbar.logout') }}</span>
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -49,13 +45,43 @@ import useAppStore from '@/store/modules/app'
 import useUserStore from '@/store/modules/user'
 import useSettingsStore from '@/store/modules/settings'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
+import { getRouteTitle } from '@/utils/routeTitle'
 
 const appStore = useAppStore()
 const userStore = useUserStore()
 const settingsStore = useSettingsStore()
 const { locale, t } = useI18n()
+const route = useRoute()
 
-const currentLanguage = computed(() => settingsStore.language || 'zh-cn')
+function normalizeLanguage(lang) {
+  const value = String(lang || '').toLowerCase().replace('_', '-')
+  if (value.startsWith('en')) return 'en'
+  if (value.startsWith('zh')) return 'zh-cn'
+  return 'zh-cn'
+}
+
+const currentLanguage = computed(() => normalizeLanguage(settingsStore.language || locale.value))
+const languageButtonText = computed(() => (currentLanguage.value === 'en' ? 'English' : '中文'))
+
+function applyLanguage(nextRaw) {
+  if (!nextRaw) return
+  const next = normalizeLanguage(nextRaw)
+  if (locale.value !== next) {
+    locale.value = next
+  }
+  if (settingsStore.language !== next) {
+    settingsStore.setLanguage(next)
+  }
+  if (route.meta && route.meta.title) {
+    settingsStore.setTitle(getRouteTitle(route.meta, next))
+  }
+}
+
+function toggleLanguage() {
+  const next = currentLanguage.value === 'en' ? 'zh-cn' : 'en'
+  applyLanguage(next)
+}
 
 function toggleSideBar() {
   appStore.toggleSideBar()
@@ -84,12 +110,6 @@ function logout() {
       location.href = import.meta.env.VITE_APP_CONTEXT_PATH + 'index';
     })
   }).catch(() => { });
-}
-
-function toggleLanguage() {
-  const next = currentLanguage.value === 'en' ? 'zh-cn' : 'en'
-  settingsStore.setLanguage(next)
-  locale.value = next
 }
 
 const emits = defineEmits(['setLayout'])
@@ -135,8 +155,9 @@ function setLayout() {
   .right-menu {
     float: right;
     height: 100%;
-    line-height: 50px;
+    line-height: normal;
     display: flex;
+    align-items: center;
 
     &:focus {
       outline: none;
@@ -160,11 +181,27 @@ function setLayout() {
       }
     }
 
+    .lang-switch-btn {
+      margin: 0 16px 0 0;
+      flex-shrink: 0;
+      min-width: 108px;
+      height: 30px;
+      border-radius: 6px;
+      padding: 0 12px;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1;
+      background: #409eff;
+      border-color: #409eff;
+    }
+
     .avatar-container {
-      margin-right: 40px;
+      margin-right: 32px;
+      display: flex;
+      align-items: center;
 
       .avatar-wrapper {
-        margin-top: 5px;
+        margin-top: 0;
         position: relative;
 
         .user-avatar {

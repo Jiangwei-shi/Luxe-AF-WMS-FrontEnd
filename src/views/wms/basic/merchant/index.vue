@@ -1,27 +1,27 @@
 <template>
-  <div class="app-container">
+  <div class="app-container merchant-page" :class="{ 'is-en': isEn }">
     <el-card>
-      <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-        <el-form-item label="编号" prop="merchantCode">
+      <el-form :model="queryParams" ref="queryRef" :inline="true" :label-width="queryLabelWidth" class="merchant-query-form">
+        <el-form-item :label="tr('编号')" prop="merchantCode">
           <el-input
             v-model="queryParams.merchantCode"
-            placeholder="请输入编号"
+            :placeholder="tr('请输入') + tr('编号')"
             clearable
             @keyup.enter="handleQuery"
           />
         </el-form-item>
-        <el-form-item label="名称" prop="merchantName">
+        <el-form-item :label="tr('名称')" prop="merchantName">
           <el-input
             v-model="queryParams.merchantName"
-            placeholder="请输入名称"
+            :placeholder="tr('请输入') + tr('名称')"
             clearable
             @keyup.enter="handleQuery"
           />
         </el-form-item>
-        <el-form-item label="企业类型" prop="merchantType">
-          <el-select v-model="queryParams.merchantType" placeholder="请选择企业类型" clearable>
+        <el-form-item :label="tr('企业类型')" prop="merchantType" :label-width="isEn ? '130px' : undefined">
+          <el-select v-model="queryParams.merchantType" :placeholder="tr('请选择') + tr('企业类型')" clearable>
             <el-option
-              v-for="dict in merchant_type"
+              v-for="dict in translatedMerchantTypeOptions"
               :key="dict.value"
               :label="dict.label"
               :value="dict.value"
@@ -29,8 +29,8 @@
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-          <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+          <el-button type="primary" icon="Search" class="action-btn" @click="handleQuery">{{ tr('搜索') }}</el-button>
+          <el-button icon="Refresh" class="action-btn" @click="resetQuery">{{ tr('重置') }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -38,7 +38,7 @@
     <el-card class="mt20">
 
       <el-row :gutter="10" class="mb8" type="flex" justify="space-between">
-        <el-col :span="6"><span style="font-size: large">往来单位</span></el-col>
+        <el-col :span="6"><span style="font-size: large">{{ tr('往来单位') }}</span></el-col>
         <el-col :span="1.5">
           <el-button
             type="primary"
@@ -46,26 +46,26 @@
             icon="Plus"
             @click="handleAdd"
             v-hasPermi="['wms:merchant:add']"
-          >新增</el-button>
+          >{{ tr('新增') }}</el-button>
         </el-col>
       </el-row>
 
-      <el-table v-loading="loading" :data="merchantList" border class="mt20" empty-text="暂无往来单位">
+      <el-table v-loading="loading" :data="merchantList" border class="mt20" :empty-text="tr('暂无') + tr('往来单位')">
         <el-table-column label="id" prop="id" v-if="false"/>
-        <el-table-column label="编号" prop="merchantCode" />
-        <el-table-column label="名称" prop="merchantName" />
-        <el-table-column label="企业类型" prop="merchantType">
+        <el-table-column :label="tr('编号')" prop="merchantCode" min-width="120" show-overflow-tooltip />
+        <el-table-column :label="tr('名称')" prop="merchantName" min-width="180" show-overflow-tooltip />
+        <el-table-column :label="tr('企业类型')" prop="merchantType" min-width="150">
           <template #default="scope">
-            <dict-tag :options="merchant_type" :value="scope.row.merchantType"/>
+            <dict-tag :options="translatedMerchantTypeOptions" :value="scope.row.merchantType"/>
           </template>
         </el-table-column>
-        <el-table-column label="级别" prop="merchantLevel" />
-        <el-table-column label="联系人" prop="contactPerson" />
-        <el-table-column label="备注" prop="remark" />
-        <el-table-column label="操作" align="right" class-name="small-padding fixed-width">
+        <el-table-column :label="tr('级别')" prop="merchantLevel" min-width="110" show-overflow-tooltip />
+        <el-table-column :label="tr('联系人')" prop="contactPerson" min-width="140" show-overflow-tooltip />
+        <el-table-column :label="tr('备注')" prop="remark" min-width="180" show-overflow-tooltip />
+        <el-table-column :label="tr('操作')" align="right" class-name="small-padding fixed-width" width="160">
             <template #default="scope">
-                <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['wms:merchant:edit']">修改</el-button>
-                <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['wms:merchant:remove']">删除</el-button>
+                <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['wms:merchant:edit']">{{ tr('修改') }}</el-button>
+                <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['wms:merchant:remove']">{{ tr('删除') }}</el-button>
             </template>
         </el-table-column>
       </el-table>
@@ -83,55 +83,55 @@
     </el-card>
     <!-- 添加或修改往来单位对话框 -->
     <el-drawer :title="title" v-model="open" append-to-body size="50%">
-      <el-form ref="merchantRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="编号" prop="merchantCode">
-          <el-input v-model="form.merchantCode" placeholder="请输入编号" />
+      <el-form ref="merchantRef" :model="form" :rules="rules" :label-width="drawerLabelWidth">
+        <el-form-item :label="tr('编号')" prop="merchantCode">
+          <el-input v-model="form.merchantCode" :placeholder="tr('请输入') + tr('编号')" />
         </el-form-item>
-        <el-form-item label="名称" prop="merchantName">
-          <el-input v-model="form.merchantName" placeholder="请输入名称" />
+        <el-form-item :label="tr('名称')" prop="merchantName">
+          <el-input v-model="form.merchantName" :placeholder="tr('请输入') + tr('名称')" />
         </el-form-item>
-        <el-form-item label="企业类型" prop="merchantType">
-          <el-select v-model="form.merchantType" placeholder="请选择企业类型">
+        <el-form-item :label="tr('企业类型')" prop="merchantType">
+          <el-select v-model="form.merchantType" :placeholder="tr('请选择') + tr('企业类型')">
             <el-option
-              v-for="dict in merchant_type"
+              v-for="dict in translatedMerchantTypeOptions"
               :key="dict.value"
               :label="dict.label"
               :value="parseInt(dict.value)"
             ></el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="级别" prop="merchantLevel">
-          <el-input v-model="form.merchantLevel" placeholder="请输入级别" />
+        <el-form-item :label="tr('级别')" prop="merchantLevel">
+          <el-input v-model="form.merchantLevel" :placeholder="tr('请输入') + tr('级别')" />
         </el-form-item>
-        <el-form-item label="开户行" prop="bankName">
-          <el-input v-model="form.bankName" placeholder="请输入开户行" />
+        <el-form-item :label="tr('开户行')" prop="bankName">
+          <el-input v-model="form.bankName" :placeholder="tr('请输入') + tr('开户行')" />
         </el-form-item>
-        <el-form-item label="银行账户" prop="bankAccount">
-          <el-input v-model="form.bankAccount" placeholder="请输入银行账户" />
+        <el-form-item :label="tr('银行账户')" prop="bankAccount">
+          <el-input v-model="form.bankAccount" :placeholder="tr('请输入') + tr('银行账户')" />
         </el-form-item>
-        <el-form-item label="地址" prop="address">
-          <el-input v-model="form.address" placeholder="请输入地址" />
+        <el-form-item :label="tr('地址')" prop="address">
+          <el-input v-model="form.address" :placeholder="tr('请输入') + tr('地址')" />
         </el-form-item>
-        <el-form-item label="手机号" prop="mobile">
-          <el-input v-model="form.mobile" placeholder="请输入手机号" />
+        <el-form-item :label="tr('手机号')" prop="mobile">
+          <el-input v-model="form.mobile" :placeholder="tr('请输入') + tr('手机号')" />
         </el-form-item>
-        <el-form-item label="座机号" prop="tel">
-          <el-input v-model="form.tel" placeholder="请输入座机号" />
+        <el-form-item :label="tr('座机号')" prop="tel">
+          <el-input v-model="form.tel" :placeholder="tr('请输入') + tr('座机号')" />
         </el-form-item>
-        <el-form-item label="联系人" prop="contactPerson">
-          <el-input v-model="form.contactPerson" placeholder="请输入联系人" />
+        <el-form-item :label="tr('联系人')" prop="contactPerson">
+          <el-input v-model="form.contactPerson" :placeholder="tr('请输入') + tr('联系人')" />
         </el-form-item>
         <el-form-item label="Email" prop="email">
-          <el-input v-model="form.email" placeholder="请输入Email" />
+          <el-input v-model="form.email" :placeholder="tr('请输入') + 'Email'" />
         </el-form-item>
-        <el-form-item label="备注" prop="remark">
-          <el-input v-model="form.remark" placeholder="请输入备注" />
+        <el-form-item :label="tr('备注')" prop="remark">
+          <el-input v-model="form.remark" :placeholder="tr('请输入') + tr('备注')" />
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button :loading="buttonLoading" type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
+          <el-button :loading="buttonLoading" type="primary" class="action-btn" @click="submitForm">{{ tr('确认') }}</el-button>
+          <el-button class="action-btn" @click="cancel">{{ tr('取消') }}</el-button>
         </div>
       </template>
     </el-drawer>
@@ -141,9 +141,13 @@
 <script setup name="Merchant">
 import { listMerchant, getMerchant, delMerchant, addMerchant, updateMerchant } from "@/api/wms/merchant";
 import {ElMessageBox} from "element-plus";
+import { computed } from "vue";
+import useSettingsStore from '@/store/modules/settings'
+import { translateByMap } from '@/locales/runtime-map'
 
 const { proxy } = getCurrentInstance();
 const { merchant_type } = proxy.useDict('merchant_type');
+const settingsStore = useSettingsStore()
 
 const merchantList = ref([]);
 const open = ref(false);
@@ -176,6 +180,11 @@ const data = reactive({
 });
 
 const { queryParams, form, rules } = toRefs(data);
+const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
+const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
+const queryLabelWidth = computed(() => (isEn.value ? '68px' : '68px'))
+const drawerLabelWidth = computed(() => (isEn.value ? '130px' : '80px'))
+const translatedMerchantTypeOptions = computed(() => (merchant_type.value || []).map(it => ({ ...it, label: tr(it.label) })))
 
 /** 查询往来单位列表 */
 function getList() {
@@ -234,7 +243,7 @@ function resetQuery() {
 function handleAdd() {
   reset();
   open.value = true;
-  title.value = "添加往来单位";
+  title.value = tr("新增") + tr("往来单位");
 }
 
 /** 修改按钮操作 */
@@ -244,7 +253,7 @@ function handleUpdate(row) {
   getMerchant(_id).then(response => {
     form.value = response.data;
     open.value = true;
-    title.value = "修改往来单位";
+    title.value = tr("修改") + tr("往来单位");
   });
 }
 
@@ -297,3 +306,17 @@ function handleExport() {
 
 getList();
 </script>
+
+<style lang="scss">
+.merchant-page.is-en .el-form-item__label {
+  white-space: nowrap;
+}
+
+.merchant-page .action-btn {
+  min-width: 96px;
+}
+
+.merchant-page.is-en .action-btn {
+  min-width: 110px;
+}
+</style>

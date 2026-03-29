@@ -1,9 +1,9 @@
 <template>
-  <div class="app-container">
+  <div class="app-container warehouse-page" :class="{ 'is-en': isEn }">
     <el-card>
 
       <el-row :gutter="10" class="mb8" type="flex" justify="space-between">
-        <el-col :span="6"><span style="font-size: large">仓库列表</span></el-col>
+        <el-col :span="6"><span style="font-size: large">{{ tr('仓库列表') }}</span></el-col>
         <el-col :span="1.5">
           <el-button
             type="primary"
@@ -11,18 +11,18 @@
             icon="Plus"
             @click="handleAdd"
             v-hasPermi="['wms:itemBrand:add']"
-          >新增</el-button>
+          >{{ tr('新增') }}</el-button>
         </el-col>
       </el-row>
 
-      <el-table v-loading="loading" :data="warehouseList" border class="mt20" empty-text="暂无品牌">
-        <el-table-column label="仓库名称" prop="warehouseName" />
-        <el-table-column label="仓库编号" prop="warehouseCode" />
-        <el-table-column label="创建时间" prop="createTime" width="180"/>
-        <el-table-column label="操作" align="right" class-name="small-padding fixed-width" width="180">
+      <el-table v-loading="loading" :data="warehouseList" border class="mt20" :empty-text="tr('暂无') + tr('仓库')">
+        <el-table-column :label="tr('仓库名称')" prop="warehouseName" min-width="180" show-overflow-tooltip />
+        <el-table-column :label="tr('仓库编号')" prop="warehouseCode" min-width="160" show-overflow-tooltip />
+        <el-table-column :label="tr('创建时间')" prop="createTime" width="180"/>
+        <el-table-column :label="tr('操作')" align="right" class-name="small-padding fixed-width" width="180">
           <template #default="scope">
-            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['wms:itemBrand:edit']">修改</el-button>
-            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['wms:itemBrand:remove']">删除</el-button>
+            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['wms:itemBrand:edit']">{{ tr('修改') }}</el-button>
+            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['wms:itemBrand:remove']">{{ tr('删除') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -30,21 +30,21 @@
     </el-card>
     <!-- 添加或修改仓库对话框 -->
     <el-dialog :title="dialog.title" v-model="dialog.visible" width="500px" append-to-body :close-on-click-modal="false">
-      <el-form ref="warehouseFormRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="名称" prop="warehouseName">
-          <el-input v-model="form.warehouseName" placeholder="请输入名称" />
+      <el-form ref="warehouseFormRef" :model="form" :rules="rules" :label-width="dialogLabelWidth">
+        <el-form-item :label="tr('名称')" prop="warehouseName">
+          <el-input v-model="form.warehouseName" :placeholder="tr('请输入') + tr('名称')" />
         </el-form-item>
-        <el-form-item label="编号" prop="warehouseCode">
-          <el-input v-model="form.warehouseCode" placeholder="请输入编号" />
+        <el-form-item :label="tr('编号')" prop="warehouseCode">
+          <el-input v-model="form.warehouseCode" :placeholder="tr('请输入') + tr('编号')" />
         </el-form-item>
-        <el-form-item label="备注" prop="remark">
-          <el-input v-model="form.remark" placeholder="请输入备注" />
+        <el-form-item :label="tr('备注')" prop="remark">
+          <el-input v-model="form.remark" :placeholder="tr('请输入') + tr('备注')" />
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button :loading="buttonLoading" type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
+          <el-button :loading="buttonLoading" type="primary" class="action-btn" @click="submitForm">{{ tr('确认') }}</el-button>
+          <el-button class="action-btn" @click="cancel">{{ tr('取消') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -59,11 +59,14 @@ import {
   updateWarehouse,
   listWarehouseNoPage
 } from '@/api/wms/warehouse';
-import {getCurrentInstance, nextTick, onMounted, reactive, ref, toRefs} from 'vue';
+import {computed, getCurrentInstance, nextTick, onMounted, reactive, ref, toRefs} from 'vue';
 import {ElForm, ElMessageBox, ElTree} from 'element-plus';
 import useUserStore from "@/store/modules/user";
 import {useWmsStore} from "@/store/modules/wms";
+import useSettingsStore from '@/store/modules/settings'
+import { translateByMap } from '@/locales/runtime-map'
 const wmsStore = useWmsStore();
+const settingsStore = useSettingsStore()
 const { proxy } = getCurrentInstance();
 
 const customNodeClass = (data, node) => {
@@ -109,6 +112,9 @@ const data = reactive({
 });
 
 const { queryParams, form, rules } = toRefs(data);
+const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
+const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
+const dialogLabelWidth = computed(() => (isEn.value ? '100px' : '80px'))
 
 
 const selectedWarehouseId = ref()
@@ -154,7 +160,7 @@ const resetQuery = () => {
 const handleAdd = async () => {
 
       dialog.visible = true;
-      dialog.title = "添加仓库";
+      dialog.title = tr('新增') + tr('仓库');
       nextTick(() => {
         reset();
       });
@@ -163,7 +169,7 @@ const handleAdd = async () => {
 /** 修改按钮操作 */
 const handleUpdate = (data) => {
   dialog.visible = true;
-  dialog.title = "修改仓库";
+  dialog.title = tr('修改') + tr('仓库');
   nextTick(async () => {
     reset();
     const _id = data.id
@@ -182,7 +188,7 @@ const submitForm = () => {
       } else {
         await addWarehouse(form.value).finally(() =>  buttonLoading.value = false);
       }
-      proxy?.$modal.msgSuccess(form.value.id ? '修改成功' : '新增成功');
+      proxy?.$modal.msgSuccess(form.value.id ? tr('修改成功') : tr('新增成功'));
       dialog.visible = false;
       await getList();
       wmsStore.getWarehouseList()
@@ -193,9 +199,9 @@ const submitForm = () => {
 /** 删除按钮操作 */
 const handleDelete = async (data) => {
   const _ids = data.id;
-  await proxy?.$modal.confirm('确认删除仓库【' + data.warehouseName + '】吗？').finally(() => loading.value = false);
+  await proxy?.$modal.confirm(tr('确认删除') + tr('仓库') + '【' + data.warehouseName + '】' + '？').finally(() => loading.value = false);
   await delWarehouse(_ids);
-  proxy?.$modal.msgSuccess("删除成功");
+  proxy?.$modal.msgSuccess(tr("删除成功"));
   await getList();
   wmsStore.getWarehouseList()
 }
@@ -211,6 +217,18 @@ onMounted(async () => {
 });
 </script>
 <style lang="scss">
+.warehouse-page.is-en .el-form-item__label {
+  white-space: nowrap;
+}
+
+.warehouse-page .action-btn {
+  min-width: 96px;
+}
+
+.warehouse-page.is-en .action-btn {
+  min-width: 110px;
+}
+
 .custom-tree-node {
   flex: 1;
   display: flex;

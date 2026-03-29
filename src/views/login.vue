@@ -62,10 +62,12 @@ import { getCodeImg } from "@/api/login";
 import Cookies from "js-cookie";
 import { encrypt, decrypt } from "@/utils/jsencrypt";
 import useUserStore from '@/store/modules/user'
+import { useI18n } from 'vue-i18n'
 
 const userStore = useUserStore()
 const router = useRouter();
 const { proxy } = getCurrentInstance();
+const { t } = useI18n()
 
 const loginForm = ref({
   username: "",
@@ -75,11 +77,11 @@ const loginForm = ref({
   uuid: ""
 });
 
-const loginRules = {
-  username: [{ required: true, trigger: "blur", message: "请输入您的账号" }],
-  password: [{ required: true, trigger: "blur", message: "请输入您的密码" }],
-  code: [{ required: true, trigger: "change", message: "请输入验证码" }]
-};
+const loginRules = computed(() => ({
+  username: [{ required: true, trigger: "blur", message: t('login.ruleUsernameRequired') }],
+  password: [{ required: true, trigger: "blur", message: t('login.rulePasswordRequired') }],
+  code: [{ required: true, trigger: "change", message: t('login.ruleCodeRequired') }]
+}));
 
 const codeUrl = ref("");
 const loading = ref(false);

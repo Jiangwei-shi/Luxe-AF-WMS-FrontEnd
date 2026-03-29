@@ -1,5 +1,5 @@
 <template>
-   <div class="app-container">
+   <div class="app-container user-page" :class="{ 'is-en': isEn }">
       <el-row :gutter="20">
          <!--部门数据-->
          <el-col :span="4" :xs="24">
@@ -28,7 +28,7 @@
          </el-col>
          <!--用户数据-->
          <el-col :span="20" :xs="24">
-            <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
+            <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" :label-width="queryLabelWidth">
                <el-form-item label="用户名称" prop="userName">
                   <el-input
                      v-model="queryParams.userName"
@@ -74,8 +74,8 @@
                   ></el-date-picker>
                </el-form-item>
                <el-form-item>
-                  <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-                  <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+                  <el-button type="primary" icon="Search" class="action-btn" @click="handleQuery">{{ tr('搜索') }}</el-button>
+                  <el-button icon="Refresh" class="action-btn" @click="resetQuery">{{ tr('重置') }}</el-button>
                </el-form-item>
             </el-form>
 
@@ -87,7 +87,7 @@
                      icon="Plus"
                      @click="handleAdd"
                      v-hasPermi="['system:user:add']"
-                  >新增</el-button>
+                  class="action-btn">{{ tr('新增') }}</el-button>
                </el-col>
                <el-col :span="1.5">
                   <el-button
@@ -97,7 +97,7 @@
                      :disabled="single"
                      @click="handleUpdate"
                      v-hasPermi="['system:user:edit']"
-                  >修改</el-button>
+                  class="action-btn">{{ tr('修改') }}</el-button>
                </el-col>
                <el-col :span="1.5">
                   <el-button
@@ -107,7 +107,7 @@
                      :disabled="multiple"
                      @click="handleDelete"
                      v-hasPermi="['system:user:remove']"
-                  >删除</el-button>
+                  class="action-btn">{{ tr('删除') }}</el-button>
                </el-col>
                <el-col :span="1.5">
                   <el-button
@@ -116,7 +116,7 @@
                      icon="Upload"
                      @click="handleImport"
                      v-hasPermi="['system:user:import']"
-                  >导入</el-button>
+                  class="action-btn">{{ tr('导入') }}</el-button>
                </el-col>
                <el-col :span="1.5">
                   <el-button
@@ -125,7 +125,7 @@
                      icon="Download"
                      @click="handleExport"
                      v-hasPermi="['system:user:export']"
-                  >导出</el-button>
+                  class="action-btn">{{ tr('导出') }}</el-button>
                </el-col>
                <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
             </el-row>
@@ -181,7 +181,7 @@
 
       <!-- 添加或修改用户配置对话框 -->
       <el-dialog :title="title" v-model="open" width="600px" append-to-body>
-         <el-form :model="form" :rules="rules" ref="userRef" label-width="80px">
+         <el-form :model="form" :rules="rules" ref="userRef" :label-width="dialogLabelWidth">
             <el-row>
                <el-col :span="12">
                   <el-form-item label="用户昵称" prop="nickName">
@@ -204,7 +204,7 @@
             <el-row>
                <el-col :span="12">
                   <el-form-item label="手机号码" prop="phonenumber">
-                     <el-input v-model="form.phonenumber" placeholder="请输入手机号码" maxlength="11" />
+                     <el-input v-model="form.phonenumber" placeholder="请输入手机号码" />
                   </el-form-item>
                </el-col>
                <el-col :span="12">
@@ -288,8 +288,8 @@
          </el-form>
          <template #footer>
             <div class="dialog-footer">
-               <el-button type="primary" @click="submitForm">确 定</el-button>
-               <el-button @click="cancel">取 消</el-button>
+               <el-button type="primary" class="action-btn" @click="submitForm">{{ tr('确认') }}</el-button>
+               <el-button class="action-btn" @click="cancel">{{ tr('取消') }}</el-button>
             </div>
          </template>
       </el-dialog>
@@ -322,8 +322,8 @@
          </el-upload>
          <template #footer>
             <div class="dialog-footer">
-               <el-button type="primary" @click="submitFileForm">确 定</el-button>
-               <el-button @click="upload.open = false">取 消</el-button>
+               <el-button type="primary" class="action-btn" @click="submitFileForm">{{ tr('确认') }}</el-button>
+               <el-button class="action-btn" @click="upload.open = false">{{ tr('取消') }}</el-button>
             </div>
          </template>
       </el-dialog>
@@ -333,10 +333,18 @@
 <script setup name="User">
 import { getToken } from "@/utils/auth";
 import { changeUserStatus, listUser, resetUserPwd, delUser, getUser, updateUser, addUser, deptTreeSelect } from "@/api/system/user";
+import { computed } from "vue";
+import useSettingsStore from '@/store/modules/settings'
+import { translateByMap } from '@/locales/runtime-map'
 
 const router = useRouter();
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable, sys_user_sex } = proxy.useDict("sys_normal_disable", "sys_user_sex");
+const settingsStore = useSettingsStore()
+const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
+const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
+const queryLabelWidth = computed(() => (isEn.value ? '120px' : '68px'))
+const dialogLabelWidth = computed(() => (isEn.value ? '100px' : '80px'))
 
 const userList = ref([]);
 const open = ref(false);
@@ -393,8 +401,7 @@ const data = reactive({
     userName: [{ required: true, message: "用户名称不能为空", trigger: "blur" }, { min: 2, max: 20, message: "用户名称长度必须介于 2 和 20 之间", trigger: "blur" }],
     nickName: [{ required: true, message: "用户昵称不能为空", trigger: "blur" }],
     password: [{ required: true, message: "用户密码不能为空", trigger: "blur" }, { min: 5, max: 20, message: "用户密码长度必须介于 5 和 20 之间", trigger: "blur" }],
-    email: [{ type: "email", message: "请输入正确的邮箱地址", trigger: ["blur", "change"] }],
-    phonenumber: [{ pattern: /^1[3|4|5|6|7|8|9][0-9]\d{8}$/, message: "请输入正确的手机号码", trigger: "blur" }]
+    email: [{ type: "email", message: "请输入正确的邮箱地址", trigger: ["blur", "change"] }]
   }
 });
 
@@ -445,7 +452,7 @@ function resetQuery() {
 /** 删除按钮操作 */
 function handleDelete(row) {
   const userIds = row.userId || ids.value;
-  proxy.$modal.confirm('是否确认删除用户编号为"' + userIds + '"的数据项？').then(function () {
+  proxy.$modal.confirm((isEn.value ? 'Confirm delete user ID ' : '是否确认删除用户编号为"') + userIds + (isEn.value ? '?' : '"的数据项？')).then(function () {
     return delUser(userIds);
   }).then(() => {
     getList();
@@ -460,8 +467,8 @@ function handleExport() {
 };
 /** 用户状态修改  */
 function handleStatusChange(row) {
-  let text = row.status === "1" ? "启用" : "停用";
-  proxy.$modal.confirm('确认要"' + text + '""' + row.userName + '"用户吗?').then(function () {
+  let text = row.status === "1" ? (isEn.value ? "Enable" : "启用") : (isEn.value ? "Disable" : "停用");
+  proxy.$modal.confirm((isEn.value ? 'Confirm to ' : '确认要"') + text + (isEn.value ? ' user "' : '""') + row.userName + (isEn.value ? '"?' : '"用户吗?')).then(function () {
     return changeUserStatus(row.userId, row.status);
   }).then(() => {
     proxy.$modal.msgSuccess(text + "成功");
@@ -489,12 +496,12 @@ function handleAuthRole(row) {
 };
 /** 重置密码按钮操作 */
 function handleResetPwd(row) {
-  proxy.$prompt('请输入"' + row.userName + '"的新密码', "提示", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
+  proxy.$prompt((isEn.value ? 'Please input new password for "' : '请输入"') + row.userName + (isEn.value ? '"' : '"的新密码'), isEn.value ? "Prompt" : "提示", {
+    confirmButtonText: isEn.value ? "Confirm" : "确定",
+    cancelButtonText: isEn.value ? "Cancel" : "取消",
     closeOnClickModal: false,
     inputPattern: /^.{5,20}$/,
-    inputErrorMessage: "用户密码长度必须介于 5 和 20 之间",
+    inputErrorMessage: isEn.value ? "Password length must be between 5 and 20" : "用户密码长度必须介于 5 和 20 之间",
   }).then(({ value }) => {
     resetUserPwd(row.userId, value).then(response => {
       proxy.$modal.msgSuccess("修改成功，新密码是：" + value);
@@ -509,7 +516,7 @@ function handleSelectionChange(selection) {
 };
 /** 导入按钮操作 */
 function handleImport() {
-  upload.title = "用户导入";
+  upload.title = isEn.value ? "Import User" : "用户导入";
   upload.open = true;
 };
 /** 下载模板操作 */
@@ -526,7 +533,7 @@ const handleFileSuccess = (response, file, fileList) => {
   upload.open = false;
   upload.isUploading = false;
   proxy.$refs["uploadRef"].handleRemove(file);
-  proxy.$alert("<div style='overflow: auto;overflow-x: hidden;max-height: 70vh;padding: 10px 20px 0;'>" + response.msg + "</div>", "导入结果", { dangerouslyUseHTMLString: true });
+  proxy.$alert("<div style='overflow: auto;overflow-x: hidden;max-height: 70vh;padding: 10px 20px 0;'>" + response.msg + "</div>", isEn.value ? "Import Result" : "导入结果", { dangerouslyUseHTMLString: true });
   getList();
 };
 /** 提交上传文件 */
@@ -563,7 +570,7 @@ function handleAdd() {
     postOptions.value = response.data.posts;
     roleOptions.value = response.data.roles;
     open.value = true;
-    title.value = "添加用户";
+    title.value = isEn.value ? "Add User" : "添加用户";
     form.value.password = initPassword.value;
   });
 };
@@ -578,7 +585,7 @@ function handleUpdate(row) {
     form.value.postIds = response.data.postIds;
     form.value.roleIds = response.data.roleIds;
     open.value = true;
-    title.value = "修改用户";
+    title.value = isEn.value ? "Edit User" : "修改用户";
     form.password = "";
   });
 };
@@ -609,3 +616,8 @@ proxy.getConfigKey("sys.user.initPassword").then(response => {
   initPassword.value = response.msg;
 });
 </script>
+<style lang="scss">
+.user-page.is-en .el-form-item__label { white-space: nowrap; }
+.user-page .action-btn { min-width: 96px; }
+.user-page.is-en .action-btn { min-width: 110px; }
+</style>

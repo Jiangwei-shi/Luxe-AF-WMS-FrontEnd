@@ -1,6 +1,6 @@
 <template>
   <div class="user-info-head" @click="editCropper()">
-    <img :src="options.img" title="点击上传头像" class="img-circle img-lg" />
+    <img :src="options.img" :title="isEn ? 'Click to upload avatar' : '点击上传头像'" class="img-circle img-lg" />
     <el-dialog :title="title" v-model="open" width="800px" append-to-body @opened="modalOpened" @close="closeDialog">
       <el-row>
         <el-col :xs="24" :md="12" :style="{ height: '350px' }">
@@ -33,7 +33,7 @@
             :before-upload="beforeUpload"
           >
             <el-button>
-              选择
+              {{ isEn ? 'Select' : '选择' }}
               <el-icon class="el-icon--right"><Upload /></el-icon>
             </el-button>
           </el-upload>
@@ -51,7 +51,7 @@
           <el-button icon="RefreshRight" @click="rotateRight()"></el-button>
         </el-col>
         <el-col :lg="{ span: 2, offset: 6 }" :md="2">
-          <el-button type="primary" @click="uploadImg()">提 交</el-button>
+          <el-button type="primary" @click="uploadImg()">{{ tr('提交') }}</el-button>
         </el-col>
       </el-row>
     </el-dialog>
@@ -63,13 +63,19 @@ import "vue-cropper/dist/index.css";
 import { VueCropper } from "vue-cropper";
 import { uploadAvatar } from "@/api/system/user";
 import useUserStore from "@/store/modules/user";
+import useSettingsStore from "@/store/modules/settings";
+import { translateByMap } from "@/locales/runtime-map";
 
 const userStore = useUserStore();
 const { proxy } = getCurrentInstance();
+const settingsStore = useSettingsStore()
+const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
+const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
 
 const open = ref(false);
 const visible = ref(false);
-const title = ref("修改头像");
+const title = computed(() => (isEn.value ? "Edit Avatar" : "修改头像"));
+const baseApi = import.meta.env.VITE_APP_BASE_API || "";
 
 //图片裁剪数据
 const options = reactive({
@@ -83,13 +89,69 @@ const options = reactive({
   previews: {} //预览数据
 });
 
+function isAbsoluteUrl(url) {
+  return /^https?:\/\//i.test(url);
+}
+
+function getAvatarUrl(avatar) {
+  if (!avatar) return "";
+  if (/^(data:|blob:)/i.test(avatar)) return avatar;
+  if (isAbsoluteUrl(avatar)) return avatar;
+  if (avatar.startsWith("/")) return avatar;
+  if (!baseApi) return avatar;
+  const cleanBase = baseApi.endsWith("/") ? baseApi.slice(0, -1) : baseApi;
+  return `${cleanBase}/${avatar}`;
+}
+
+function inferFileName(url) {
+  if (!url) return "avatar.png";
+  const pureUrl = String(url).split("?")[0];
+  const parts = pureUrl.split("/");
+  const tail = parts[parts.length - 1];
+  return tail || "avatar.png";
+}
+
+async function urlToDataUrl(url) {
+  const resp = await fetch(url, { mode: "cors", credentials: "omit" });
+  if (!resp.ok) {
+    throw new Error("avatar fetch failed");
+  }
+  const blob = await resp.blob();
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function initAvatarCrop() {
+  options.previews = {};
+  const avatarUrl = getAvatarUrl(userStore.avatar);
+  options.filename = inferFileName(avatarUrl);
+  if (!avatarUrl) {
+    options.img = "";
+    visible.value = true;
+    return;
+  }
+  try {
+    options.img = await urlToDataUrl(avatarUrl);
+  } catch (e) {
+    // 远程图片不支持 CORS 时，回退到直接 URL，保证至少尝试展示
+    options.img = avatarUrl;
+  }
+  visible.value = true;
+}
+
 /** 编辑头像 */
 function editCropper() {
   open.value = true;
 }
 /** 打开弹出层结束时的回调 */
-function modalOpened() {
-  visible.value = true;
+async function modalOpened() {
+  visible.value = false;
+  await nextTick();
+  await initAvatarCrop();
 }
 /** 覆盖默认上传行为 */
 function requestUpload() {}
@@ -109,7 +171,7 @@ function changeScale(num) {
 /** 上传预处理 */
 function beforeUpload(file) {
   if (file.type.indexOf("image/") == -1) {
-    proxy.$modal.msgError("文件格式错误，请上传图片类型,如：JPG，PNG后缀的文件。");
+    proxy.$modal.msgError(isEn.value ? "Invalid file format, please upload an image file (JPG/PNG)." : "文件格式错误，请上传图片类型,如：JPG，PNG后缀的文件。");
   } else {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -128,7 +190,7 @@ function uploadImg() {
       open.value = false;
       options.img = response.data.imgUrl;
       userStore.avatar = options.img;
-      proxy.$modal.msgSuccess("修改成功");
+      proxy.$modal.msgSuccess(tr("修改成功"));
       visible.value = false;
     });
   });
@@ -139,8 +201,9 @@ function realTime(data) {
 }
 /** 关闭窗口 */
 function closeDialog() {
-  options.img = userStore.avatar;
-  options.visible = false;
+  options.img = getAvatarUrl(userStore.avatar);
+  options.previews = {};
+  visible.value = false;
 }
 </script>
 

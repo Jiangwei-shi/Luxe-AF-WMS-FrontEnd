@@ -1,17 +1,17 @@
 <template>
-  <div class="app-container">
+  <div class="app-container shipment-order-page" :class="{ 'is-en': isEn }">
     <el-card>
-      <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-        <el-form-item label="出库状态" prop="orderStatus">
-          <el-radio-group v-model="queryParams.orderStatus" @change="handleQuery">
+      <el-form :model="queryParams" ref="queryRef" :label-width="formLabelWidth" class="filter-form" @submit.prevent>
+        <el-form-item class="filter-item filter-item-full" :label="tr('出库状态')" prop="orderStatus" :label-width="isEn ? '170px' : undefined">
+          <el-radio-group v-model="queryParams.orderStatus" @change="handleQuery" class="filter-radio-group">
             <el-radio-button
               :key="-2"
               :label="-2"
             >
-              全部
+              {{ tr('全部') }}
             </el-radio-button>
             <el-radio-button
-              v-for="item in wms_shipment_status"
+              v-for="item in translatedShipmentStatusOptions"
               :key="item.value"
               :label="item.value"
             >
@@ -19,16 +19,16 @@
             </el-radio-button>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="出库类型" prop="optType">
-          <el-radio-group v-model="queryParams.optType" @change="handleQuery">
+        <el-form-item class="filter-item filter-item-full" :label="tr('出库类型')" prop="optType" :label-width="isEn ? '170px' : undefined">
+          <el-radio-group v-model="queryParams.optType" @change="handleQuery" class="filter-radio-group">
             <el-radio-button
               :key="-1"
               :label="-1"
             >
-              全部
+              {{ tr('全部') }}
             </el-radio-button>
             <el-radio-button
-              v-for="item in wms_shipment_type"
+              v-for="item in translatedShipmentTypeOptions"
               :key="item.value"
               :label="item.value"
             >
@@ -36,25 +36,17 @@
             </el-radio-button>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="出库单号" prop="orderNo">
+        <el-form-item class="filter-item" :label="tr('出库单号')" prop="orderNo" :label-width="isEn ? '170px' : undefined">
           <el-input
             v-model="queryParams.orderNo"
-            placeholder="请输入出库单号"
+            :placeholder="tr('请输入出库单号')"
             clearable
-            @keyup.enter="handleQuery"
+            @keyup.enter.prevent="handleQuery"
           />
         </el-form-item>
-        <el-form-item label="业务单号" prop="bizOrderNo">
-          <el-input
-            v-model="queryParams.bizOrderNo"
-            placeholder="请输入业务单号"
-            clearable
-            @keyup.enter="handleQuery"
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-          <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+        <el-form-item class="filter-item filter-item-actions">
+          <el-button type="primary" icon="Search" class="action-btn" @click="handleQuery">{{ tr('搜索') }}</el-button>
+          <el-button icon="Refresh" class="action-btn" @click="resetQuery">{{ tr('重置') }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -62,7 +54,7 @@
     <el-card class="mt20">
 
       <el-row :gutter="10" class="mb8" type="flex" justify="space-between">
-        <el-col :span="6"><span style="font-size: large">出库单</span></el-col>
+        <el-col :span="6"><span style="font-size: large">{{ tr('出库单') }}</span></el-col>
         <el-col :span="1.5">
           <el-button
             type="primary"
@@ -70,37 +62,37 @@
             icon="Plus"
             @click="handleAdd"
             v-hasPermi="['wms:shipment:all']"
-          >新增</el-button>
+          >{{ tr('新增') }}</el-button>
         </el-col>
       </el-row>
       <el-table v-loading="loading" :data="shipmentOrderList" border class="mt20"
                 @expand-change="handleExpandExchange"
                 :row-key="getRowKey"
                 :expand-row-keys="expandedRowKeys"
-                empty-text="暂无出库单"
+                :empty-text="tr('暂无出库单')"
                 cell-class-name="vertical-top-cell"
       >
         <el-table-column type="expand">
           <template #default="props">
             <div style="padding: 0 50px 20px 50px">
-              <h3>商品明细</h3>
-              <el-table :data="props.row.details" v-loading="detailLoading[props.$index]" empty-text="暂无商品明细">
-                <el-table-column label="商品名称">
+              <h3>{{ tr('商品明细') }}</h3>
+              <el-table :data="props.row.details" v-loading="detailLoading[props.$index]" :empty-text="tr('暂无商品明细')">
+                <el-table-column :label="tr('商品名称')">
                   <template #default="{ row }">
                     <div>{{ row?.item?.itemName }}</div>
                   </template>
                 </el-table-column>
-                <el-table-column label="SKU编号">
+                <el-table-column :label="tr('SKU编号')">
                   <template #default="{ row }">
                     <div>{{ row?.itemSku?.skuCode }}</div>
                   </template>
                 </el-table-column>
-                <el-table-column label="数量" prop="quantity" align="right">
+                <el-table-column :label="tr('数量')" prop="quantity" align="right">
                   <template #default="{ row }">
                     <el-statistic :value="Number(row.quantity)" :precision="0"/>
                   </template>
                 </el-table-column>
-                <el-table-column label="金额($USD)" align="right">
+                <el-table-column :label="tr('金额($USD)')" align="right">
                   <template #default="{ row }">
                     <el-statistic v-if="row.amount || row.amount === 0" :precision="2" :value="Number(row.amount)"/>
                     <div v-else>-</div>
@@ -110,88 +102,88 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="单号/业务单号" align="left" min-width="120">
+        <el-table-column :label="tr('单号/业务单号')" align="left" min-width="200" show-overflow-tooltip>
           <template #default="{ row }">
-            <div>单号：{{ row.orderNo }}</div>
-            <div v-if="row.bizOrderNo">业务单号：{{ row.bizOrderNo }}</div>
+            <div>{{ tr('单号：') }}{{ row.orderNo }}</div>
+            <div v-if="row.bizOrderNo">{{ tr('业务单号：') }}{{ row.bizOrderNo }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="仓库" align="left">
+        <el-table-column :label="tr('仓库')" align="left" min-width="140" show-overflow-tooltip>
           <template #default="{ row }">
             <div>{{ useWmsStore().warehouseMap.get(row.warehouseId)?.warehouseName }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="总数量/总金额(￥USD)" align="left" min-width="100">
+        <el-table-column :label="tr('总数量/总金额($USD)')" align="left" min-width="170">
           <template #default="{ row }">
             <div class="flex-space-between">
-              <span>数量：</span>
+              <span>{{ tr('数量：') }}</span>
               <el-statistic :value="Number(row.totalQuantity)" :precision="0"/>
             </div>
             <div class="flex-space-between" v-if="row.totalAmount || row.totalAmount === 0">
-              <span>金额：</span>
+              <span>{{ tr('金额：') }}</span>
               <el-statistic :value="Number(row.totalAmount)" :precision="2"/>
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="出库状态" align="center" prop="orderStatus" width="80">
+        <el-table-column :label="tr('出库状态')" align="center" prop="orderStatus" min-width="90">
           <template #default="{ row }">
-            <dict-tag :options="wms_shipment_status" :value="row.orderStatus" />
+            <dict-tag :options="translatedShipmentStatusOptions" :value="row.orderStatus" />
           </template>
         </el-table-column>
-        <el-table-column label="出库类型" align="center" prop="optType" width="100">
+        <el-table-column :label="tr('出库类型')" align="center" prop="optType" min-width="90">
           <template #default="{ row }">
-            <dict-tag :options="wms_shipment_type" :value="row.optType" />
+            <dict-tag :options="translatedShipmentTypeOptions" :value="row.optType" />
           </template>
         </el-table-column>
-        <el-table-column label="客户" align="left" prop="merchantId">
+        <el-table-column :label="tr('客户')" align="left" prop="merchantId" min-width="160" show-overflow-tooltip>
           <template #default="{ row }">
             <div>{{ useWmsStore().merchantMap.get(row.merchantId)?.merchantName }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="操作时间" align="left" width="150">
+        <el-table-column :label="tr('操作时间')" align="left" width="170">
           <template #default="{ row }">
-            <div>创建：{{ parseTime(row.createTime, '{mm}-{dd} {hh}:{ii}') }}</div>
-            <div>更新：{{ parseTime(row.updateTime, '{mm}-{dd} {hh}:{ii}') }}</div>
+            <div>{{ tr('创建：') }}{{ parseTime(row.createTime, '{mm}-{dd} {hh}:{ii}') }}</div>
+            <div>{{ tr('更新：') }}{{ parseTime(row.updateTime, '{mm}-{dd} {hh}:{ii}') }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="操作人" align="left">
+        <el-table-column :label="tr('操作人')" align="left">
           <template #default="{ row }">
             <div>{{ row.createBy }}</div>
             <div v-if="row.updateBy">{{ row.updateBy }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="备注" prop="remark" />
-        <el-table-column label="操作" align="right" class-name="small-padding fixed-width" width="120">
+        <el-table-column :label="tr('备注')" prop="remark" />
+        <el-table-column :label="tr('操作')" align="right" class-name="small-padding fixed-width" width="120">
           <template #default="scope">
             <div>
               <el-popover
                 placement="left"
-                title="提示"
+                :title="tr('提示')"
                 :width="300"
                 trigger="hover"
                 :disabled="scope.row.orderStatus === 0"
                 :content="'出库单【' + scope.row.orderNo + '】已' + (scope.row.orderStatus === 1 ? '出库' : '作废') + '，无法修改！' "
               >
                 <template #reference>
-                  <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['wms:shipment:all']" :disabled="[-1, 1].includes(scope.row.orderStatus)">修改</el-button>
+                  <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['wms:shipment:all']" :disabled="[-1, 1].includes(scope.row.orderStatus)">{{ tr('修改') }}</el-button>
                 </template>
               </el-popover>
-              <el-button link type="primary" @click="handleGoDetail(scope.row)" v-hasPermi="['wms:shipment:all']">{{ expandedRowKeys.includes(scope.row.id) ? '收起' : '查看' }}</el-button>
+              <el-button link type="primary" @click="handleGoDetail(scope.row)" v-hasPermi="['wms:shipment:all']">{{ expandedRowKeys.includes(scope.row.id) ? tr('收起') : tr('查看') }}</el-button>
             </div>
             <div class="mt10">
               <el-popover
                 placement="left"
-                title="提示"
+                :title="tr('提示')"
                 :width="300"
                 trigger="hover"
                 :disabled="[-1, 0].includes(scope.row.orderStatus)"
                 :content="'出库单【' + scope.row.orderNo + '】已出库，无法删除！' "
               >
                 <template #reference>
-                  <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['wms:shipment:all']" :disabled="scope.row.orderStatus === 1">删除</el-button>
+                  <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['wms:shipment:all']" :disabled="scope.row.orderStatus === 1">{{ tr('删除') }}</el-button>
                 </template>
               </el-popover>
-              <el-button link type="primary" @click="handlePrint(scope.row)" v-hasPermi="['wms:shipment:all']">打印</el-button>
+              <el-button link type="primary" @click="handlePrint(scope.row)" v-hasPermi="['wms:shipment:all']">{{ tr('打印') }}</el-button>
             </div>
           </template>
         </el-table-column>
@@ -213,12 +205,15 @@
 <script setup name="ShipmentOrder">
 import {listShipmentOrder, delShipmentOrder, getShipmentOrder} from "@/api/wms/shipmentOrder";
 import {listByShipmentOrderId} from "@/api/wms/shipmentOrderDetail";
-import {getCurrentInstance, reactive, ref, toRefs} from "vue";
+import {computed, getCurrentInstance, reactive, ref, toRefs} from "vue";
 import {useWmsStore} from "../../../../store/modules/wms";
 import shipmentPanel from "@/components/PrintTemplate/shipment-panel";
+import useSettingsStore from '@/store/modules/settings'
+import { translateByMap } from '@/locales/runtime-map'
 
 const { proxy } = getCurrentInstance();
 const { wms_shipment_status, wms_shipment_type} = proxy.useDict("wms_shipment_status", "wms_shipment_type");
+const settingsStore = useSettingsStore()
 const shipmentOrderList = ref([]);
 const open = ref(false);
 const buttonLoading = ref(false);
@@ -237,7 +232,6 @@ const data = reactive({
     orderNo: undefined,
     optType: -1,
     merchantId: undefined,
-    bizOrderNo: undefined,
     totalAmount: undefined,
     orderStatus: -2,
   },
@@ -245,10 +239,17 @@ const data = reactive({
 
 const { queryParams } = toRefs(data);
 
+const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
+const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
+const formLabelWidth = computed(() => '80px')
+const translatedShipmentStatusOptions = computed(() => (wms_shipment_status.value || []).map(it => ({ ...it, label: tr(it.label) })))
+const translatedShipmentTypeOptions = computed(() => (wms_shipment_type.value || []).map(it => ({ ...it, label: tr(it.label) })))
+
 /** 查询入库单列表 */
 function getList() {
   loading.value = true;
   const query = {...queryParams.value}
+  query.orderNo = query.orderNo?.trim() || undefined
   if (query.orderStatus === -2) {
     query.orderStatus = null
   }
@@ -330,13 +331,13 @@ async function handlePrint(row) {
   }
   const printData = {
     orderNo: shipmentOrder.orderNo,
-    optType: proxy.selectDictLabel(wms_shipment_type.value, shipmentOrder.optType),
-    orderStatus: proxy.selectDictLabel(wms_shipment_status.value, shipmentOrder.orderStatus),
+    optType: tr(proxy.selectDictLabel(wms_shipment_type.value, shipmentOrder.optType)),
+    orderStatus: tr(proxy.selectDictLabel(wms_shipment_status.value, shipmentOrder.orderStatus)),
     merchantName: useWmsStore().merchantMap.get(shipmentOrder.merchantId)?.merchantName,
     bizOrderNo: shipmentOrder.bizOrderNo,
     warehouseName: useWmsStore().warehouseMap.get(shipmentOrder.warehouseId)?.warehouseName,
     totalQuantity: Number(shipmentOrder.totalQuantity).toFixed(0),
-    totalAmount: ((shipmentOrder.totalAmount || shipmentOrder.totalAmount === 0) ? (shipmentOrder.totalAmount + '元') : ''),
+    totalAmount: ((shipmentOrder.totalAmount || shipmentOrder.totalAmount === 0) ? (shipmentOrder.totalAmount + ' $USD') : ''),
     createBy: shipmentOrder.createBy,
     createTime: proxy.parseTime(shipmentOrder.createTime, '{mm}-{dd} {hh}:{ii}'),
     updateBy: shipmentOrder.updateBy,
@@ -395,10 +396,77 @@ function getRowKey(row) {
 getList();
 </script>
 <style lang="scss">
-.el-statistic__content {
-  font-size: 14px;
+.shipment-order-page .filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 16px;
 }
-.el-table .vertical-top-cell {
+
+.shipment-order-page .filter-item {
+  width: calc(25% - 12px);
+  margin-right: 0;
+}
+
+.shipment-order-page .filter-item-full {
+  width: 100%;
+}
+
+.shipment-order-page .filter-item-actions {
+  width: 100%;
+}
+
+.shipment-order-page .filter-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.shipment-order-page .action-btn {
+  min-width: 96px;
+}
+
+.shipment-order-page.is-en .action-btn {
+  min-width: 110px;
+}
+
+.shipment-order-page.is-en .el-form-item__label {
+  white-space: nowrap;
+}
+
+.shipment-order-page.is-en .filter-item-actions .el-form-item__content {
+  margin-left: 170px !important;
+}
+
+@media (max-width: 1600px) {
+  .shipment-order-page .filter-item {
+    width: calc(33.33% - 11px);
+  }
+}
+
+@media (max-width: 1200px) {
+  .shipment-order-page .filter-item {
+    width: calc(50% - 8px);
+  }
+}
+
+@media (max-width: 768px) {
+  .shipment-order-page .filter-item,
+  .shipment-order-page .filter-item-actions {
+    width: 100%;
+  }
+}
+
+.shipment-order-page .el-statistic__content {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.shipment-order-page .flex-space-between {
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.shipment-order-page .el-table .vertical-top-cell {
   vertical-align: top
 }
 </style>

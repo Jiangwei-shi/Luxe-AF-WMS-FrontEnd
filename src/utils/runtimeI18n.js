@@ -1,0 +1,117 @@
+import { translateByMap } from '@/locales/runtime-map'
+
+const textNodeOrigin = new WeakMap()
+const elementAttrOrigin = new WeakMap()
+
+const ATTR_KEYS = ['placeholder', 'title', 'aria-label']
+
+function isSkippableNode(node) {
+  const parentTag = node?.parentElement?.tagName
+  return parentTag === 'SCRIPT' || parentTag === 'STYLE'
+}
+
+function isInDataArea(node) {
+  const el = node?.parentElement
+  if (!el || !el.closest) return false
+  if (el.closest('[data-runtime-i18n-ignore="true"]')) return true
+  // Avoid mutating user-entered/business data in table/menu/tree/list contents.
+  return Boolean(
+    el.closest('.el-table__body') ||
+    el.closest('.el-table__row') ||
+    el.closest('.el-menu') ||
+    el.closest('.el-tree') ||
+    el.closest('.el-dropdown-menu') ||
+    el.closest('.el-select-dropdown')
+  )
+}
+
+function translateTextNode(node, language) {
+  if (!node || isSkippableNode(node) || isInDataArea(node)) return
+  if (!textNodeOrigin.has(node)) {
+    textNodeOrigin.set(node, node.nodeValue || '')
+  }
+  const original = textNodeOrigin.get(node) || ''
+  const nextValue = language === 'en' ? translateByMap(original, language) : original
+  if (node.nodeValue !== nextValue) {
+    node.nodeValue = nextValue
+  }
+}
+
+function translateElementAttrs(el, language) {
+  if (!el || !el.getAttribute) return
+  if (el.closest('[data-runtime-i18n-ignore="true"]')) return
+  let originMap = elementAttrOrigin.get(el)
+  if (!originMap) {
+    originMap = {}
+    elementAttrOrigin.set(el, originMap)
+  }
+
+  ATTR_KEYS.forEach((attr) => {
+    const current = el.getAttribute(attr)
+    if (current == null) return
+    if (originMap[attr] == null) {
+      originMap[attr] = current
+    }
+    const nextValue = language === 'en' ? translateByMap(originMap[attr], language) : originMap[attr]
+    if (current !== nextValue) {
+      el.setAttribute(attr, nextValue)
+    }
+  })
+}
+
+function walkAndTranslate(root, language) {
+  if (!root) return
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  while (walker.nextNode()) {
+    translateTextNode(walker.currentNode, language)
+  }
+  if (root.querySelectorAll) {
+    root.querySelectorAll('*').forEach((el) => translateElementAttrs(el, language))
+  }
+}
+
+export function setupRuntimeI18nWatcher(languageGetter) {
+  let observer
+  let isApplying = false
+  let scheduled = false
+
+  const apply = () => {
+    if (isApplying) return
+    isApplying = true
+    walkAndTranslate(document.body, languageGetter())
+    isApplying = false
+  }
+
+  const scheduleApply = () => {
+    if (scheduled) return
+    scheduled = true
+    requestAnimationFrame(() => {
+      scheduled = false
+      apply()
+    })
+  }
+
+  const start = () => {
+    apply()
+    observer = new MutationObserver(() => {
+      if (isApplying) return
+      scheduleApply()
+    })
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ATTR_KEYS,
+    })
+  }
+
+  const stop = () => {
+    if (observer) {
+      observer.disconnect()
+      observer = null
+    }
+  }
+
+  return { apply, start, stop }
+}

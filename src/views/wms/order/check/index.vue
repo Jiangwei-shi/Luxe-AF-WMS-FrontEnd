@@ -1,17 +1,17 @@
 <template>
-  <div class="app-container">
+  <div class="app-container check-order-page" :class="{ 'is-en': isEn }">
     <el-card>
-      <el-form :model="queryParams" ref="queryRef" :inline="true" label-width="68px">
-        <el-form-item label="盘库状态" prop="orderStatus">
-          <el-radio-group v-model="queryParams.orderStatus" @change="handleQuery">
+      <el-form :model="queryParams" ref="queryRef" :label-width="formLabelWidth" class="filter-form" @submit.prevent>
+        <el-form-item class="filter-item filter-item-full" :label="tr('盘库状态')" prop="orderStatus" :label-width="isEn ? '170px' : undefined">
+          <el-radio-group v-model="queryParams.orderStatus" @change="handleQuery" class="filter-radio-group">
             <el-radio-button
               :key="-2"
               :label="-2"
             >
-              全部
+              {{ tr('全部') }}
             </el-radio-button>
             <el-radio-button
-              v-for="item in wms_check_status"
+              v-for="item in translatedCheckStatusOptions"
               :key="item.value"
               :label="item.value"
             >
@@ -19,17 +19,17 @@
             </el-radio-button>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="盘库单号" prop="orderNo">
+        <el-form-item class="filter-item" :label="tr('盘库单号')" prop="orderNo" :label-width="isEn ? '170px' : undefined">
           <el-input
             v-model="queryParams.orderNo"
-            placeholder="请输入盘库单号"
+            :placeholder="tr('请输入盘库单号')"
             clearable
-            @keyup.enter="handleQuery"
+            @keyup.enter.prevent="handleQuery"
           />
         </el-form-item>
-        <el-form-item>
-          <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-          <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+        <el-form-item class="filter-item filter-item-actions">
+          <el-button type="primary" icon="Search" class="action-btn" @click="handleQuery">{{ tr('搜索') }}</el-button>
+          <el-button icon="Refresh" class="action-btn" @click="resetQuery">{{ tr('重置') }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -37,7 +37,7 @@
     <el-card class="mt20">
 
       <el-row :gutter="10" class="mb8" type="flex" justify="space-between">
-        <el-col :span="6"><span style="font-size: large">盘库单</span></el-col>
+        <el-col :span="6"><span style="font-size: large">{{ tr('盘库单') }}</span></el-col>
         <el-col :span="1.5">
           <el-button
             type="primary"
@@ -45,76 +45,76 @@
             icon="Plus"
             @click="handleAdd"
             v-hasPermi="['wms:check:all']"
-          >新增</el-button>
+          >{{ tr('新增') }}</el-button>
         </el-col>
       </el-row>
 
       <el-table v-loading="loading" :data="checkOrderList" border class="mt20"
                 :row-key="getRowKey"
-                empty-text="暂无盘库单"
+                :empty-text="tr('暂无盘库单')"
                 cell-class-name="vertical-top-cell"
       >
-        <el-table-column label="单号" align="left" prop="orderNo" />
-        <el-table-column label="仓库" align="left" width="200">
+        <el-table-column :label="tr('单号')" align="left" prop="orderNo" min-width="180" show-overflow-tooltip />
+        <el-table-column :label="tr('仓库')" align="left" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">
             <div>{{ useWmsStore().warehouseMap.get(row.warehouseId)?.warehouseName }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="盘库状态" align="center" prop="orderStatus" width="120">
+        <el-table-column :label="tr('盘库状态')" align="center" prop="orderStatus" min-width="90">
           <template #default="{ row }">
-            <dict-tag :options="wms_check_status" :value="row.orderStatus" />
+            <dict-tag :options="translatedCheckStatusOptions" :value="row.orderStatus" />
           </template>
         </el-table-column>
-        <el-table-column label="盈亏数" align="right">
+        <el-table-column :label="tr('盈亏数')" align="right" min-width="120">
           <template #default="{ row }">
             <el-statistic :value="Number(row.totalQuantity)" :precision="0"/>
           </template>
         </el-table-column>
-        <el-table-column label="操作时间" align="left" width="200">
+        <el-table-column :label="tr('操作时间')" align="left" width="170">
           <template #default="{ row }">
-            <div>创建：{{ parseTime(row.createTime, '{mm}-{dd} {hh}:{ii}') }}</div>
-            <div>更新：{{ parseTime(row.updateTime, '{mm}-{dd} {hh}:{ii}') }}</div>
+            <div>{{ tr('创建：') }}{{ parseTime(row.createTime, '{mm}-{dd} {hh}:{ii}') }}</div>
+            <div>{{ tr('更新：') }}{{ parseTime(row.updateTime, '{mm}-{dd} {hh}:{ii}') }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="操作人" align="left">
+        <el-table-column :label="tr('操作人')" align="left">
           <template #default="{ row }">
             <div>{{ row.createBy }}</div>
             <div v-if="row.updateBy">{{ row.updateBy }}</div>
           </template>
         </el-table-column>
 
-        <el-table-column label="备注" prop="remark" />
-        <el-table-column label="操作" align="right" class-name="small-padding fixed-width" width="120">
+        <el-table-column :label="tr('备注')" prop="remark" />
+        <el-table-column :label="tr('操作')" align="right" class-name="small-padding fixed-width" width="120">
           <template #default="scope">
             <div>
               <el-popover
                 placement="left"
-                title="提示"
+                :title="tr('提示')"
                 :width="300"
                 trigger="hover"
                 :disabled="scope.row.orderStatus === 0"
                 :content="'盘库单【' + scope.row.orderNo + '】已' + (scope.row.orderStatus === 1 ? '盘库完成' : '作废') + '，无法修改！' "
               >
                 <template #reference>
-                  <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['wms:check:all']" :disabled="[-1, 1].includes(scope.row.orderStatus)">修改</el-button>
+                  <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['wms:check:all']" :disabled="[-1, 1].includes(scope.row.orderStatus)">{{ tr('修改') }}</el-button>
                 </template>
               </el-popover>
-              <el-button link type="primary" @click="handleGoDetail(scope.row)" v-hasPermi="['wms:check:all']">查看</el-button>
+              <el-button link type="primary" @click="handleGoDetail(scope.row)" v-hasPermi="['wms:check:all']">{{ tr('查看') }}</el-button>
             </div>
             <div class="mt10">
               <el-popover
                 placement="left"
-                title="提示"
+                :title="tr('提示')"
                 :width="300"
                 trigger="hover"
                 :disabled="[-1, 0].includes(scope.row.orderStatus)"
                 :content="'盘库单【' + scope.row.orderNo + '】已盘库完成，无法删除！' "
               >
                 <template #reference>
-                  <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['wms:check:all']" :disabled="scope.row.orderStatus === 1">删除</el-button>
+                  <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['wms:check:all']" :disabled="scope.row.orderStatus === 1">{{ tr('删除') }}</el-button>
                 </template>
               </el-popover>
-              <el-button link type="primary" @click="handlePrint(scope.row)" v-hasPermi="['wms:check:all']">打印</el-button>
+              <el-button link type="primary" @click="handlePrint(scope.row)" v-hasPermi="['wms:check:all']">{{ tr('打印') }}</el-button>
             </div>
           </template>
         </el-table-column>
@@ -142,13 +142,16 @@
 <script setup name="CheckOrder">
 import {listCheckOrder, delCheckOrder, getCheckOrder} from "@/api/wms/checkOrder";
 import {listByCheckOrderId} from "@/api/wms/checkOrderDetail";
-import {getCurrentInstance, reactive, ref, toRefs} from "vue";
+import {computed, getCurrentInstance, reactive, ref, toRefs} from "vue";
 import {useWmsStore} from "../../../../store/modules/wms";
 import {ElMessageBox} from "element-plus";
 import checkPanel from "@/components/PrintTemplate/check-panel";
 import CheckOrderDetail from "@/views/wms/order/check/CheckOrderDetail.vue";
+import useSettingsStore from '@/store/modules/settings'
+import { translateByMap } from '@/locales/runtime-map'
 const { proxy } = getCurrentInstance();
 const {wms_check_status} = proxy.useDict("wms_check_status");
+const settingsStore = useSettingsStore()
 const checkOrderList = ref([]);
 const open = ref(false);
 const buttonLoading = ref(false);
@@ -170,11 +173,16 @@ const watchDetailObj = ref({
 })
 const checkOrderDetailRef = ref(null)
 const { queryParams } = toRefs(data);
+const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
+const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
+const formLabelWidth = computed(() => '80px')
+const translatedCheckStatusOptions = computed(() => (wms_check_status.value || []).map(it => ({ ...it, label: tr(it.label) })))
 
 /** 查询入库单列表 */
 function getList() {
   loading.value = true;
   const query = {...queryParams.value}
+  query.orderNo = query.orderNo?.trim() || undefined
   if (query.orderStatus === -2) {
     query.orderStatus = null
   }
@@ -245,7 +253,7 @@ async function handlePrint(row) {
   }
   const printData = {
     orderNo: checkOrder.orderNo,
-    orderStatus: proxy.selectDictLabel(wms_check_status.value, checkOrder.orderStatus),
+    orderStatus: tr(proxy.selectDictLabel(wms_check_status.value, checkOrder.orderStatus)),
     warehouseName: useWmsStore().warehouseMap.get(checkOrder.warehouseId)?.warehouseName,
     totalQuantity: Number(checkOrder.totalQuantity).toFixed(0),
     createBy: checkOrder.createBy,
@@ -270,10 +278,72 @@ function getRowKey(row) {
 getList();
 </script>
 <style lang="scss">
-.el-statistic__content {
-  font-size: 14px;
+.check-order-page .filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 16px;
 }
-.el-table .vertical-top-cell {
+
+.check-order-page .filter-item {
+  width: calc(25% - 12px);
+  margin-right: 0;
+}
+
+.check-order-page .filter-item-full {
+  width: 100%;
+}
+
+.check-order-page .filter-item-actions {
+  width: 100%;
+}
+
+.check-order-page .filter-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.check-order-page .action-btn {
+  min-width: 96px;
+}
+
+.check-order-page.is-en .action-btn {
+  min-width: 110px;
+}
+
+.check-order-page.is-en .el-form-item__label {
+  white-space: nowrap;
+}
+
+.check-order-page.is-en .filter-item-actions .el-form-item__content {
+  margin-left: 170px !important;
+}
+
+@media (max-width: 1600px) {
+  .check-order-page .filter-item {
+    width: calc(33.33% - 11px);
+  }
+}
+
+@media (max-width: 1200px) {
+  .check-order-page .filter-item {
+    width: calc(50% - 8px);
+  }
+}
+
+@media (max-width: 768px) {
+  .check-order-page .filter-item,
+  .check-order-page .filter-item-actions {
+    width: 100%;
+  }
+}
+
+.check-order-page .el-statistic__content {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.check-order-page .el-table .vertical-top-cell {
   vertical-align: top
 }
 </style>

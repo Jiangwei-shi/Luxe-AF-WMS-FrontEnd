@@ -12,7 +12,7 @@
         @click.middle="!isAffix(tag) ? closeSelectedTag(tag) : ''"
         @contextmenu.prevent="openMenu(tag, $event)"
       >
-        {{ tag.title }}
+        {{ renderTagTitle(tag) }}
         <span v-if="!isAffix(tag)" @click.prevent.stop="closeSelectedTag(tag)">
           <close class="el-icon-close" style="width: 1em; height: 1em;vertical-align: middle;" />
         </span>
@@ -20,22 +20,22 @@
     </scroll-pane>
     <ul v-show="visible" :style="{ left: left + 'px', top: top + 'px' }" class="contextmenu">
       <li @click="refreshSelectedTag(selectedTag)">
-        <refresh-right style="width: 1em; height: 1em;" /> 刷新页面
+        <refresh-right style="width: 1em; height: 1em;" /> {{ $t('tagsView.refreshPage') }}
       </li>
       <li v-if="!isAffix(selectedTag)" @click="closeSelectedTag(selectedTag)">
-        <close style="width: 1em; height: 1em;" /> 关闭当前
+        <close style="width: 1em; height: 1em;" /> {{ $t('tagsView.closeCurrent') }}
       </li>
       <li @click="closeOthersTags">
-        <circle-close style="width: 1em; height: 1em;" /> 关闭其他
+        <circle-close style="width: 1em; height: 1em;" /> {{ $t('tagsView.closeOthers') }}
       </li>
       <li v-if="!isFirstView()" @click="closeLeftTags">
-        <back style="width: 1em; height: 1em;" /> 关闭左侧
+        <back style="width: 1em; height: 1em;" /> {{ $t('tagsView.closeLeft') }}
       </li>
       <li v-if="!isLastView()" @click="closeRightTags">
-        <right style="width: 1em; height: 1em;" /> 关闭右侧
+        <right style="width: 1em; height: 1em;" /> {{ $t('tagsView.closeRight') }}
       </li>
       <li @click="closeAllTags(selectedTag)">
-        <circle-close style="width: 1em; height: 1em;" /> 全部关闭
+        <circle-close style="width: 1em; height: 1em;" /> {{ $t('tagsView.closeAll') }}
       </li>
     </ul>
   </div>
@@ -47,6 +47,7 @@ import { getNormalPath } from '@/utils/ruoyi'
 import useTagsViewStore from '@/store/modules/tagsView'
 import useSettingsStore from '@/store/modules/settings'
 import usePermissionStore from '@/store/modules/permission'
+import { getRouteTitle } from '@/utils/routeTitle'
 
 const visible = ref(false);
 const top = ref(0);
@@ -58,10 +59,11 @@ const scrollPaneRef = ref(null);
 const { proxy } = getCurrentInstance();
 const route = useRoute();
 const router = useRouter();
+const settingsStore = useSettingsStore()
 
 const visitedViews = computed(() => useTagsViewStore().visitedViews);
 const routes = computed(() => usePermissionStore().routes);
-const theme = computed(() => useSettingsStore().theme);
+const theme = computed(() => settingsStore.theme);
 
 watch(route, () => {
   addTags()
@@ -238,6 +240,13 @@ function closeMenu() {
 }
 function handleScroll() {
   closeMenu()
+}
+
+function renderTagTitle(tag) {
+  if (tag.meta && tag.meta.title) {
+    return getRouteTitle(tag.meta, settingsStore.language || 'zh-cn')
+  }
+  return tag.title
 }
 </script>
 

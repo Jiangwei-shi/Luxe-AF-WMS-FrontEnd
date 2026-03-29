@@ -1,34 +1,34 @@
 <template>
-  <div v-if="!checking" style="display: flex;justify-content: center;align-items: center;height: 80vh">
-    <el-card header="选择仓库后开始盘库" >
+  <div v-if="!checking" class="check-edit-page" :class="{ 'is-en': isEn }" style="display: flex;justify-content: center;align-items: center;height: 80vh">
+    <el-card :header="isEn ? 'Select warehouse to start stocktake' : '选择仓库后开始盘库'" >
       <el-form>
-        <el-form-item label="仓库" prop="warehouseId">
-          <el-select v-model="form.warehouseId" placeholder="请选择仓库" :disabled="checking"
+        <el-form-item :label="tr('仓库')" prop="warehouseId">
+          <el-select v-model="form.warehouseId" :placeholder="tr('请选择仓库')" :disabled="checking"
                      filterable>
             <el-option v-for="item in useWmsStore().warehouseList" :key="item.id" :label="item.warehouseName"
                        :value="item.id"/>
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" plain="plain" size="default" @click="startCheck"  style="width: 100%!important;">开始盘库</el-button>
+          <el-button type="primary" plain="plain" size="default" @click="startCheck" class="action-btn" style="width: 100%!important;">{{ isEn ? 'Start Stocktake' : '开始盘库' }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
   </div>
-  <div v-else v-loading="loading">
+  <div v-else v-loading="loading" class="check-edit-page" :class="{ 'is-en': isEn }">
     <div class="receipt-order-edit-wrapper app-container" style="margin-bottom: 60px">
-      <el-card header="盘库单基本信息">
-        <el-form label-width="108px" :model="form" ref="checkForm" :rules="rules">
+      <el-card :header="tr('盘库单') + tr('基本资料')">
+        <el-form :label-width="formLabelWidth" :model="form" ref="checkForm" :rules="rules">
           <el-row :gutter="24">
             <el-col :span="11">
-              <el-form-item label="盘库单号" prop="orderNo">
-                <el-input class="w200" v-model="form.orderNo" placeholder="盘库单号"
+              <el-form-item :label="tr('盘库单号')" prop="orderNo">
+                <el-input class="w200" v-model="form.orderNo" :placeholder="tr('盘库单号')"
                           :disabled="form.id"></el-input>
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item label="仓库" prop="warehouseId">
-                <el-select v-model="form.warehouseId" placeholder="请选择仓库" :disabled="checking"
+              <el-form-item :label="tr('仓库')" prop="warehouseId">
+                <el-select v-model="form.warehouseId" :placeholder="tr('请选择仓库')" :disabled="checking"
                            filterable>
                   <el-option v-for="item in useWmsStore().warehouseList" :key="item.id" :label="item.warehouseName"
                              :value="item.id"/>
@@ -38,7 +38,7 @@
           </el-row>
           <el-row :gutter="24">
             <el-col :span="11">
-              <el-form-item label="备注" prop="remark">
+              <el-form-item :label="tr('备注')" prop="remark">
                 <el-input
                   v-model="form.remark"
                   placeholder="备注...100个字符以内"
@@ -50,7 +50,7 @@
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item label="盈亏数" prop="totalQuantity">
+              <el-form-item :label="tr('盈亏数')" prop="totalQuantity">
                 <el-input-number v-model="form.totalQuantity" :controls="false" :precision="0"
                                  :disabled="true"></el-input-number>
               </el-form-item>
@@ -58,14 +58,26 @@
           </el-row>
         </el-form>
       </el-card>
-      <el-card header="商品明细" class="mt10">
+      <el-card :header="tr('商品明细')" class="mt10">
         <div class="receipt-order-content">
           <div class="flex-space-between mb8">
-            <el-button type="primary" plain="plain" size="default" @click="showSkuSelect" icon="Plus"
-              :disabled="!form.warehouseId">新增库存
-            </el-button>
+            <div>
+              <el-button type="primary" plain="plain" size="default" @click="showSkuSelect" icon="Plus"
+                :disabled="!form.warehouseId">{{ tr('新增') + tr('库存') }}
+              </el-button>
+              <el-button
+                type="primary"
+                plain="plain"
+                size="default"
+                class="ml10"
+                @click="showScanAddItem"
+                :disabled="!form.warehouseId"
+              >
+                {{ isEn ? 'Scan Mode' : '扫码枪模式' }}
+              </el-button>
+            </div>
           </div>
-          <el-table :data="form.details" border empty-text="暂无商品明细">
+          <el-table :data="form.details" border :empty-text="tr('暂无商品明细')">
             <el-table-column label="商品信息" prop="itemSku.itemName">
               <template #default="scope">
                   <div>{{
@@ -123,21 +135,22 @@
       <SkuSelect
         ref="skuSelectRef"
         :model-value="skuSelectShow"
+        :scan-mode="scanMode"
         :selected-sku="selectedSku"
         @handleOkClick="handleOkClick"
         @handleCancelClick="skuSelectShow = false"
-        :size="'80%'"
+        :size="'50%'"
       />
     </div>
     <div class="footer-global" v-if="checking">
       <div class="btn-box">
         <div>
-          <el-button @click="doCheck" type="primary" class="ml10">完成盘库</el-button>
-          <el-button @click="updateToInvalid" type="danger" v-if="form.id">作废</el-button>
+          <el-button @click="doCheck" type="primary" class="ml10 action-btn">{{ tr('盘库完成') || 'Complete Stocktake' }}</el-button>
+          <el-button @click="updateToInvalid" type="danger" v-if="form.id" class="action-btn">{{ tr('作废') }}</el-button>
         </div>
         <div>
-          <el-button @click="save" type="primary">暂存</el-button>
-          <el-button @click="cancel" class="mr10">取消</el-button>
+          <el-button @click="save" type="primary" class="action-btn">{{ tr('暂存') }}</el-button>
+          <el-button @click="cancel" class="mr10 action-btn">{{ tr('取消') }}</el-button>
         </div>
       </div>
     </div>
@@ -155,9 +168,15 @@ import {useRoute} from "vue-router";
 import {useWmsStore} from '@/store/modules/wms'
 import {numSub, generateNo} from '@/utils/ruoyi'
 import SkuSelect from "@/views/components/SkuSelect.vue";
+import useSettingsStore from '@/store/modules/settings'
+import { translateByMap } from '@/locales/runtime-map'
 
 const {proxy} = getCurrentInstance();
 const {wms_shipment_type} = proxy.useDict("wms_shipment_type");
+const settingsStore = useSettingsStore()
+const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
+const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
+const formLabelWidth = computed(() => (isEn.value ? '138px' : '108px'))
 const loading = ref(false)
 const selectedSku = ref([])
 const initFormData = {
@@ -194,6 +213,8 @@ const skuSelectShow = ref(false)
 const currentSkuSelectIndex = ref(null)
 // 盘库中标识
 const checking = ref(false)
+// 扫码枪模式标记
+const scanMode = ref(false)
 
 // 选择商品 start
 const startCheck = () => {
@@ -224,12 +245,19 @@ const startCheck = () => {
           }
         )
     })
+    handleChangeQuantity()
   }).finally(() => loading.value = false)
 }
 // 选择成功
 const handleOkClick = (item) => {
-  skuSelectShow.value = false
-  selectedSku.value = [...item]
+  if (!scanMode.value) {
+    skuSelectShow.value = false
+  }
+  const selectedMap = new Map((selectedSku.value || []).map((it) => [it.id, it]))
+  item.forEach((it) => {
+    selectedMap.set(it.id, it)
+  })
+  selectedSku.value = Array.from(selectedMap.values())
   item.forEach(it => {
     if (!form.value.details.find(detail => detail.itemSku.id === it.id)) {
       form.value.details.push(
@@ -245,9 +273,17 @@ const handleOkClick = (item) => {
         })
     }
   })
+  handleChangeQuantity()
 }
 
 const showSkuSelect = () => {
+  scanMode.value = false
+  skuSelectRef.value.getList()
+  skuSelectShow.value = true
+}
+
+const showScanAddItem = () => {
+  scanMode.value = true
   skuSelectRef.value.getList()
   skuSelectShow.value = true
 }
@@ -376,6 +412,7 @@ const loadDetail = (id) => {
       })
     }
     form.value = {...response.data}
+    handleChangeQuantity()
     Promise.resolve();
   }).then(() => {
   }).finally(() => {
@@ -395,7 +432,10 @@ const handleDeleteDetail = (row, index) => {
     form.value.details.splice(index, 1)
   }
   const indexOfSelected = selectedSku.value.findIndex(it => row.itemSku.id=== it.id)
-  selectedSku.value.splice(indexOfSelected, 1)
+  if (indexOfSelected !== -1) {
+    selectedSku.value.splice(indexOfSelected, 1)
+  }
+  handleChangeQuantity()
 }
 
 const handleChangeQuantity = () => {
@@ -412,6 +452,9 @@ const handleChangeQuantity = () => {
 
 <style lang="scss" scoped>
 @import "@/assets/styles/variables.module";
+.check-edit-page.is-en .el-form-item__label { white-space: nowrap; }
+.check-edit-page .action-btn { min-width: 96px; }
+.check-edit-page.is-en .action-btn { min-width: 112px; }
 
 .btn-box {
   width: calc(100% - #{$base-sidebar-width});
