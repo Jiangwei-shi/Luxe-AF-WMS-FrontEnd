@@ -1,5 +1,14 @@
 import request from '@/utils/request'
 
+// 未入库 SKU 分页列表（任意仓库均无 wms_inventory 行；Query 与 UnstockedSkuVo 以后端为准）
+export function listUnstockedSkus(query) {
+  return request({
+    url: '/wms/inventory/unstocked-skus',
+    method: 'get',
+    params: query
+  })
+}
+
 // 查询库存列表
 export function listInventory(query) {
   return request({
