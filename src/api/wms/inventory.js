@@ -26,7 +26,7 @@ export function listInventoryNoPage(query) {
   })
 }
 
-// 查询库存看板仓库维度列表
+// 查询库存看板仓库维度列表（仓库维度和商品维度）
 export function listInventoryBoard(query,type) {
   return request({
     url: '/wms/inventory/boardList/'+type,
