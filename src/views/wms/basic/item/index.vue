@@ -272,7 +272,7 @@
             <el-row :gutter="24">
               <el-col :span="12" v-if="canViewCostPrice">
                 <el-form-item label="成本价">
-                  <el-input-number v-model="form.costPrice" :disabled="!canEditCostPrice" :min="0" :precision="2" :controls="false" style="width: 100%"/>
+                  <el-input-number v-model="form.costPrice" :disabled="!canEditCostPrice" :min="0" :precision="2" :controls="false" style="width: 100%" @change="handleCostPriceChange"/>
                 </el-form-item>
               </el-col>
               <el-col :span="12" v-if="canViewSellingPrice">
@@ -561,6 +561,25 @@ const canViewSellingPrice = computed(() => proxy?.$auth?.hasPermi('wms:itemSelli
 const canEditSellingPrice = computed(() => proxy?.$auth?.hasPermi('wms:itemSellingPrice:edit'));
 const canViewCostPrice = computed(() => proxy?.$auth?.hasPermi('wms:itemCostPrice:view'));
 const canEditCostPrice = computed(() => proxy?.$auth?.hasPermi('wms:itemCostPrice:edit'));
+/** 成本价变更时，销售价 = 成本价 × 该系数（保留两位小数） */
+const SELLING_PRICE_FROM_COST_MULTIPLIER = 1.8
+/**
+ * 用户修改成本价后同步建议销售价（不监听 v-model，避免打开编辑回填时覆盖已有销售价）
+ */
+function handleCostPriceChange(val) {
+  if (!canEditCostPrice.value) return
+  if (!canViewSellingPrice.value && !canEditSellingPrice.value) return
+  if (val === null || val === undefined || val === '') {
+    form.value.sellingPrice = null
+    return
+  }
+  const n = Number(val)
+  if (!Number.isFinite(n) || n < 0) {
+    form.value.sellingPrice = null
+    return
+  }
+  form.value.sellingPrice = Math.round(n * SELLING_PRICE_FROM_COST_MULTIPLIER * 100) / 100
+}
 const itemList = ref([]);
 const itemCategoryTreeSelectList = computed(() => useWmsStore().itemCategoryTreeList);
 const itemCategoryTreeOptionsList = computed(() => {
