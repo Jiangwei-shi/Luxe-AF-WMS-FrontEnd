@@ -167,9 +167,22 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column label="规格信息" prop="skuName" align="left">
+            <el-table-column label="SKU编码" prop="skuName" align="left">
               <template #default="{ row }">
                 <div v-if="row.itemSku.skuCode">SKU编码：{{ row.itemSku.skuCode }}</div>
+              </template>
+            </el-table-column>
+            <el-table-column label="商品图片" width="110" align="center">
+              <template #default="{ row }">
+                <el-image
+                  v-if="ensureMainImageLoaded(row)"
+                  :src="ensureMainImageLoaded(row)"
+                  fit="cover"
+                  class="item-main-image"
+                  :preview-src-list="[ensureMainImageLoaded(row)]"
+                  preview-teleported
+                />
+                <span v-else>-</span>
               </template>
             </el-table-column>
             <el-table-column v-if="canViewCostPrice || canViewSellingPrice" label="金额(元)" width="160" align="left">
@@ -689,6 +702,32 @@ const appendAccessoryTag = (tag) => {
   const parts = val.split(/[,，、\n]+/).map(s => s.trim()).filter(Boolean)
   if (parts.includes(tag)) return
   form.value.accessories = parts.length ? parts.concat(tag).join(', ') : tag
+}
+/** 列表主图缓存与加载状态（兜底按 itemId 请求） */
+const listMainImageUrlMap = ref(new Map())
+const listMainImageLoadingSet = ref(new Set())
+const ensureMainImageLoaded = (row) => {
+  const itemId = row?.itemId
+  const cachedUrl = listMainImageUrlMap.value.get(itemId) || ''
+  if (cachedUrl) return cachedUrl
+  if (!itemId) return ''
+  if (listMainImageLoadingSet.value.has(itemId)) return ''
+  listMainImageLoadingSet.value.add(itemId)
+  ;(async () => {
+    try {
+      const res = await getItemImages(itemId)
+      const imageList = getImageListFromResponse(res) || []
+      if (!imageList.length) return
+      const mainImage = imageList.find((img) => Number(img?.isMain) === 1) || imageList[0]
+      const nextUrl = mainImage?.thumbUrl || mainImage?.url || mainImage?.imageUrl || ''
+      if (nextUrl) listMainImageUrlMap.value.set(itemId, nextUrl)
+    } catch (_) {
+      // 兜底失败时静默，不影响列表展示
+    } finally {
+      listMainImageLoadingSet.value.delete(itemId)
+    }
+  })()
+  return ''
 }
 const initFormData = {
   id: undefined,
@@ -1512,6 +1551,12 @@ onMounted(() => {
 
 .el-table__empty-text {
   width: 100%;
+}
+.item-main-image {
+  width: 72px;
+  height: 72px;
+  border-radius: 6px;
+  display: inline-block;
 }
 
 .item-image-upload {
