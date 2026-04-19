@@ -373,6 +373,10 @@ const doMovement = async () => {
     if (invalidQuantityList?.length) {
       return ElMessage.error('请选择移库数量')
     }
+    const invalidAmountList = form.value.details.filter(it => Number(it.amount) === 0)
+    if (invalidAmountList?.length) {
+      return ElMessage.warning('移库商品金额不能为0')
+    }
 
     //('提交前校验',form.value)
     const params = getParams(1)
