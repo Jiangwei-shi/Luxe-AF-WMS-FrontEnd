@@ -74,7 +74,9 @@
         <template v-if="queryType === 'warehouse'">
           <el-table-column :label="tr('仓库')" prop="warehouseId" min-width="80" align="center" show-overflow-tooltip>
             <template #default="{ row }">
-              {{ useWmsStore().warehouseMap.get(row.warehouseId)?.warehouseName || '-' }}
+              <div>{{ useWmsStore().warehouseMap.get(row.warehouseId)?.warehouseName || '-' }}</div>
+              <div>{{ tr('仓库商品总数') }}：{{ getWarehouseSummaryQuantity(row.warehouseId) }}</div>
+              <div>{{ tr('仓库商品总价') }}：{{ formatMoney(getWarehouseSummaryAmount(row.warehouseId)) }}</div>
             </template>
           </el-table-column>
           <el-table-column :label="tr('商品名称')" prop="warehouseIdAndItemId" min-width="120" align="center" show-overflow-tooltip>
@@ -188,6 +190,7 @@ const loading = ref(true)
 const total = ref(0)
 const tableRef = ref(null)
 const rowSpanArray = ref(['warehouseId', 'warehouseIdAndItemId', 'warehouseIdAndSkuId'])
+const warehouseSummaryMap = ref(new Map())
 
 const filterable = ref(false)
 const queryType = ref('warehouse')
@@ -227,6 +230,53 @@ function formatProfit(v) {
 }
 
 /**
+ * 获取仓库聚合后的总数量
+ */
+function getWarehouseSummaryQuantity(warehouseId) {
+  return warehouseSummaryMap.value.get(warehouseId)?.quantity ?? 0
+}
+
+/**
+ * 获取仓库聚合后的总价（quantity * avgReceiptCost）
+ */
+function getWarehouseSummaryAmount(warehouseId) {
+  return warehouseSummaryMap.value.get(warehouseId)?.amount ?? 0
+}
+
+/**
+ * 按当前筛选条件拉取全部分页数据并做仓库聚合
+ */
+const fetchWarehouseSummaryMap = async (query, type) => {
+  const pageSize = 200
+  const baseQuery = { ...query, pageNum: 1, pageSize }
+  const summaryMap = new Map()
+  const collectRows = (rows = []) => {
+    rows.forEach(it => {
+      const warehouseId = it.warehouseId
+      if (warehouseId === null || warehouseId === undefined) return
+      const quantity = Number(it.quantity) || 0
+      const avgReceiptCost = Number(it.avgReceiptCost)
+      const amount = Number.isFinite(avgReceiptCost) ? (avgReceiptCost * quantity) : 0
+      const current = summaryMap.get(warehouseId) || { quantity: 0, amount: 0 }
+      current.quantity += quantity
+      current.amount += amount
+      summaryMap.set(warehouseId, current)
+    })
+  }
+
+  const firstRes = await listInventoryBoard(baseQuery, type)
+  collectRows(firstRes.rows || [])
+
+  const totalRows = Number(firstRes.total) || 0
+  const totalPages = Math.ceil(totalRows / pageSize)
+  for (let pageNum = 2; pageNum <= totalPages; pageNum++) {
+    const pageRes = await listInventoryBoard({ ...baseQuery, pageNum }, type)
+    collectRows(pageRes.rows || [])
+  }
+  return summaryMap
+}
+
+/**
  * 时间格式化：null/undefined → '--'，否则格式化为 yyyy-MM-dd HH:mm:ss
  * shipmentTime 为 null 可能是"有出库历史但库存未清零"的业务规则，统一显示 '--'
  */
@@ -246,6 +296,11 @@ const getList = async () => {
     query.minQuantity = undefined
   }
   loading.value = true
+  if (queryType.value === 'warehouse') {
+    warehouseSummaryMap.value = await fetchWarehouseSummaryMap(query, queryType.value)
+  } else {
+    warehouseSummaryMap.value = new Map()
+  }
   const res = await listInventoryBoard(query, queryType.value)
   let rows = res.rows || []
   if (filterable.value) {
@@ -260,7 +315,8 @@ const getList = async () => {
       it.skuIdAndWarehouseId = it.skuId + '-' + it.warehouseId
     }
   })
-  total.value = filterable.value ? inventoryList.value.length : res.total
+  // 分页总数必须以接口 res.total 为准；原先在过滤时用当前页 length，会导致只有「一页」、翻页失效
+  total.value = res.total ?? 0
   loading.value = false
 }
 
@@ -330,4 +386,5 @@ onMounted(() => {
 :deep(.vertical-top-cell) {
   vertical-align: top;
 }
+
 </style>
