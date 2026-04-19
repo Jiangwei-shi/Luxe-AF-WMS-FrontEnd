@@ -383,9 +383,11 @@ const doWarehousing = async () => {
       if (invalidQuantityList?.length) {
         return ElMessage.error('请选择数量')
       }
-      const invalidAmountList = form.value.details.filter(it => Number(it.amount) === 0)
+      const invalidAmountList = form.value.details.filter(
+        it => it.amount === null || it.amount === undefined || it.amount === '' || Number(it.amount) === 0
+      )
       if (invalidAmountList?.length) {
-        return ElMessage.warning('入库商品金额不能为0')
+        return ElMessage.warning('入库商品金额不能为空且不能为0')
       }
     }
     const params = getParamsBeforeSave(1);
