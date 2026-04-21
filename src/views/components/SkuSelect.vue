@@ -22,23 +22,23 @@
               <el-table-column type="selection" width="55" :reserve-selection="true" v-if="!singleSelect" :selectable="judgeSelectable"/>
               <el-table-column label="商品信息" prop="itemId" min-width="150" show-overflow-tooltip>
                 <template #default="{ row }">
+                  <pre>{{ JSON.stringify(row, null, 2) }}</pre>
                   <div>{{ row.item.itemName }}</div>
                   <div v-if="row.item.itemBrand">品牌：{{ useWmsStore().itemBrandMap.get(row.item.itemBrand).brandName }}</div>
                 </template>
               </el-table-column>
               <el-table-column label="SKU编号" min-width="200" show-overflow-tooltip>
                 <template #default="{ row }">
-                  <div>{{ row.itemSku.skuName }}</div>
                   <div v-if="row.itemSku.skuCode">{{ row.itemSku.skuCode }}</div>
                 </template>
               </el-table-column>
               <el-table-column label="价格(元)" min-width="100" align="left" class-name="price-col">
                 <template #default="{ row }">
-                  <div v-if="row.itemSku.costPrice" class="flex-space-between price-line">
+                  <div v-if="row.itemSku.costPrice || row.itemSku.costPrice === 0" class="flex-space-between price-line">
                     <span>成本价：</span>
                     <div>{{ (row.itemSku.costPrice || row.itemSku.costPrice === 0) ? row.itemSku.costPrice : '' }}</div>
                   </div>
-                  <div v-if="row.itemSku.sellingPrice" class="flex-space-between price-line">
+                  <div v-if="row.itemSku.sellingPrice || row.itemSku.sellingPrice === 0" class="flex-space-between price-line">
                     <span>销售价：</span>
                     <div>{{ (row.itemSku.sellingPrice || row.itemSku.sellingPrice === 0) ? row.itemSku.sellingPrice : '' }}</div>
                   </div>
