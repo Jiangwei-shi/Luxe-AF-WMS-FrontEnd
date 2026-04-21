@@ -28,17 +28,16 @@
               </el-table-column>
               <el-table-column label="SKU编号" min-width="200" show-overflow-tooltip>
                 <template #default="{ row }">
-                  <div>{{ row.itemSku.skuName }}</div>
                   <div v-if="row.itemSku.skuCode">{{ row.itemSku.skuCode }}</div>
                 </template>
               </el-table-column>
               <el-table-column label="价格(元)" min-width="100" align="left" class-name="price-col">
                 <template #default="{ row }">
-                  <div v-if="row.itemSku.costPrice" class="flex-space-between price-line">
+                  <div v-if="row.itemSku.costPrice || row.itemSku.costPrice === 0" class="flex-space-between price-line">
                     <span>成本价：</span>
                     <div>{{ (row.itemSku.costPrice || row.itemSku.costPrice === 0) ? row.itemSku.costPrice : '' }}</div>
                   </div>
-                  <div v-if="row.itemSku.sellingPrice" class="flex-space-between price-line">
+                  <div v-if="row.itemSku.sellingPrice || row.itemSku.sellingPrice === 0" class="flex-space-between price-line">
                     <span>销售价：</span>
                     <div>{{ (row.itemSku.sellingPrice || row.itemSku.sellingPrice === 0) ? row.itemSku.sellingPrice : '' }}</div>
                   </div>
@@ -162,8 +161,12 @@ async function handleSkuEnter() {
 const getRowKey = (row: any) => {
   return row.id;
 }
+const normalizeSkuKey = (id: any) => {
+  if (id === null || id === undefined) return ''
+  return String(id)
+}
 const getLoadedSkuIdSet = () => {
-  return new Set((props.selectedSku || []).map((it) => Number(it.id)))
+  return new Set((props.selectedSku || []).map((it) => normalizeSkuKey(it.id)))
 }
 
 const markLoadedItems = (rows = []) => {
@@ -171,8 +174,8 @@ const markLoadedItems = (rows = []) => {
   return rows.map((it) => ({
     ...it,
     id: it.skuId,
-    isLoaded: selectedIdSet.has(Number(it.skuId)),
-    checked: selectedIdSet.has(Number(it.skuId))
+    isLoaded: selectedIdSet.has(normalizeSkuKey(it.skuId)),
+    checked: selectedIdSet.has(normalizeSkuKey(it.skuId))
   }))
 }
 
@@ -265,7 +268,7 @@ const handleSelectionChange = (selection) => {
 
 const toggleSelection = () => {
   props.selectedSku.forEach(selected => {
-    const index = list.value.findIndex(it => Number(it.skuId) === Number(selected.id))
+    const index = list.value.findIndex(it => normalizeSkuKey(it.skuId) === normalizeSkuKey(selected.id))
     if (index !== -1) {
       skuSelectFormRef.value.toggleRowSelection(list.value[index], true)
     }
@@ -273,7 +276,7 @@ const toggleSelection = () => {
 }
 
 const judgeSelectable = (row) => {
-  if (row.isLoaded || getLoadedSkuIdSet().has(Number(row.skuId))) {
+  if (row.isLoaded || getLoadedSkuIdSet().has(normalizeSkuKey(row.skuId))) {
     return false;
   }
   return true
