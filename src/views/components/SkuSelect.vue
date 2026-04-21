@@ -22,7 +22,6 @@
               <el-table-column type="selection" width="55" :reserve-selection="true" v-if="!singleSelect" :selectable="judgeSelectable"/>
               <el-table-column label="商品信息" prop="itemId" min-width="150" show-overflow-tooltip>
                 <template #default="{ row }">
-                  <pre>{{ JSON.stringify(row, null, 2) }}</pre>
                   <div>{{ row.item.itemName }}</div>
                   <div v-if="row.item.itemBrand">品牌：{{ useWmsStore().itemBrandMap.get(row.item.itemBrand).brandName }}</div>
                 </template>
@@ -162,8 +161,12 @@ async function handleSkuEnter() {
 const getRowKey = (row: any) => {
   return row.id;
 }
+const normalizeSkuKey = (id: any) => {
+  if (id === null || id === undefined) return ''
+  return String(id)
+}
 const getLoadedSkuIdSet = () => {
-  return new Set((props.selectedSku || []).map((it) => Number(it.id)))
+  return new Set((props.selectedSku || []).map((it) => normalizeSkuKey(it.id)))
 }
 
 const markLoadedItems = (rows = []) => {
@@ -171,8 +174,8 @@ const markLoadedItems = (rows = []) => {
   return rows.map((it) => ({
     ...it,
     id: it.skuId,
-    isLoaded: selectedIdSet.has(Number(it.skuId)),
-    checked: selectedIdSet.has(Number(it.skuId))
+    isLoaded: selectedIdSet.has(normalizeSkuKey(it.skuId)),
+    checked: selectedIdSet.has(normalizeSkuKey(it.skuId))
   }))
 }
 
@@ -265,7 +268,7 @@ const handleSelectionChange = (selection) => {
 
 const toggleSelection = () => {
   props.selectedSku.forEach(selected => {
-    const index = list.value.findIndex(it => Number(it.skuId) === Number(selected.id))
+    const index = list.value.findIndex(it => normalizeSkuKey(it.skuId) === normalizeSkuKey(selected.id))
     if (index !== -1) {
       skuSelectFormRef.value.toggleRowSelection(list.value[index], true)
     }
@@ -273,7 +276,7 @@ const toggleSelection = () => {
 }
 
 const judgeSelectable = (row) => {
-  if (row.isLoaded || getLoadedSkuIdSet().has(Number(row.skuId))) {
+  if (row.isLoaded || getLoadedSkuIdSet().has(normalizeSkuKey(row.skuId))) {
     return false;
   }
   return true
