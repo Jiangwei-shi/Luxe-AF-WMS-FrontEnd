@@ -82,6 +82,19 @@
           <el-table-column :label="tr('商品名称')" prop="warehouseIdAndItemId" min-width="120" align="center" show-overflow-tooltip>
             <template #default="{ row }">{{ row.item?.itemName || '-' }}</template>
           </el-table-column>
+          <el-table-column :label="tr('商品图片')" width="110" align="center">
+            <template #default="{ row }">
+              <el-image
+                v-if="row.item?.mainThumbUrl"
+                :src="row.item.mainThumbUrl"
+                fit="cover"
+                class="item-main-image"
+                :preview-src-list="[row.item.mainThumbUrl]"
+                preview-teleported
+              />
+              <span v-else>{{ tr('暂无图片') }}</span>
+            </template>
+          </el-table-column>
           <el-table-column :label="tr('SKU编号')" prop="skuId" min-width="120" align="center" show-overflow-tooltip>
             <template #default="{ row }">
               {{ row.itemSku?.skuCode || '-' }}
@@ -93,6 +106,19 @@
         <template v-else>
           <el-table-column :label="tr('商品名称')" prop="itemId" min-width="120" align="center" show-overflow-tooltip>
             <template #default="{ row }">{{ row.item?.itemName || '-' }}</template>
+          </el-table-column>
+          <el-table-column :label="tr('商品图片')" width="110" align="center">
+            <template #default="{ row }">
+              <el-image
+                v-if="row.item?.mainThumbUrl"
+                :src="row.item.mainThumbUrl"
+                fit="cover"
+                class="item-main-image"
+                :preview-src-list="[row.item.mainThumbUrl]"
+                preview-teleported
+              />
+              <span v-else>{{ tr('暂无图片') }}</span>
+            </template>
           </el-table-column>
           <el-table-column :label="tr('SKU编号')" prop="skuId" min-width="120" align="center" show-overflow-tooltip>
             <template #default="{ row }">
@@ -129,7 +155,7 @@
         </el-table-column>
 
         <!-- ========== 新增列：周转天数 ========== -->
-        <el-table-column :label="tr('周转天数')" prop="turnoverDays" width="125" align="center">
+        <el-table-column :label="tr('周转天数')" prop="turnoverDays" width="125" align="center" sortable="custom">
           <template #default="{ row }">
             <span v-if="row.turnoverDays != null">{{ row.turnoverDays }}</span>
             <span v-else>--</span>
@@ -335,7 +361,7 @@ const resetQuery = () => {
 
 const handleColumnSortChange = ({ prop, order }) => {
   queryParams.value.orderByColumn = prop || undefined
-  queryParams.value.isAsc = order === 'ascending' ? 'asc' : order === 'descending' ? 'desc' : undefined
+  queryParams.value.isAsc = order === 'ascending' ? 'ascending' : order === 'descending' ? 'descending' : undefined
   queryParams.value.pageNum = 1
   getList()
 }
@@ -385,6 +411,13 @@ onMounted(() => {
 
 :deep(.vertical-top-cell) {
   vertical-align: top;
+}
+
+.item-main-image {
+  width: 72px;
+  height: 72px;
+  border-radius: 6px;
+  display: inline-block;
 }
 
 </style>
