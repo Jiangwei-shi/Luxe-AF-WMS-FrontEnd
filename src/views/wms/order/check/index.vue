@@ -44,7 +44,7 @@
             plain
             icon="Plus"
             @click="handleAdd"
-            v-hasPermi="['wms:check:all']"
+            v-hasPermi="['wms:check:edit']"
           >{{ tr('新增') }}</el-button>
         </el-col>
       </el-row>
@@ -96,7 +96,7 @@
                 :content="'盘库单【' + scope.row.orderNo + '】已' + (scope.row.orderStatus === 1 ? '盘库完成' : '作废') + '，无法修改！' "
               >
                 <template #reference>
-                  <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['wms:check:all']" :disabled="[-1, 1].includes(scope.row.orderStatus)">{{ tr('修改') }}</el-button>
+                  <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['wms:check:edit']" :disabled="[-1, 1].includes(scope.row.orderStatus)">{{ tr('修改') }}</el-button>
                 </template>
               </el-popover>
               <el-button link type="primary" @click="handleGoDetail(scope.row)" v-hasPermi="['wms:check:all']">{{ tr('查看') }}</el-button>
@@ -111,7 +111,7 @@
                 :content="'盘库单【' + scope.row.orderNo + '】已盘库完成，无法删除！' "
               >
                 <template #reference>
-                  <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['wms:check:all']" :disabled="scope.row.orderStatus === 1">{{ tr('删除') }}</el-button>
+                  <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['wms:check:edit']" :disabled="scope.row.orderStatus === 1">{{ tr('删除') }}</el-button>
                 </template>
               </el-popover>
               <el-button link type="primary" @click="handlePrint(scope.row)" v-hasPermi="['wms:check:all']">{{ tr('打印') }}</el-button>

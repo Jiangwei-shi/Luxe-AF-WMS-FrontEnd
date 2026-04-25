@@ -107,6 +107,7 @@
             <span style="font-size: 18px;line-height: 18px">商品分类</span>
             <el-button class="mr10" style="font-size:12px;line-height: 14px" plain
                      @click="handleAddType(false)"
+                     v-hasPermi="['wms:item:edit']"
                      type="primary" icon="Plus">新增分类
             </el-button>
           </div>
@@ -131,11 +132,17 @@
               <span>{{ node.label }}</span>
               <span>
                 <el-button type="primary" @click.stop="append(data)" link
-                         v-if="data.label !== '全部' && node.level < 2" icon="Plus" style="font-size: 12px">新增子分类</el-button>
+                         v-if="data.label !== '全部' && node.level < 2"
+                         v-hasPermi="['wms:item:edit']"
+                         icon="Plus" style="font-size: 12px">新增子分类</el-button>
                 <el-button type="primary" @click.stop="remove(node, data)" link
-                         v-if="data.label !== '全部'" icon="Delete" style="font-size: 12px">删除</el-button>
+                         v-if="data.label !== '全部'"
+                         v-hasPermi="['wms:item:edit']"
+                         icon="Delete" style="font-size: 12px">删除</el-button>
                 <el-button type="primary" icon="Edit" @click.stop="edit(node, data)" link
-                         v-if="data.label !== '全部'" style="font-size: 12px">修改</el-button>
+                         v-if="data.label !== '全部'"
+                         v-hasPermi="['wms:item:edit']"
+                         style="font-size: 12px">修改</el-button>
               </span>
             </span>
             </template>
@@ -144,7 +151,7 @@
         <div style="width: 100%;position: relative">
           <div style="display: flex;align-items: start;justify-content: space-between">
             <span class="mr10" style="font-size: 18px;">商品列表</span>
-            <el-button type="primary" plain icon="Plus" @click="handleAdd" class="mb10">新增商品</el-button>
+            <el-button type="primary" plain icon="Plus" @click="handleAdd" class="mb10" v-hasPermi="['wms:item:edit']">新增商品</el-button>
           </div>
           <el-table :data="itemList" @selection-change="handleSelectionChange" :span-method="spanMethod" border empty-text="暂无商品" v-loading="loading" cell-class-name="my-cell">
             <el-table-column label="商品信息" prop="itemId">
@@ -175,11 +182,11 @@
             <el-table-column label="商品图片" width="110" align="center">
               <template #default="{ row }">
                 <el-image
-                  v-if="ensureMainImageLoaded(row)"
-                  :src="ensureMainImageLoaded(row)"
+                  v-if="getMainImageUrl(row)"
+                  :src="getMainImageUrl(row)"
                   fit="cover"
                   class="item-main-image"
-                  :preview-src-list="[ensureMainImageLoaded(row)]"
+                  :preview-src-list="[getMainImageUrl(row)]"
                   preview-teleported
                 />
                 <span v-else>-</span>
@@ -197,10 +204,10 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column label="操作" align="right" prop="itemId" width="200">
+            <el-table-column v-hasPermi="['wms:item:edit']" label="操作" align="right" prop="itemId" width="200">
               <template #default="scope">
-                <el-button link type="primary" @click="handleDelete(scope.row)" icon="Delete">删除</el-button>
-                <el-button link type="primary" @click="handleUpdate(scope.row)" icon="Edit">修改</el-button>
+                <el-button link type="primary" @click="handleDelete(scope.row)" icon="Delete" v-hasPermi="['wms:item:edit']">删除</el-button>
+                <el-button link type="primary" @click="handleUpdate(scope.row)" icon="Edit" v-hasPermi="['wms:item:edit']">修改</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -242,6 +249,7 @@
               </el-col>
               <el-col :span="2">
                 <el-button link icon="Plus" type="primary" style="height: 32px!important;line-height: 32px!important;"
+                           v-hasPermi="['wms:item:edit']"
                            @click="handleAddType(true)">新增分类
                 </el-button>
               </el-col>
@@ -706,28 +714,56 @@ const appendAccessoryTag = (tag) => {
 /** 列表主图缓存与加载状态（兜底按 itemId 请求） */
 const listMainImageUrlMap = ref(new Map())
 const listMainImageLoadingSet = ref(new Set())
+const listMainImageNoImageSet = ref(new Set())
+const listMainImageErrorAtMap = ref(new Map())
+const MAIN_IMAGE_RETRY_DELAY_MS = 30000
+
+const getMainImageUrl = (row) => {
+  const itemId = row?.itemId
+  if (!itemId) return ''
+  return listMainImageUrlMap.value.get(itemId) || ''
+}
+
 const ensureMainImageLoaded = (row) => {
   const itemId = row?.itemId
-  const cachedUrl = listMainImageUrlMap.value.get(itemId) || ''
+  const cachedUrl = getMainImageUrl(row)
   if (cachedUrl) return cachedUrl
   if (!itemId) return ''
+  if (listMainImageNoImageSet.value.has(itemId)) return ''
   if (listMainImageLoadingSet.value.has(itemId)) return ''
+  const lastErrorAt = listMainImageErrorAtMap.value.get(itemId) || 0
+  if (lastErrorAt && Date.now() - lastErrorAt < MAIN_IMAGE_RETRY_DELAY_MS) return ''
   listMainImageLoadingSet.value.add(itemId)
   ;(async () => {
     try {
       const res = await getItemImages(itemId)
       const imageList = getImageListFromResponse(res) || []
-      if (!imageList.length) return
+      if (!imageList.length) {
+        listMainImageNoImageSet.value.add(itemId)
+        return
+      }
       const mainImage = imageList.find((img) => Number(img?.isMain) === 1) || imageList[0]
       const nextUrl = mainImage?.thumbUrl || mainImage?.url || mainImage?.imageUrl || ''
-      if (nextUrl) listMainImageUrlMap.value.set(itemId, nextUrl)
+      if (nextUrl) {
+        listMainImageUrlMap.value.set(itemId, nextUrl)
+      } else {
+        listMainImageNoImageSet.value.add(itemId)
+      }
     } catch (_) {
-      // 兜底失败时静默，不影响列表展示
+      // 兜底失败时静默，不影响列表展示；记录错误时间避免短时间内重试风暴
+      listMainImageErrorAtMap.value.set(itemId, Date.now())
     } finally {
       listMainImageLoadingSet.value.delete(itemId)
     }
   })()
   return ''
+}
+
+const preloadMainImages = (rows) => {
+  if (!Array.isArray(rows) || !rows.length) return
+  rows.forEach((row) => {
+    ensureMainImageLoaded(row)
+  })
 }
 const initFormData = {
   id: undefined,
@@ -841,6 +877,10 @@ const getList = async () => {
   const res = await listItemSkuPage(query);
   const content = [...res.rows];
   itemList.value = content.map((it) => ({...it, id: it.skuId,itemId: it?.item?.id}));
+  listMainImageLoadingSet.value.clear()
+  listMainImageNoImageSet.value.clear()
+  listMainImageErrorAtMap.value.clear()
+  preloadMainImages(itemList.value)
   total.value = res.total;
   loading.value = false;
 }
@@ -1475,6 +1515,19 @@ const submitCategoryForm = () => {
     }
   });
 }
+const initItemCategoryDataIfNeeded = async () => {
+  const wmsStore = useWmsStore()
+  const tasks = []
+  if (!Array.isArray(wmsStore.itemCategoryList) || wmsStore.itemCategoryList.length === 0) {
+    tasks.push(wmsStore.getItemCategoryList())
+  }
+  if (!Array.isArray(wmsStore.itemCategoryTreeList) || wmsStore.itemCategoryTreeList.length === 0) {
+    tasks.push(wmsStore.getItemCategoryTreeList())
+  }
+  if (tasks.length > 0) {
+    await Promise.all(tasks)
+  }
+}
 /** 删除按钮操作 */
 const handleDelete = async (row) => {
   const _ids = row?.itemId || ids.value;
@@ -1519,8 +1572,13 @@ const downloadQrcode = async (row) => {
   //提示信息
   // this.$message.warn('下载中，请稍后...')
 }
-onMounted(() => {
-  nextTick(()=>{
+onMounted(async () => {
+  try {
+    await initItemCategoryDataIfNeeded()
+  } catch (_) {
+    // 分类数据加载失败不阻断列表渲染
+  }
+  nextTick(() => {
     getList();
     if (route.query.openDrawer) {
       handleAdd()

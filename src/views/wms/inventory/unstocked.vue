@@ -238,30 +238,6 @@
         <el-table-column :label="tr('年份')" prop="year" width="80" align="center" sortable="custom">
           <template #default="{ row }">{{ cellNumberOrDash(row.year, 0) }}</template>
         </el-table-column>
-        <el-table-column :label="tr('材质')" prop="material" min-width="100" align="center" show-overflow-tooltip>
-          <template #default="{ row }">{{ cellText(row.material) }}</template>
-        </el-table-column>
-        <el-table-column :label="tr('缺陷')" prop="defect" min-width="100" align="center" show-overflow-tooltip>
-          <template #default="{ row }">{{ cellText(row.defect) }}</template>
-        </el-table-column>
-        <el-table-column :label="tr('配件')" prop="accessories" min-width="100" align="center" show-overflow-tooltip>
-          <template #default="{ row }">{{ cellText(row.accessories) }}</template>
-        </el-table-column>
-        <el-table-column :label="tr('护理')" prop="cared" width="88" align="center">
-          <template #default="{ row }">{{ formatCared(row.cared) }}</template>
-        </el-table-column>
-        <el-table-column :label="tr('鉴定机构')" prop="authAgency" min-width="120" align="center" show-overflow-tooltip>
-          <template #default="{ row }">{{ cellText(row.authAgency) }}</template>
-        </el-table-column>
-        <el-table-column :label="tr('寄售信息')" prop="consignInfo" min-width="120" align="center" show-overflow-tooltip>
-          <template #default="{ row }">{{ cellText(row.consignInfo) }}</template>
-        </el-table-column>
-        <el-table-column :label="tr('默认数量')" prop="defaultQty" width="100" align="center">
-          <template #default="{ row }">{{ cellNumberOrDash(row.defaultQty, 0) }}</template>
-        </el-table-column>
-        <el-table-column :label="tr('备注')" prop="remark" min-width="120" align="center" show-overflow-tooltip>
-          <template #default="{ row }">{{ cellText(row.remark) }}</template>
-        </el-table-column>
         <el-table-column
           v-if="canViewCostPrice"
           :label="tr('成本价')"
@@ -287,6 +263,30 @@
             <span v-if="row.sellingPrice != null && row.sellingPrice !== ''">{{ formatMoney(row.sellingPrice) }}</span>
             <span v-else>-</span>
           </template>
+        </el-table-column>
+        <el-table-column :label="tr('材质')" prop="material" min-width="100" align="center" show-overflow-tooltip>
+          <template #default="{ row }">{{ cellText(row.material) }}</template>
+        </el-table-column>
+        <el-table-column :label="tr('缺陷')" prop="defect" min-width="100" align="center" show-overflow-tooltip>
+          <template #default="{ row }">{{ cellText(row.defect) }}</template>
+        </el-table-column>
+        <el-table-column :label="tr('配件')" prop="accessories" min-width="100" align="center" show-overflow-tooltip>
+          <template #default="{ row }">{{ cellText(row.accessories) }}</template>
+        </el-table-column>
+        <el-table-column :label="tr('护理')" prop="cared" width="88" align="center">
+          <template #default="{ row }">{{ formatCared(row.cared) }}</template>
+        </el-table-column>
+        <el-table-column :label="tr('鉴定机构')" prop="authAgency" min-width="120" align="center" show-overflow-tooltip>
+          <template #default="{ row }">{{ cellText(row.authAgency) }}</template>
+        </el-table-column>
+        <el-table-column :label="tr('寄售信息')" prop="consignInfo" min-width="120" align="center" show-overflow-tooltip>
+          <template #default="{ row }">{{ cellText(row.consignInfo) }}</template>
+        </el-table-column>
+        <el-table-column :label="tr('默认数量')" prop="defaultQty" width="100" align="center">
+          <template #default="{ row }">{{ cellNumberOrDash(row.defaultQty, 0) }}</template>
+        </el-table-column>
+        <el-table-column :label="tr('备注')" prop="remark" min-width="120" align="center" show-overflow-tooltip>
+          <template #default="{ row }">{{ cellText(row.remark) }}</template>
         </el-table-column>
         <el-table-column :label="tr('创建人')" prop="createBy" width="100" align="center" show-overflow-tooltip>
           <template #default="{ row }">{{ cellText(row.createBy) }}</template>
