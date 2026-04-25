@@ -135,7 +135,7 @@
 
 <script setup name="InventoryHistory">
 import {listInventoryHistory} from "@/api/wms/inventoryHistory";
-import {computed, getCurrentInstance, reactive, ref} from "vue";
+import {computed, getCurrentInstance, onMounted, reactive, ref} from "vue";
 import {useWmsStore} from '@/store/modules/wms'
 import useSettingsStore from '@/store/modules/settings'
 import { translateByMap } from '@/locales/runtime-map'
@@ -200,7 +200,10 @@ function resetQuery() {
   handleQuery();
 }
 
-getList();
+onMounted(() => {
+  useWmsStore().getWarehouseList()
+  getList()
+})
 </script>
 <style lang="scss">
 .inventory-history-page .filter-form {

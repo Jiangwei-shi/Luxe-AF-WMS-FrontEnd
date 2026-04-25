@@ -384,6 +384,7 @@ const handleChangeFilterZero = () => {
 const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
 
 onMounted(() => {
+  useWmsStore().getWarehouseList()
   getList()
 })
 </script>
