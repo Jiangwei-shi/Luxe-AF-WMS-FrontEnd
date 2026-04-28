@@ -173,6 +173,7 @@ import { translateByMap } from '@/locales/runtime-map'
 
 const {proxy} = getCurrentInstance();
 const {wms_shipment_type} = proxy.useDict("wms_shipment_type");
+const wmsStore = useWmsStore()
 const settingsStore = useSettingsStore()
 const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
 const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
@@ -387,6 +388,9 @@ const doCheck = async () => {
 
 const route = useRoute();
 onMounted(() => {
+  if (!wmsStore.warehouseList.length) {
+    wmsStore.getWarehouseList()
+  }
   const id = route.query && route.query.id;
   if (id) {
     checking.value = true
