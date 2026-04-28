@@ -54,7 +54,7 @@
             <el-form-item :label="tr('商品品牌')" prop="itemBrand">
               <el-select v-model="queryParams.itemBrand" clearable filterable style="width: 100%">
                 <el-option
-                  v-for="item in useWmsStore().itemBrandList"
+                  v-for="item in wmsStore.itemBrandList"
                   :key="item.id"
                   :label="item.brandName"
                   :value="item.id"
@@ -327,7 +327,7 @@
 <script setup name="UnstockedSkus">
 import { QuestionFilled } from '@element-plus/icons-vue'
 import { listUnstockedSkus } from '@/api/wms/inventory'
-import { computed, getCurrentInstance, ref } from 'vue'
+import { computed, getCurrentInstance, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWmsStore } from '@/store/modules/wms'
 import useSettingsStore from '@/store/modules/settings'
@@ -338,6 +338,7 @@ const AUTH_AGENCY_OPTIONS = ['Entrupy', 'Real Authentication', 'Legitmark', 'Che
 
 const { proxy } = getCurrentInstance()
 const router = useRouter()
+const wmsStore = useWmsStore()
 const settingsStore = useSettingsStore()
 const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
 const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
@@ -346,7 +347,7 @@ const formLabelWidth = computed(() => (isEn.value ? '128px' : '96px'))
 const canViewCostPrice = computed(() => proxy?.$auth?.hasPermi('wms:itemCostPrice:view'))
 const canViewSellingPrice = computed(() => proxy?.$auth?.hasPermi('wms:itemSellingPrice:view'))
 
-const itemCategoryTreeSelectList = computed(() => useWmsStore().itemCategoryTreeList)
+const itemCategoryTreeSelectList = computed(() => wmsStore.itemCategoryTreeList)
 
 const list = ref([])
 const loading = ref(true)
@@ -498,7 +499,26 @@ function goItem(row) {
   router.push({ name: 'Item', query: q }).catch(() => {})
 }
 
-getList()
+function initLookupOptions() {
+  const tasks = []
+  if (!wmsStore.itemBrandList.length) {
+    tasks.push(wmsStore.getItemBrandList())
+  }
+  if (!wmsStore.itemCategoryList.length) {
+    tasks.push(wmsStore.getItemCategoryList())
+  }
+  if (!wmsStore.itemCategoryTreeList.length) {
+    tasks.push(wmsStore.getItemCategoryTreeList())
+  }
+  if (tasks.length) {
+    Promise.allSettled(tasks)
+  }
+}
+
+onMounted(() => {
+  initLookupOptions()
+  getList()
+})
 </script>
 
 <style scoped lang="scss">
