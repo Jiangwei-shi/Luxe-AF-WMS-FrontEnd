@@ -22,8 +22,8 @@
               <el-table-column type="selection" width="55" :reserve-selection="true" v-if="!singleSelect" :selectable="judgeSelectable"/>
               <el-table-column label="商品信息" prop="itemId" min-width="150" show-overflow-tooltip>
                 <template #default="{ row }">
-                  <div>{{ row.item.itemName }}</div>
-                  <div v-if="row.item.itemBrand">品牌：{{ useWmsStore().itemBrandMap.get(row.item.itemBrand).brandName }}</div>
+                  <div>{{ row.item?.itemName || '-' }}</div>
+                  <div v-if="row.item?.itemBrand && getBrandName(row.item.itemBrand)">品牌：{{ getBrandName(row.item.itemBrand) }}</div>
                 </template>
               </el-table-column>
               <el-table-column label="SKU编号" min-width="200" show-overflow-tooltip>
@@ -95,6 +95,11 @@ const pageReq = reactive({
 });
 const list = ref([]);
 const rightList = ref([]);
+const wmsStore = useWmsStore()
+const getBrandName = (brandId: any) => {
+  if (brandId === null || brandId === undefined) return ''
+  return wmsStore.itemBrandMap.get(brandId)?.brandName || ''
+}
 const normalizeSkuRow = (raw: any) => {
   const skuId = raw?.skuId ?? raw?.id ?? raw?.itemSkuId
   const itemSku = raw?.itemSku || {
@@ -250,6 +255,12 @@ const props = defineProps({
 
 const show = computed(() => {
   return props.modelValue;
+})
+
+onMounted(() => {
+  if (!wmsStore.itemBrandList.length) {
+    wmsStore.getItemBrandList()
+  }
 })
 
 // 每次打开抽屉时清空查询条件并重新拉取，便于看到全部商品

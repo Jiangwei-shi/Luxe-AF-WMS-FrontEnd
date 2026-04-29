@@ -112,14 +112,16 @@
           <el-table :data="form.details" border :empty-text="tr('暂无商品明细')">
             <el-table-column :label="tr('商品信息')" prop="itemSku.itemName">
               <template #default="{ row }">
-                <div>{{ row.item.itemName + (row.item.itemCode ? ('(' + row.item.itemCode + ')') : '') }}</div>
-                <div v-if="row.item.itemBrand">{{ tr('品牌') }}：{{ useWmsStore().itemBrandMap.get(row.item.itemBrand).brandName }}</div>
+                <div>{{ (row.item?.itemName || '-') + (row.item?.itemCode ? ('(' + row.item.itemCode + ')') : '') }}</div>
+                <div v-if="row.item?.itemBrand && getBrandName(row.item.itemBrand)">
+                  {{ tr('品牌') }}：{{ getBrandName(row.item.itemBrand) }}
+                </div>
               </template>
             </el-table-column>
             <el-table-column :label="tr('规格信息')">
               <template #default="{ row }">
-                <div>{{ row.itemSku.skuCode }}</div>
-                <div v-if="row.itemSku.barcode">{{ tr('条码') }}：{{row.itemSku.barcode}}</div>
+                <div>{{ row.itemSku?.skuCode || '-' }}</div>
+                <div v-if="row.itemSku?.barcode">{{ tr('条码') }}：{{row.itemSku.barcode}}</div>
               </template>
             </el-table-column>
             <el-table-column :label="tr('数量')" prop="quantity" width="180">
@@ -249,6 +251,32 @@ const close = () => {
   proxy?.$tab.closeOpenPage(obj);
 }
 const skuSelectShow = ref(false)
+const getBrandName = (brandId) => {
+  if (brandId === null || brandId === undefined) return ''
+  return wmsStore.itemBrandMap.get(brandId)?.brandName || ''
+}
+const normalizeDetailRow = (detail = {}) => {
+  const skuId = detail.skuId ?? detail.itemSku?.id ?? detail.itemSkuId
+  const itemSku = detail.itemSku || {
+    id: skuId,
+    skuCode: detail.skuCode,
+    barcode: detail.barcode,
+    costPrice: detail.costPrice,
+    sellingPrice: detail.sellingPrice
+  }
+  const item = detail.item || {
+    id: detail.itemId,
+    itemName: detail.itemName,
+    itemCode: detail.itemCode,
+    itemBrand: detail.itemBrand
+  }
+  return {
+    ...detail,
+    skuId,
+    itemSku,
+    item
+  }
+}
 
 // 选择商品 start
 const showAddItem = () => {
@@ -418,6 +446,9 @@ onMounted(() => {
   if (!wmsStore.merchantList.length) {
     wmsStore.getMerchantList()
   }
+  if (!wmsStore.itemBrandList.length) {
+    wmsStore.getItemBrandList()
+  }
   const id = route.query && route.query.id;
   if (id) {
     loadDetail(id)
@@ -431,12 +462,18 @@ onMounted(() => {
 const loadDetail = (id) => {
   loading.value = true
   getReceiptOrder(id).then((response) => {
-    form.value = {...response.data}
+    const detailRows = Array.isArray(response?.data?.details)
+      ? response.data.details.map((it) => normalizeDetailRow(it))
+      : []
+    form.value = {
+      ...response.data,
+      details: detailRows
+    }
     updateTotals()
-    if (response.data.details?.length) {
-      selectedSku.value = response.data.details.map(it => {
+    if (detailRows.length) {
+      selectedSku.value = detailRows.map(it => {
         return {
-          id: it.skuId
+          id: it.skuId ?? it.itemSku?.id
         }
       })
     }

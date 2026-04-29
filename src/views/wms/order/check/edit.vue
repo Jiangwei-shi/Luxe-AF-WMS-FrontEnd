@@ -81,22 +81,22 @@
             <el-table-column label="商品信息" prop="itemSku.itemName">
               <template #default="scope">
                   <div>{{
-                      scope.row.item.itemName + (scope.row.item.itemCode ? ('(' + scope.row.item.itemCode + ')') : '')
+                      (scope.row.item?.itemName || '-') + (scope.row.item?.itemCode ? ('(' + scope.row.item.itemCode + ')') : '')
                     }}
                   </div>
-                  <div v-if="scope.row.item.itemBrand">
-                    品牌：{{ useWmsStore().itemBrandMap.get(scope.row.item.itemBrand).brandName }}
+                  <div v-if="scope.row.item?.itemBrand && getBrandName(scope.row.item.itemBrand)">
+                    品牌：{{ getBrandName(scope.row.item.itemBrand) }}
                   </div>
                 </template>
             </el-table-column>
             <el-table-column label="规格信息">
               <template #default="{ row }">
                 <template v-if="row.newInventoryDetail">
-                  <div v-if="row.itemSku">{{ row.itemSku.skuCode + (row.itemSku.barcode ? ('(' + row.itemSku.barcode + ')') : '') }}</div>
+                  <div v-if="row.itemSku">{{ (row.itemSku?.skuCode || '-') + (row.itemSku?.barcode ? ('(' + row.itemSku.barcode + ')') : '') }}</div>
                   <div v-else>请选择商品</div>
                 </template>
                 <template v-else>
-                  <div>{{ row.itemSku.skuCode + (row.itemSku.barcode ? ('(' + row.itemSku.barcode + ')') : '') }}</div>
+                  <div>{{ (row.itemSku?.skuCode || '-') + (row.itemSku?.barcode ? ('(' + row.itemSku.barcode + ')') : '') }}</div>
                 </template>
               </template>
             </el-table-column>
@@ -213,6 +213,32 @@ const close = () => {
 const inventorySelectShow = ref(false)
 const skuSelectShow = ref(false)
 const currentSkuSelectIndex = ref(null)
+const getBrandName = (brandId) => {
+  if (brandId === null || brandId === undefined) return ''
+  return wmsStore.itemBrandMap.get(brandId)?.brandName || ''
+}
+const normalizeDetailRow = (detail = {}) => {
+  const skuId = detail.skuId ?? detail.itemSku?.id ?? detail.itemSkuId
+  const itemSku = detail.itemSku || {
+    id: skuId,
+    skuCode: detail.skuCode,
+    barcode: detail.barcode,
+    costPrice: detail.costPrice,
+    sellingPrice: detail.sellingPrice
+  }
+  const item = detail.item || {
+    id: detail.itemId,
+    itemName: detail.itemName,
+    itemCode: detail.itemCode,
+    itemBrand: detail.itemBrand
+  }
+  return {
+    ...detail,
+    skuId,
+    itemSku,
+    item
+  }
+}
 // 盘库中标识
 const checking = ref(false)
 // 扫码枪模式标记
@@ -390,6 +416,9 @@ onMounted(() => {
   if (!wmsStore.warehouseList.length) {
     wmsStore.getWarehouseList()
   }
+  if (!wmsStore.itemBrandList.length) {
+    wmsStore.getItemBrandList()
+  }
   const id = route.query && route.query.id;
   if (id) {
     checking.value = true
@@ -404,17 +433,23 @@ onMounted(() => {
 const loadDetail = (id) => {
   loading.value = true
   getCheckOrder(id).then((response) => {
-    if (response.data.details?.length) {
-      response.data.details.forEach(detail => {
+    const detailRows = Array.isArray(response?.data?.details)
+      ? response.data.details.map((it) => normalizeDetailRow(it))
+      : []
+    if (detailRows.length) {
+      detailRows.forEach(detail => {
         detail.newInventory = !detail.inventoryId
       })
-      selectedSku.value = response.data.details.map(it => {
+      selectedSku.value = detailRows.map(it => {
         return {
-          id: it.skuId
+          id: it.skuId ?? it.itemSku?.id
         }
       })
     }
-    form.value = {...response.data}
+    form.value = {
+      ...response.data,
+      details: detailRows
+    }
     handleChangeQuantity()
     Promise.resolve();
   }).then(() => {
