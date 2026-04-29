@@ -9,6 +9,24 @@ export function listUnstockedSkus(query) {
   })
 }
 
+// 未入库 SKU 总金额（按当前筛选条件汇总，不受分页影响）
+export function getUnstockedSkusTotalAmount(query) {
+  return request({
+    url: '/wms/inventory/unstocked-skus/total-amount',
+    method: 'get',
+    params: query
+  })
+}
+
+// 未入库 SKU 总件数（按当前筛选条件汇总，不受分页影响）
+export function getUnstockedSkusTotalCount(query) {
+  return request({
+    url: '/wms/inventory/unstocked-skus/total-count',
+    method: 'get',
+    params: query
+  })
+}
+
 // 查询库存列表
 export function listInventory(query) {
   return request({
