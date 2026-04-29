@@ -137,6 +137,7 @@
         :model-value="skuSelectShow"
         :scan-mode="scanMode"
         :selected-sku="selectedSku"
+        :warehouse-id="form.warehouseId"
         @handleOkClick="handleOkClick"
         @handleCancelClick="skuSelectShow = false"
         :size="'50%'"
@@ -279,13 +280,11 @@ const handleOkClick = (item) => {
 
 const showSkuSelect = () => {
   scanMode.value = false
-  skuSelectRef.value.getList()
   skuSelectShow.value = true
 }
 
 const showScanAddItem = () => {
   scanMode.value = true
-  skuSelectRef.value.getList()
   skuSelectShow.value = true
 }
 // 选择商品 end
