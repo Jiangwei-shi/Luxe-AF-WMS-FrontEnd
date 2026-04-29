@@ -72,7 +72,7 @@
       >
         <!-- ========== 仓库维度列 ========== -->
         <template v-if="queryType === 'warehouse'">
-          <el-table-column :label="tr('仓库')" prop="warehouseId" min-width="80" align="center" show-overflow-tooltip>
+          <el-table-column :label="tr('仓库')" prop="warehouseId" min-width="240" align="center" show-overflow-tooltip>
             <template #default="{ row }">
               <div>{{ useWmsStore().warehouseMap.get(row.warehouseId)?.warehouseName || '-' }}</div>
               <div>{{ tr('仓库商品总数') }}：{{ getWarehouseSummaryQuantity(row.warehouseId) }}</div>
@@ -91,8 +91,12 @@
                 class="item-main-image"
                 :preview-src-list="[row.item.mainThumbUrl]"
                 preview-teleported
-              />
-              <span v-else>{{ tr('暂无图片') }}</span>
+              >
+                <template #error>
+                  <div class="image-empty">{{ tr('暂无图片') }}</div>
+                </template>
+              </el-image>
+              <div v-else class="image-empty">{{ tr('暂无图片') }}</div>
             </template>
           </el-table-column>
           <el-table-column :label="tr('SKU编号')" prop="skuId" min-width="120" align="center" show-overflow-tooltip>
@@ -116,8 +120,12 @@
                 class="item-main-image"
                 :preview-src-list="[row.item.mainThumbUrl]"
                 preview-teleported
-              />
-              <span v-else>{{ tr('暂无图片') }}</span>
+              >
+                <template #error>
+                  <div class="image-empty">{{ tr('暂无图片') }}</div>
+                </template>
+              </el-image>
+              <div v-else class="image-empty">{{ tr('暂无图片') }}</div>
             </template>
           </el-table-column>
           <el-table-column :label="tr('SKU编号')" prop="skuId" min-width="120" align="center" show-overflow-tooltip>
@@ -419,6 +427,18 @@ onMounted(() => {
   height: 72px;
   border-radius: 6px;
   display: inline-block;
+}
+
+.image-empty {
+  width: 72px;
+  height: 72px;
+  border-radius: 6px;
+  border: 1px dashed var(--el-border-color, #dcdfe6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-text-color-secondary, #909399);
+  font-size: 12px;
 }
 
 </style>
