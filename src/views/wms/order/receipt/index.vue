@@ -208,7 +208,7 @@
 
 <script setup name="ReceiptOrder">
 import {delReceiptOrder, getReceiptOrder, listReceiptOrder} from "@/api/wms/receiptOrder";
-import {computed, getCurrentInstance, reactive, ref, toRefs} from "vue";
+import {computed, getCurrentInstance, onMounted, reactive, ref, toRefs} from "vue";
 import {useWmsStore} from "../../../../store/modules/wms";
 import {listByReceiptOrderId} from "@/api/wms/receiptOrderDetail";
 import {ElMessageBox} from "element-plus";
@@ -249,6 +249,7 @@ const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
 const formLabelWidth = computed(() => '80px')
 const translatedReceiptStatusOptions = computed(() => (wms_receipt_status.value || []).map(it => ({ ...it, label: tr(it.label) })))
 const translatedReceiptTypeOptions = computed(() => (wms_receipt_type.value || []).map(it => ({ ...it, label: tr(it.label) })))
+const wmsStore = useWmsStore()
 
 /** 查询入库单列表 */
 function getList() {
@@ -396,7 +397,20 @@ function ifExpand(expandedRows) {
 function getRowKey(row) {
   return row.id
 }
-getList();
+
+function initLookupOptions() {
+  if (!wmsStore.warehouseList.length) {
+    wmsStore.getWarehouseList()
+  }
+  if (!wmsStore.merchantList.length) {
+    wmsStore.getMerchantList()
+  }
+}
+
+onMounted(() => {
+  initLookupOptions()
+  getList()
+})
 </script>
 <style lang="scss">
 .receipt-order-page .filter-form {

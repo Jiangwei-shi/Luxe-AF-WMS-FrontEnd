@@ -135,7 +135,7 @@
             <dict-tag :options="translatedShipmentTypeOptions" :value="row.optType" />
           </template>
         </el-table-column>
-        <el-table-column :label="tr('客户')" align="left" prop="merchantId" min-width="160" show-overflow-tooltip>
+        <el-table-column :label="tr('平台')" align="left" prop="merchantId" min-width="160" show-overflow-tooltip>
           <template #default="{ row }">
             <div>{{ useWmsStore().merchantMap.get(row.merchantId)?.merchantName }}</div>
           </template>
@@ -205,7 +205,7 @@
 <script setup name="ShipmentOrder">
 import {listShipmentOrder, delShipmentOrder, getShipmentOrder} from "@/api/wms/shipmentOrder";
 import {listByShipmentOrderId} from "@/api/wms/shipmentOrderDetail";
-import {computed, getCurrentInstance, reactive, ref, toRefs} from "vue";
+import {computed, getCurrentInstance, onMounted, reactive, ref, toRefs} from "vue";
 import {useWmsStore} from "../../../../store/modules/wms";
 import shipmentPanel from "@/components/PrintTemplate/shipment-panel";
 import useSettingsStore from '@/store/modules/settings'
@@ -244,6 +244,7 @@ const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
 const formLabelWidth = computed(() => '80px')
 const translatedShipmentStatusOptions = computed(() => (wms_shipment_status.value || []).map(it => ({ ...it, label: tr(it.label) })))
 const translatedShipmentTypeOptions = computed(() => (wms_shipment_type.value || []).map(it => ({ ...it, label: tr(it.label) })))
+const wmsStore = useWmsStore()
 
 /** 查询入库单列表 */
 function getList() {
@@ -393,7 +394,20 @@ function ifExpand(expandedRows) {
 function getRowKey(row) {
   return row.id
 }
-getList();
+
+function initLookupOptions() {
+  if (!wmsStore.warehouseList.length) {
+    wmsStore.getWarehouseList()
+  }
+  if (!wmsStore.merchantList.length) {
+    wmsStore.getMerchantList()
+  }
+}
+
+onMounted(() => {
+  initLookupOptions()
+  getList()
+})
 </script>
 <style lang="scss">
 .shipment-order-page .filter-form {

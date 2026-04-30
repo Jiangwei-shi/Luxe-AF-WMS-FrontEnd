@@ -179,7 +179,7 @@
 <script setup name="MovementOrder">
 import {listMovementOrder, delMovementOrder, getMovementOrder} from "@/api/wms/movementOrder";
 import {listByMovementOrderId} from "@/api/wms/movementOrderDetail";
-import {computed, getCurrentInstance, reactive, ref, toRefs} from "vue";
+import {computed, getCurrentInstance, onMounted, reactive, ref, toRefs} from "vue";
 import {useWmsStore} from "../../../../store/modules/wms";
 import {ElMessageBox} from "element-plus";
 import movementPanel from "@/components/PrintTemplate/movement-panel";
@@ -214,6 +214,7 @@ const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
 const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
 const formLabelWidth = computed(() => '98px')
 const translatedMovementStatusOptions = computed(() => (wms_movement_status.value || []).map(it => ({ ...it, label: tr(it.label) })))
+const wmsStore = useWmsStore()
 
 /** 查询入库单列表 */
 function getList() {
@@ -363,7 +364,17 @@ function ifExpand(expandedRows) {
 function getRowKey(row) {
   return row.id
 }
-getList();
+
+function initLookupOptions() {
+  if (!wmsStore.warehouseList.length) {
+    wmsStore.getWarehouseList()
+  }
+}
+
+onMounted(() => {
+  initLookupOptions()
+  getList()
+})
 </script>
 <style lang="scss">
 .movement-order-page .filter-form {

@@ -142,7 +142,7 @@
 <script setup name="CheckOrder">
 import {listCheckOrder, delCheckOrder, getCheckOrder} from "@/api/wms/checkOrder";
 import {listByCheckOrderId} from "@/api/wms/checkOrderDetail";
-import {computed, getCurrentInstance, reactive, ref, toRefs} from "vue";
+import {computed, getCurrentInstance, onMounted, reactive, ref, toRefs} from "vue";
 import {useWmsStore} from "../../../../store/modules/wms";
 import {ElMessageBox} from "element-plus";
 import checkPanel from "@/components/PrintTemplate/check-panel";
@@ -177,6 +177,7 @@ const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
 const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
 const formLabelWidth = computed(() => '80px')
 const translatedCheckStatusOptions = computed(() => (wms_check_status.value || []).map(it => ({ ...it, label: tr(it.label) })))
+const wmsStore = useWmsStore()
 
 /** 查询入库单列表 */
 function getList() {
@@ -275,7 +276,17 @@ async function handlePrint(row) {
 function getRowKey(row) {
   return row.id
 }
-getList();
+
+function initLookupOptions() {
+  if (!wmsStore.warehouseList.length) {
+    wmsStore.getWarehouseList()
+  }
+}
+
+onMounted(() => {
+  initLookupOptions()
+  getList()
+})
 </script>
 <style lang="scss">
 .check-order-page .filter-form {
