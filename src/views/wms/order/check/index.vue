@@ -267,8 +267,74 @@ async function handlePrint(row) {
   let printTemplate = new proxy.$hiprint.PrintTemplate({template: checkPanel})
   printTemplate.print(printData, {}, {
     styleHandler: () => {
-      let css = '<link href="https://cyl-press.oss-cn-shenzhen.aliyuncs.com/print-lock.css" media="print" rel="stylesheet">';
-      return css
+      return `
+        <link href="https://cyl-press.oss-cn-shenzhen.aliyuncs.com/print-lock.css" media="print" rel="stylesheet">
+        <style>
+          @media print {
+            @page {
+              size: A4;
+              margin: 10mm 8mm 12mm 8mm;
+            }
+          }
+
+          table {
+            width: 100% !important;
+            table-layout: fixed !important;
+            border-collapse: collapse !important;
+          }
+
+          table tr {
+            height: auto !important;
+          }
+
+          table td,
+          table th {
+            box-sizing: border-box !important;
+            padding: 2px 4px !important;
+            line-height: 1.25 !important;
+            font-size: 9.5px !important;
+            text-align: center !important;
+            white-space: normal !important;
+            word-break: normal !important;
+            overflow-wrap: break-word !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            vertical-align: middle !important;
+          }
+
+          table td:nth-child(1),
+          table th:nth-child(1) {
+            width: 40% !important;
+            white-space: normal !important;
+            word-break: normal !important;
+            overflow-wrap: break-word !important;
+          }
+          table td:nth-child(2),
+          table th:nth-child(2) {
+            width: 18% !important;
+            white-space: nowrap !important;
+          }
+          table td:nth-child(3),
+          table th:nth-child(3),
+          table td:nth-child(4),
+          table th:nth-child(4),
+          table td:nth-child(5),
+          table th:nth-child(5) {
+            width: 14% !important;
+            white-space: nowrap !important;
+          }
+
+          .hiprint-paper-number,
+          .hiprint-paperNumber,
+          [class*="paper-number"],
+          [class*="paperNumber"] {
+            white-space: nowrap !important;
+            word-break: keep-all !important;
+            overflow-wrap: normal !important;
+            line-height: 1 !important;
+          }
+        </style>
+      `
     }
   })
 }
