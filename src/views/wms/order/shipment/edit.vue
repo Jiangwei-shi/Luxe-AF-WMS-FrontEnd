@@ -41,8 +41,8 @@
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item :label="tr('客户')" prop="merchantId">
-                <el-select v-model="form.merchantId" :placeholder="tr('请选择') + tr('客户')" clearable filterable>
+             <el-form-item :label="tr('平台')" prop="merchantId">
+                <el-select v-model="form.merchantId" :placeholder="tr('请选择') + tr('平台')" clearable filterable>
                   <el-option v-for="item in useWmsStore().merchantList" :key="item.id" :label="item.merchantName"
                              :value="item.id"/>
                 </el-select>

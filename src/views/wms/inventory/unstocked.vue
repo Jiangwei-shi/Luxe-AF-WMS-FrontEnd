@@ -126,52 +126,60 @@
         </el-row>
         <el-row v-if="canViewCostPrice || canViewSellingPrice" :gutter="16">
           <el-col v-if="canViewCostPrice" :xs="24" :md="canViewSellingPrice ? 12 : 24">
-            <el-form-item :label="tr('成本价')" prop="costPriceMin">
+            <el-form-item :label="tr('成本价')">
               <div class="query-price-range">
-                <el-input-number
-                  v-model="queryParams.costPriceMin"
-                  :min="0"
-                  :precision="2"
-                  :controls="false"
-                  :placeholder="tr('最低')"
-                  style="width: 100%"
-                  @keyup.enter="handleQuery"
-                />
+                <el-form-item prop="costPriceMin" class="query-price-range-item">
+                  <el-input-number
+                    v-model="queryParams.costPriceMin"
+                    :min="0"
+                    :precision="2"
+                    :controls="false"
+                    :placeholder="tr('最低')"
+                    style="width: 100%"
+                    @keyup.enter="handleQuery"
+                  />
+                </el-form-item>
                 <span class="query-price-range-separator">{{ tr('至') }}</span>
-                <el-input-number
-                  v-model="queryParams.costPriceMax"
-                  :min="0"
-                  :precision="2"
-                  :controls="false"
-                  :placeholder="tr('最高')"
-                  style="width: 100%"
-                  @keyup.enter="handleQuery"
-                />
+                <el-form-item prop="costPriceMax" class="query-price-range-item">
+                  <el-input-number
+                    v-model="queryParams.costPriceMax"
+                    :min="0"
+                    :precision="2"
+                    :controls="false"
+                    :placeholder="tr('最高')"
+                    style="width: 100%"
+                    @keyup.enter="handleQuery"
+                  />
+                </el-form-item>
               </div>
             </el-form-item>
           </el-col>
           <el-col v-if="canViewSellingPrice" :xs="24" :md="canViewCostPrice ? 12 : 24">
-            <el-form-item :label="tr('销售价')" prop="sellingPriceMin">
+            <el-form-item :label="tr('销售价')">
               <div class="query-price-range">
-                <el-input-number
-                  v-model="queryParams.sellingPriceMin"
-                  :min="0"
-                  :precision="2"
-                  :controls="false"
-                  :placeholder="tr('最低')"
-                  style="width: 100%"
-                  @keyup.enter="handleQuery"
-                />
+                <el-form-item prop="sellingPriceMin" class="query-price-range-item">
+                  <el-input-number
+                    v-model="queryParams.sellingPriceMin"
+                    :min="0"
+                    :precision="2"
+                    :controls="false"
+                    :placeholder="tr('最低')"
+                    style="width: 100%"
+                    @keyup.enter="handleQuery"
+                  />
+                </el-form-item>
                 <span class="query-price-range-separator">{{ tr('至') }}</span>
-                <el-input-number
-                  v-model="queryParams.sellingPriceMax"
-                  :min="0"
-                  :precision="2"
-                  :controls="false"
-                  :placeholder="tr('最高')"
-                  style="width: 100%"
-                  @keyup.enter="handleQuery"
-                />
+                <el-form-item prop="sellingPriceMax" class="query-price-range-item">
+                  <el-input-number
+                    v-model="queryParams.sellingPriceMax"
+                    :min="0"
+                    :precision="2"
+                    :controls="false"
+                    :placeholder="tr('最高')"
+                    style="width: 100%"
+                    @keyup.enter="handleQuery"
+                  />
+                </el-form-item>
               </div>
             </el-form-item>
           </el-col>
@@ -631,12 +639,29 @@ onMounted(() => {
 }
 
 .query-price-range :deep(.el-input-number) {
+  width: 100%;
+}
+
+.query-price-range-item {
   flex: 1;
 }
 
+.query-price-range :deep(.query-price-range-item.el-form-item) {
+  margin-bottom: 0;
+}
+
+.query-price-range :deep(.query-price-range-item .el-form-item__content) {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
 .query-price-range-separator {
+  display: inline-flex;
+  align-items: center;
   color: var(--el-text-color-regular, #606266);
   flex-shrink: 0;
+  line-height: 1;
 }
 
 .inventory-unstocked-page .action-btn {

@@ -51,6 +51,7 @@ const zhToEnMap = {
   成色: 'Condition',
   供应商: 'Supplier',
   客户: 'Customer',
+  平台: 'Platform',
   往来单位: 'Business Partner',
   企业类型: 'Company Type',
   级别: 'Level',
