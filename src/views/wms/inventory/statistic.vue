@@ -72,24 +72,24 @@
       >
         <!-- ========== 仓库维度列 ========== -->
         <template v-if="queryType === 'warehouse'">
-          <el-table-column :label="tr('仓库')" prop="warehouseId" min-width="240" align="center" show-overflow-tooltip>
+          <el-table-column :label="tr('仓库')" prop="warehouseGroupKey" min-width="240" align="center" show-overflow-tooltip>
             <template #default="{ row }">
-              <div>{{ useWmsStore().warehouseMap.get(row.warehouseId)?.warehouseName || '-' }}</div>
-              <div>{{ tr('仓库商品总数') }}：{{ getWarehouseSummaryQuantity(row.warehouseId) }}</div>
-              <div>{{ tr('仓库商品总价') }}：{{ formatMoney(getWarehouseSummaryAmount(row.warehouseId)) }}</div>
+              <div>{{ getWarehouseName(row) }}</div>
+              <div>{{ tr('仓库商品总数') }}：{{ getWarehouseSummaryQuantity(row) }}</div>
+              <div>{{ tr('仓库商品总价') }}：{{ formatMoney(getWarehouseSummaryAmount(row)) }}</div>
             </template>
           </el-table-column>
-          <el-table-column :label="tr('商品名称')" prop="warehouseIdAndItemId" min-width="120" align="center" show-overflow-tooltip>
-            <template #default="{ row }">{{ row.item?.itemName || '-' }}</template>
+          <el-table-column :label="tr('商品名称')" prop="warehouseItemGroupKey" min-width="120" align="center" show-overflow-tooltip>
+            <template #default="{ row }">{{ getItemName(row) }}</template>
           </el-table-column>
           <el-table-column :label="tr('商品图片')" width="110" align="center">
             <template #default="{ row }">
               <el-image
-                v-if="row.item?.mainThumbUrl"
-                :src="row.item.mainThumbUrl"
+                v-if="getItemImage(row)"
+                :src="getItemImage(row)"
                 fit="cover"
                 class="item-main-image"
-                :preview-src-list="[row.item.mainThumbUrl]"
+                :preview-src-list="[getItemImage(row)]"
                 preview-teleported
               >
                 <template #error>
@@ -99,26 +99,26 @@
               <div v-else class="image-empty">{{ tr('暂无图片') }}</div>
             </template>
           </el-table-column>
-          <el-table-column :label="tr('SKU编号')" prop="skuId" min-width="120" align="center" show-overflow-tooltip>
+          <el-table-column :label="tr('SKU编号')" prop="skuCode" min-width="120" align="center" show-overflow-tooltip>
             <template #default="{ row }">
-              {{ row.itemSku?.skuCode || '-' }}
+              {{ getSkuCode(row) }}
             </template>
           </el-table-column>
         </template>
 
         <!-- ========== 商品维度列 ========== -->
         <template v-else>
-          <el-table-column :label="tr('商品名称')" prop="itemId" min-width="120" align="center" show-overflow-tooltip>
-            <template #default="{ row }">{{ row.item?.itemName || '-' }}</template>
+          <el-table-column :label="tr('商品名称')" prop="itemGroupKey" min-width="120" align="center" show-overflow-tooltip>
+            <template #default="{ row }">{{ getItemName(row) }}</template>
           </el-table-column>
           <el-table-column :label="tr('商品图片')" width="110" align="center">
             <template #default="{ row }">
               <el-image
-                v-if="row.item?.mainThumbUrl"
-                :src="row.item.mainThumbUrl"
+                v-if="getItemImage(row)"
+                :src="getItemImage(row)"
                 fit="cover"
                 class="item-main-image"
-                :preview-src-list="[row.item.mainThumbUrl]"
+                :preview-src-list="[getItemImage(row)]"
                 preview-teleported
               >
                 <template #error>
@@ -128,14 +128,14 @@
               <div v-else class="image-empty">{{ tr('暂无图片') }}</div>
             </template>
           </el-table-column>
-          <el-table-column :label="tr('SKU编号')" prop="skuId" min-width="120" align="center" show-overflow-tooltip>
+          <el-table-column :label="tr('SKU编号')" prop="skuGroupKey" min-width="120" align="center" show-overflow-tooltip>
             <template #default="{ row }">
-              {{ row.itemSku?.skuCode || '-' }}
+              {{ getSkuCode(row) }}
             </template>
           </el-table-column>
-          <el-table-column :label="tr('仓库')" prop="skuIdAndWarehouseId" min-width="80" align="center" show-overflow-tooltip>
+          <el-table-column :label="tr('仓库')" prop="skuWarehouseGroupKey" min-width="80" align="center" show-overflow-tooltip>
             <template #default="{ row }">
-              {{ useWmsStore().warehouseMap.get(row.warehouseId)?.warehouseName || '-' }}
+              {{ getWarehouseName(row) }}
             </template>
           </el-table-column>
         </template>
@@ -223,7 +223,7 @@ const inventoryList = ref([])
 const loading = ref(true)
 const total = ref(0)
 const tableRef = ref(null)
-const rowSpanArray = ref(['warehouseId', 'warehouseIdAndItemId', 'warehouseIdAndSkuId'])
+const rowSpanArray = ref(['warehouseGroupKey', 'warehouseItemGroupKey'])
 const warehouseSummaryMap = ref(new Map())
 
 const filterable = ref(false)
@@ -266,15 +266,35 @@ function formatProfit(v) {
 /**
  * 获取仓库聚合后的总数量
  */
-function getWarehouseSummaryQuantity(warehouseId) {
-  return warehouseSummaryMap.value.get(warehouseId)?.quantity ?? 0
+function getWarehouseSummaryQuantity(row) {
+  return warehouseSummaryMap.value.get(getWarehouseGroupKey(row))?.quantity ?? 0
 }
 
 /**
  * 获取仓库聚合后的总价（quantity * avgReceiptCost）
  */
-function getWarehouseSummaryAmount(warehouseId) {
-  return warehouseSummaryMap.value.get(warehouseId)?.amount ?? 0
+function getWarehouseSummaryAmount(row) {
+  return warehouseSummaryMap.value.get(getWarehouseGroupKey(row))?.amount ?? 0
+}
+
+function getWarehouseGroupKey(row) {
+  return String(row?.warehouseName ?? '')
+}
+
+function getWarehouseName(row) {
+  return row?.warehouseName || '-'
+}
+
+function getItemName(row) {
+  return row?.itemName || '-'
+}
+
+function getItemImage(row) {
+  return row?.itemImage || ''
+}
+
+function getSkuCode(row) {
+  return row?.skuCode || '-'
 }
 
 /**
@@ -286,15 +306,15 @@ const fetchWarehouseSummaryMap = async (query, type) => {
   const summaryMap = new Map()
   const collectRows = (rows = []) => {
     rows.forEach(it => {
-      const warehouseId = it.warehouseId
-      if (warehouseId === null || warehouseId === undefined) return
+      const warehouseKey = getWarehouseGroupKey(it)
+      if (!warehouseKey) return
       const quantity = Number(it.quantity) || 0
       const avgReceiptCost = Number(it.avgReceiptCost)
       const amount = Number.isFinite(avgReceiptCost) ? (avgReceiptCost * quantity) : 0
-      const current = summaryMap.get(warehouseId) || { quantity: 0, amount: 0 }
+      const current = summaryMap.get(warehouseKey) || { quantity: 0, amount: 0 }
       current.quantity += quantity
       current.amount += amount
-      summaryMap.set(warehouseId, current)
+      summaryMap.set(warehouseKey, current)
     })
   }
 
@@ -329,29 +349,38 @@ const getList = async () => {
   } else {
     query.minQuantity = undefined
   }
+
   loading.value = true
-  if (queryType.value === 'warehouse') {
-    warehouseSummaryMap.value = await fetchWarehouseSummaryMap(query, queryType.value)
-  } else {
-    warehouseSummaryMap.value = new Map()
-  }
-  const res = await listInventoryBoard(query, queryType.value)
-  let rows = res.rows || []
-  if (filterable.value) {
-    rows = rows.filter(it => Number(it.quantity) !== 0)
-  }
-  inventoryList.value = rows
-  inventoryList.value.forEach(it => {
+  try {
     if (queryType.value === 'warehouse') {
-      it.warehouseIdAndItemId = it.warehouseId + '-' + it.item.id
-    } else if (queryType.value === 'item') {
-      it.itemId = it.item.id
-      it.skuIdAndWarehouseId = it.skuId + '-' + it.warehouseId
+      warehouseSummaryMap.value = await fetchWarehouseSummaryMap(query, queryType.value)
+    } else {
+      warehouseSummaryMap.value = new Map()
     }
-  })
-  // 分页总数必须以接口 res.total 为准；原先在过滤时用当前页 length，会导致只有「一页」、翻页失效
-  total.value = res.total ?? 0
-  loading.value = false
+
+    const res = await listInventoryBoard(query, queryType.value)
+    let rows = res.rows || []
+    if (filterable.value) {
+      rows = rows.filter(it => Number(it.quantity) !== 0)
+    }
+
+    rows.forEach(it => {
+      const warehouseKey = getWarehouseGroupKey(it)
+      const itemKey = String(it.itemName ?? '')
+      const skuKey = String(it.skuCode ?? '')
+
+      it.warehouseGroupKey = warehouseKey
+      it.itemGroupKey = itemKey
+      it.skuGroupKey = skuKey
+      it.warehouseItemGroupKey = `${warehouseKey}-${itemKey}`
+      it.skuWarehouseGroupKey = `${skuKey}-${warehouseKey}`
+    })
+
+    inventoryList.value = rows
+    total.value = res.total ?? 0
+  } finally {
+    loading.value = false
+  }
 }
 
 const handleQuery = () => {
@@ -376,9 +405,9 @@ const handleColumnSortChange = ({ prop, order }) => {
 
 const handleSortTypeChange = (e) => {
   if (e === 'warehouse') {
-    rowSpanArray.value = ['warehouseId', 'warehouseIdAndItemId']
+    rowSpanArray.value = ['warehouseGroupKey', 'warehouseItemGroupKey']
   } else if (e === 'item') {
-    rowSpanArray.value = ['itemId', 'skuId', 'skuIdAndWarehouseId']
+    rowSpanArray.value = ['itemGroupKey', 'skuGroupKey', 'skuWarehouseGroupKey']
   }
   queryParams.value.pageNum = 1
   getList()
