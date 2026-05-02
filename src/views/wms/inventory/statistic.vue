@@ -54,8 +54,16 @@
         <el-col :span="12">
           <span class="page-title">{{ tr('库存统计') }}</span>
         </el-col>
-        <el-col :span="12" style="text-align: right">
+        <el-col :span="12" class="toolbar-right">
           <el-checkbox v-model="filterable" :label="tr('过滤掉库存为0的商品')" size="large" @change="handleChangeFilterZero"/>
+          <el-button
+            type="primary"
+            :loading="exportLoading"
+            :disabled="loading"
+            @click="handleExportExcel"
+          >
+            {{ tr('导出Excel') }}
+          </el-button>
         </el-col>
       </el-row>
 
@@ -208,12 +216,17 @@
 </template>
 
 <script setup name="Inventory">
-import { listInventoryBoard } from '@/api/wms/inventory'
+import {
+  exportInventoryBoardItem,
+  listInventoryBoard,
+  listInventoryBoardWarehouseSummary
+} from '@/api/wms/inventory'
 import { computed, getCurrentInstance, onMounted, ref } from 'vue'
 import { getRowspanMethod } from '@/utils/getRowSpanMethod'
 import { useWmsStore } from '@/store/modules/wms'
 import useSettingsStore from '@/store/modules/settings'
 import { translateByMap } from '@/locales/runtime-map'
+import { blobValidate } from '@/utils/ruoyi'
 
 const { proxy } = getCurrentInstance()
 const settingsStore = useSettingsStore()
@@ -221,6 +234,7 @@ const spanMethod = computed(() => getRowspanMethod(inventoryList.value, rowSpanA
 
 const inventoryList = ref([])
 const loading = ref(true)
+const exportLoading = ref(false)
 const total = ref(0)
 const tableRef = ref(null)
 const rowSpanArray = ref(['warehouseGroupKey', 'warehouseItemGroupKey'])
@@ -264,20 +278,55 @@ function formatProfit(v) {
 }
 
 /**
- * 获取仓库聚合后的总数量
+ * 从汇总接口结果构建 Map：优先按 warehouseId 索引，并辅以 warehouseName 便于兜底对齐
  */
-function getWarehouseSummaryQuantity(row) {
-  return warehouseSummaryMap.value.get(getWarehouseGroupKey(row))?.quantity ?? 0
+function buildWarehouseSummaryMap(items = []) {
+  const map = new Map()
+  for (const it of items) {
+    const quantity = Number(it.totalQuantity) || 0
+    const amt = Number(it.totalAmount)
+    const amount = Number.isFinite(amt) ? amt : 0
+    const entry = { quantity, amount }
+    if (it.warehouseId != null && it.warehouseId !== '') {
+      map.set(String(it.warehouseId), entry)
+    }
+    if (it.warehouseName) {
+      map.set(String(it.warehouseName), entry)
+    }
+  }
+  return map
+}
+
+function getWarehouseSummaryEntry(row) {
+  if (row?.warehouseId != null && row.warehouseId !== '') {
+    const byId = warehouseSummaryMap.value.get(String(row.warehouseId))
+    if (byId) return byId
+  }
+  const name = String(row?.warehouseName ?? '')
+  if (name) {
+    return warehouseSummaryMap.value.get(name)
+  }
+  return undefined
 }
 
 /**
- * 获取仓库聚合后的总价（quantity * avgReceiptCost）
+ * 获取仓库聚合后的总数量（后端汇总接口）
+ */
+function getWarehouseSummaryQuantity(row) {
+  return getWarehouseSummaryEntry(row)?.quantity ?? 0
+}
+
+/**
+ * 获取仓库聚合后的总价（后端汇总接口）
  */
 function getWarehouseSummaryAmount(row) {
-  return warehouseSummaryMap.value.get(getWarehouseGroupKey(row))?.amount ?? 0
+  return getWarehouseSummaryEntry(row)?.amount ?? 0
 }
 
 function getWarehouseGroupKey(row) {
+  if (row?.warehouseId != null && row.warehouseId !== '') {
+    return String(row.warehouseId)
+  }
   return String(row?.warehouseName ?? '')
 }
 
@@ -298,39 +347,6 @@ function getSkuCode(row) {
 }
 
 /**
- * 按当前筛选条件拉取全部分页数据并做仓库聚合
- */
-const fetchWarehouseSummaryMap = async (query, type) => {
-  const pageSize = 200
-  const baseQuery = { ...query, pageNum: 1, pageSize }
-  const summaryMap = new Map()
-  const collectRows = (rows = []) => {
-    rows.forEach(it => {
-      const warehouseKey = getWarehouseGroupKey(it)
-      if (!warehouseKey) return
-      const quantity = Number(it.quantity) || 0
-      const avgReceiptCost = Number(it.avgReceiptCost)
-      const amount = Number.isFinite(avgReceiptCost) ? (avgReceiptCost * quantity) : 0
-      const current = summaryMap.get(warehouseKey) || { quantity: 0, amount: 0 }
-      current.quantity += quantity
-      current.amount += amount
-      summaryMap.set(warehouseKey, current)
-    })
-  }
-
-  const firstRes = await listInventoryBoard(baseQuery, type)
-  collectRows(firstRes.rows || [])
-
-  const totalRows = Number(firstRes.total) || 0
-  const totalPages = Math.ceil(totalRows / pageSize)
-  for (let pageNum = 2; pageNum <= totalPages; pageNum++) {
-    const pageRes = await listInventoryBoard({ ...baseQuery, pageNum }, type)
-    collectRows(pageRes.rows || [])
-  }
-  return summaryMap
-}
-
-/**
  * 时间格式化：null/undefined → '--'，否则格式化为 yyyy-MM-dd HH:mm:ss
  * shipmentTime 为 null 可能是"有出库历史但库存未清零"的业务规则，统一显示 '--'
  */
@@ -342,23 +358,42 @@ function formatTime(t) {
 
 // ───────────── 数据获取 ─────────────
 
-const getList = async () => {
+const getCurrentQuery = () => {
   const query = { ...queryParams.value }
   if (filterable.value) {
     query.minQuantity = 1
   } else {
     query.minQuantity = undefined
   }
+  return query
+}
 
+/** 与列表筛选项一致，不传分页、排序（汇总无分页） */
+const getWarehouseSummaryQuery = () => {
+  const full = getCurrentQuery()
+  const { pageNum, pageSize, orderByColumn, isAsc, ...rest } = full
+  return rest
+}
+
+const getList = async () => {
+  const query = getCurrentQuery()
   loading.value = true
   try {
+    let res
     if (queryType.value === 'warehouse') {
-      warehouseSummaryMap.value = await fetchWarehouseSummaryMap(query, queryType.value)
+      const summaryQuery = getWarehouseSummaryQuery()
+      const [summaryRsp, listRsp] = await Promise.all([
+        listInventoryBoardWarehouseSummary(summaryQuery),
+        listInventoryBoard(query, queryType.value)
+      ])
+      res = listRsp
+      const raw = summaryRsp?.data
+      const summaryItems = Array.isArray(raw) ? raw : []
+      warehouseSummaryMap.value = buildWarehouseSummaryMap(summaryItems)
     } else {
       warehouseSummaryMap.value = new Map()
+      res = await listInventoryBoard(query, queryType.value)
     }
-
-    const res = await listInventoryBoard(query, queryType.value)
     let rows = res.rows || []
     if (filterable.value) {
       rows = rows.filter(it => Number(it.quantity) !== 0)
@@ -380,6 +415,34 @@ const getList = async () => {
     total.value = res.total ?? 0
   } finally {
     loading.value = false
+  }
+}
+
+const handleExportExcel = async () => {
+  try {
+    exportLoading.value = true
+    const blobData = await exportInventoryBoardItem(getCurrentQuery())
+    const isBlob = blobValidate(blobData)
+    if (!isBlob) {
+      const resText = await blobData.text()
+      const rspObj = JSON.parse(resText)
+      const errMsg = rspObj?.msg || tr('导出失败')
+      throw new Error(errMsg)
+    }
+    const blob = new Blob([blobData], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'MichaelStudioWMS-库存统计.xlsx'
+    a.click()
+    window.URL.revokeObjectURL(url)
+    proxy.$modal.msgSuccess(tr('导出成功'))
+  } catch (e) {
+    proxy.$modal.msgError(e?.message || tr('导出失败'))
+  } finally {
+    exportLoading.value = false
   }
 }
 
@@ -441,6 +504,14 @@ onMounted(() => {
 
 .inventory-statistic-page .action-btn {
   min-width: 88px;
+}
+
+.toolbar-right {
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
 }
 
 .statistic-table {

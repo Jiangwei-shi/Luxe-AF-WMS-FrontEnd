@@ -53,6 +53,25 @@ export function listInventoryBoard(query,type) {
   })
 }
 
+// 仓库维度看板：按当前筛选条件汇总（不分页）
+export function listInventoryBoardWarehouseSummary(query) {
+  return request({
+    url: '/wms/inventory/boardList/warehouse/summary',
+    method: 'get',
+    params: query
+  })
+}
+
+// 导出库存看板商品维度数据
+export function exportInventoryBoardItem(data) {
+  return request({
+    url: '/wms/inventory/boardList/item/export',
+    method: 'post',
+    data: data,
+    responseType: 'blob'
+  })
+}
+
 // 查询库存详细
 export function getInventory(id) {
   return request({
