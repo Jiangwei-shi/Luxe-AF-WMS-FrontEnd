@@ -135,7 +135,7 @@
             <dict-tag :options="translatedShipmentTypeOptions" :value="row.optType" />
           </template>
         </el-table-column>
-        <el-table-column :label="tr('客户')" align="left" prop="merchantId" min-width="160" show-overflow-tooltip>
+        <el-table-column :label="tr('平台')" align="left" prop="merchantId" min-width="160" show-overflow-tooltip>
           <template #default="{ row }">
             <div>{{ useWmsStore().merchantMap.get(row.merchantId)?.merchantName }}</div>
           </template>
@@ -205,7 +205,7 @@
 <script setup name="ShipmentOrder">
 import {listShipmentOrder, delShipmentOrder, getShipmentOrder} from "@/api/wms/shipmentOrder";
 import {listByShipmentOrderId} from "@/api/wms/shipmentOrderDetail";
-import {computed, getCurrentInstance, reactive, ref, toRefs} from "vue";
+import {computed, getCurrentInstance, onMounted, reactive, ref, toRefs} from "vue";
 import {useWmsStore} from "../../../../store/modules/wms";
 import shipmentPanel from "@/components/PrintTemplate/shipment-panel";
 import useSettingsStore from '@/store/modules/settings'
@@ -244,6 +244,7 @@ const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
 const formLabelWidth = computed(() => '80px')
 const translatedShipmentStatusOptions = computed(() => (wms_shipment_status.value || []).map(it => ({ ...it, label: tr(it.label) })))
 const translatedShipmentTypeOptions = computed(() => (wms_shipment_type.value || []).map(it => ({ ...it, label: tr(it.label) })))
+const wmsStore = useWmsStore()
 
 /** 查询入库单列表 */
 function getList() {
@@ -348,7 +349,75 @@ async function handlePrint(row) {
   let printTemplate = new proxy.$hiprint.PrintTemplate({template: shipmentPanel})
   printTemplate.print(printData, {}, {
     styleHandler: () => {
-      return '<link href="https://cyl-press.oss-cn-shenzhen.aliyuncs.com/print-lock.css" media="print" rel="stylesheet">';
+      return `
+        <link href="https://cyl-press.oss-cn-shenzhen.aliyuncs.com/print-lock.css" media="print" rel="stylesheet">
+        <style>
+          @media print {
+            @page {
+              size: A4;
+              margin: 10mm 8mm 12mm 8mm;
+            }
+          }
+
+          table {
+            width: 100% !important;
+            table-layout: fixed !important;
+            border-collapse: collapse !important;
+          }
+
+          table tr {
+            height: auto !important;
+          }
+
+          table td,
+          table th {
+            box-sizing: border-box !important;
+            padding: 2px 4px !important;
+            line-height: 1.25 !important;
+            font-size: 9.5px !important;
+            text-align: center !important;
+            white-space: normal !important;
+            word-break: normal !important;
+            overflow-wrap: break-word !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            vertical-align: middle !important;
+          }
+
+          table td:nth-child(1),
+          table th:nth-child(1) {
+            width: 42% !important;
+            white-space: normal !important;
+            word-break: normal !important;
+            overflow-wrap: break-word !important;
+          }
+          table td:nth-child(2),
+          table th:nth-child(2) {
+            width: 18% !important;
+            white-space: nowrap !important;
+          }
+          table td:nth-child(3),
+          table th:nth-child(3) {
+            width: 11% !important;
+            white-space: nowrap !important;
+          }
+          table td:nth-child(4),
+          table th:nth-child(4) {
+            width: 29% !important;
+            white-space: nowrap !important;
+          }
+
+          .hiprint-paper-number,
+          .hiprint-paperNumber,
+          [class*="paper-number"],
+          [class*="paperNumber"] {
+            white-space: nowrap !important;
+            word-break: keep-all !important;
+            overflow-wrap: normal !important;
+            line-height: 1 !important;
+          }
+        </style>
+      `;
     }
   })
 }
@@ -393,7 +462,20 @@ function ifExpand(expandedRows) {
 function getRowKey(row) {
   return row.id
 }
-getList();
+
+function initLookupOptions() {
+  if (!wmsStore.warehouseList.length) {
+    wmsStore.getWarehouseList()
+  }
+  if (!wmsStore.merchantList.length) {
+    wmsStore.getMerchantList()
+  }
+}
+
+onMounted(() => {
+  initLookupOptions()
+  getList()
+})
 </script>
 <style lang="scss">
 .shipment-order-page .filter-form {

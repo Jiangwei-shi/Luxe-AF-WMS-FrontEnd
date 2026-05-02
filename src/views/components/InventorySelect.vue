@@ -30,8 +30,8 @@
       <el-table-column type="selection" width="55" :reserve-selection="true" :selectable="judgeSelectable"/>
       <el-table-column label="商品信息" prop="itemId">
         <template #default="{ row }">
-          <div>{{ row.item.itemName }}</div>
-          <div v-if="row.item.itemBrand">品牌：{{ useWmsStore().itemBrandMap.get(row.item.itemBrand).brandName }}</div>
+          <div>{{ row.item?.itemName || '-' }}</div>
+          <div v-if="row.item?.itemBrand && getBrandName(row.item.itemBrand)">品牌：{{ getBrandName(row.item.itemBrand) }}</div>
         </template>
       </el-table-column>
       <el-table-column label="SKU编号">
@@ -78,6 +78,11 @@ import {getWarehouseAndSkuKey} from "@/utils/wmsUtil";
 const {proxy} = getCurrentInstance()
 
 const loading = ref(false)
+const wmsStore = useWmsStore()
+const getBrandName = (brandId) => {
+  if (brandId === null || brandId === undefined) return ''
+  return wmsStore.itemBrandMap.get(brandId)?.brandName || ''
+}
 const deptOptions = ref([]);
 const query = reactive({
   itemName: '',
@@ -259,6 +264,9 @@ defineExpose({
   getList
 })
 onMounted(() => {
+  if (!wmsStore.itemBrandList.length) {
+    wmsStore.getItemBrandList()
+  }
   loadAll();
 })
 

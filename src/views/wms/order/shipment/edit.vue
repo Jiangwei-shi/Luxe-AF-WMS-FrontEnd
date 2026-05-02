@@ -41,8 +41,8 @@
               </el-form-item>
             </el-col>
             <el-col :span="6">
-              <el-form-item :label="tr('客户')" prop="merchantId">
-                <el-select v-model="form.merchantId" :placeholder="tr('请选择') + tr('客户')" clearable filterable>
+             <el-form-item :label="tr('平台')" prop="merchantId">
+                <el-select v-model="form.merchantId" :placeholder="tr('请选择') + tr('平台')" clearable filterable>
                   <el-option v-for="item in useWmsStore().merchantList" :key="item.id" :label="item.merchantName"
                              :value="item.id"/>
                 </el-select>
@@ -120,17 +120,17 @@
             <el-table-column label="商品信息" prop="itemSku.itemName">
               <template #default="{ row }">
                 <div>{{
-                    row.item.itemName + (row.item.itemCode ? ('(' + row.item.itemCode + ')') : '')
+                    (row.item?.itemName || '-') + (row.item?.itemCode ? ('(' + row.item.itemCode + ')') : '')
                   }}
                 </div>
-                <div v-if="row.item.itemBrand">
-                  品牌：{{ useWmsStore().itemBrandMap.get(row.item.itemBrand).brandName }}
+                <div v-if="row.item?.itemBrand && getBrandName(row.item.itemBrand)">
+                  品牌：{{ getBrandName(row.item.itemBrand) }}
                 </div>
               </template>
             </el-table-column>
             <el-table-column label="规格信息">
               <template #default="{ row }">
-                <div>{{ row.itemSku.skuCode }}</div>
+                <div>{{ row.itemSku?.skuCode || '-' }}</div>
               </template>
             </el-table-column>
             <el-table-column label="出库数量" prop="quantity" width="180">
@@ -256,6 +256,32 @@ const close = () => {
   proxy?.$tab.closeOpenPage(obj);
 }
 const inventorySelectShow = ref(false)
+const getBrandName = (brandId) => {
+  if (brandId === null || brandId === undefined) return ''
+  return wmsStore.itemBrandMap.get(brandId)?.brandName || ''
+}
+const normalizeDetailRow = (detail = {}) => {
+  const skuId = detail.skuId ?? detail.itemSku?.id ?? detail.itemSkuId
+  const itemSku = detail.itemSku || {
+    id: skuId,
+    skuCode: detail.skuCode,
+    barcode: detail.barcode,
+    costPrice: detail.costPrice,
+    sellingPrice: detail.sellingPrice
+  }
+  const item = detail.item || {
+    id: detail.itemId,
+    itemName: detail.itemName,
+    itemCode: detail.itemCode,
+    itemBrand: detail.itemBrand
+  }
+  return {
+    ...detail,
+    skuId,
+    itemSku,
+    item
+  }
+}
 
 // 选择商品 start
 const showAddItem = () => {
@@ -431,6 +457,9 @@ onMounted(() => {
   if (!wmsStore.merchantList.length) {
     wmsStore.getMerchantList()
   }
+  if (!wmsStore.itemBrandList.length) {
+    wmsStore.getItemBrandList()
+  }
   const id = route.query && route.query.id;
   if (id) {
     loadDetail(id)
@@ -444,16 +473,22 @@ onMounted(() => {
 const loadDetail = (id) => {
   loading.value = true
   getShipmentOrder(id).then((response) => {
-    if (response.data.details?.length) {
-      selectedInventory.value = response.data.details.map(it => {
+    const detailRows = Array.isArray(response?.data?.details)
+      ? response.data.details.map((it) => normalizeDetailRow(it))
+      : []
+    if (detailRows.length) {
+      selectedInventory.value = detailRows.map(it => {
         return {
           id: it.id,
-          skuId: it.skuId,
+          skuId: it.skuId ?? it.itemSku?.id,
           warehouseId: it.warehouseId
         }
       })
     }
-    form.value = {...response.data}
+    form.value = {
+      ...response.data,
+      details: detailRows
+    }
     inventorySelectRef.value.setWarehouseId(form.value.warehouseId)
     updateTotals()
     Promise.resolve();

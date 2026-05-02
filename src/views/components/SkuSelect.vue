@@ -22,8 +22,8 @@
               <el-table-column type="selection" width="55" :reserve-selection="true" v-if="!singleSelect" :selectable="judgeSelectable"/>
               <el-table-column label="商品信息" prop="itemId" min-width="150" show-overflow-tooltip>
                 <template #default="{ row }">
-                  <div>{{ row.item.itemName }}</div>
-                  <div v-if="row.item.itemBrand">品牌：{{ useWmsStore().itemBrandMap.get(row.item.itemBrand).brandName }}</div>
+                  <div>{{ row.item?.itemName || '-' }}</div>
+                  <div v-if="row.item?.itemBrand && getBrandName(row.item.itemBrand)">品牌：{{ getBrandName(row.item.itemBrand) }}</div>
                 </template>
               </el-table-column>
               <el-table-column label="SKU编号" min-width="200" show-overflow-tooltip>
@@ -95,6 +95,32 @@ const pageReq = reactive({
 });
 const list = ref([]);
 const rightList = ref([]);
+const wmsStore = useWmsStore()
+const getBrandName = (brandId: any) => {
+  if (brandId === null || brandId === undefined) return ''
+  return wmsStore.itemBrandMap.get(brandId)?.brandName || ''
+}
+const normalizeSkuRow = (raw: any) => {
+  const skuId = raw?.skuId ?? raw?.id ?? raw?.itemSkuId
+  const itemSku = raw?.itemSku || {
+    skuCode: raw?.skuCode,
+    barcode: raw?.barcode,
+    costPrice: raw?.costPrice,
+    sellingPrice: raw?.sellingPrice
+  }
+  const item = raw?.item || {
+    id: raw?.itemId,
+    itemName: raw?.itemName,
+    itemBrand: raw?.itemBrand
+  }
+  return {
+    ...raw,
+    skuId,
+    id: skuId,
+    itemSku,
+    item
+  }
+}
 const rightListKeySet = computed(() => {
   const set = new Set();
   rightList.value.forEach((it) => set.add(it.id));
@@ -129,15 +155,16 @@ async function handleSkuEnter() {
       pageNum: 1,
       pageSize: 10
     })
-    const rows = res.rows || []
+    const rows = Array.isArray(res?.rows) ? res.rows : []
     if (!rows.length) {
       ElMessage.warning('未找到该SKU')
       return
     }
 
-    const exactMatched = rows.find((it) => (it.itemSku?.skuCode || '').trim() === skuCode)
-    const pickedRow = exactMatched || rows[0]
-    const normalized = { ...pickedRow, id: pickedRow.skuId, checked: false }
+    const normalizedRows = rows.map((it) => normalizeSkuRow(it))
+    const exactMatched = normalizedRows.find((it) => (it.itemSku?.skuCode || '').trim() === skuCode)
+    const pickedRow = exactMatched || normalizedRows[0]
+    const normalized = { ...pickedRow, checked: false }
 
     if (!props.selectedSku.find(selected => selected.id === normalized.id)) {
       // 与当前表格选择方式保持一致，先自动勾选再走确认逻辑
@@ -187,9 +214,9 @@ const getList = () => {
   }
   loading.value = true
   return listItemSkuPage(data).then((res) => {
-    const content = [...res.rows];
+    const content = Array.isArray(res?.rows) ? res.rows.map((it) => normalizeSkuRow(it)) : []
     list.value = markLoadedItems(content);
-    total.value = res.total;
+    total.value = Number(res?.total) || 0;
   }).then(() => toggleSelection()).finally(() => loading.value = false);
 }
 const goCreateItem = () => {
@@ -219,11 +246,21 @@ const props = defineProps({
   selectedSku: {
     type: Array,
     default: []
+  },
+  warehouseId: {
+    type: [String, Number],
+    default: undefined
   }
 })
 
 const show = computed(() => {
   return props.modelValue;
+})
+
+onMounted(() => {
+  if (!wmsStore.itemBrandList.length) {
+    wmsStore.getItemBrandList()
+  }
 })
 
 // 每次打开抽屉时清空查询条件并重新拉取，便于看到全部商品

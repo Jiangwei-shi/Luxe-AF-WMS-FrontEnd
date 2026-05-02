@@ -54,8 +54,16 @@
         <el-col :span="12">
           <span class="page-title">{{ tr('库存统计') }}</span>
         </el-col>
-        <el-col :span="12" style="text-align: right">
+        <el-col :span="12" class="toolbar-right">
           <el-checkbox v-model="filterable" :label="tr('过滤掉库存为0的商品')" size="large" @change="handleChangeFilterZero"/>
+          <el-button
+            type="primary"
+            :loading="exportLoading"
+            :disabled="loading"
+            @click="handleExportExcel"
+          >
+            {{ tr('导出Excel') }}
+          </el-button>
         </el-col>
       </el-row>
 
@@ -72,62 +80,70 @@
       >
         <!-- ========== 仓库维度列 ========== -->
         <template v-if="queryType === 'warehouse'">
-          <el-table-column :label="tr('仓库')" prop="warehouseId" min-width="80" align="center" show-overflow-tooltip>
+          <el-table-column :label="tr('仓库')" prop="warehouseGroupKey" min-width="240" align="center" show-overflow-tooltip>
             <template #default="{ row }">
-              <div>{{ useWmsStore().warehouseMap.get(row.warehouseId)?.warehouseName || '-' }}</div>
-              <div>{{ tr('仓库商品总数') }}：{{ getWarehouseSummaryQuantity(row.warehouseId) }}</div>
-              <div>{{ tr('仓库商品总价') }}：{{ formatMoney(getWarehouseSummaryAmount(row.warehouseId)) }}</div>
+              <div>{{ getWarehouseName(row) }}</div>
+              <div>{{ tr('仓库商品总数') }}：{{ getWarehouseSummaryQuantity(row) }}</div>
+              <div>{{ tr('仓库商品总价') }}：{{ formatMoney(getWarehouseSummaryAmount(row)) }}</div>
             </template>
           </el-table-column>
-          <el-table-column :label="tr('商品名称')" prop="warehouseIdAndItemId" min-width="120" align="center" show-overflow-tooltip>
-            <template #default="{ row }">{{ row.item?.itemName || '-' }}</template>
+          <el-table-column :label="tr('商品名称')" prop="warehouseItemGroupKey" min-width="120" align="center" show-overflow-tooltip>
+            <template #default="{ row }">{{ getItemName(row) }}</template>
           </el-table-column>
           <el-table-column :label="tr('商品图片')" width="110" align="center">
             <template #default="{ row }">
               <el-image
-                v-if="row.item?.mainThumbUrl"
-                :src="row.item.mainThumbUrl"
+                v-if="getItemImage(row)"
+                :src="getItemImage(row)"
                 fit="cover"
                 class="item-main-image"
-                :preview-src-list="[row.item.mainThumbUrl]"
+                :preview-src-list="[getItemImage(row)]"
                 preview-teleported
-              />
-              <span v-else>{{ tr('暂无图片') }}</span>
+              >
+                <template #error>
+                  <div class="image-empty">{{ tr('暂无图片') }}</div>
+                </template>
+              </el-image>
+              <div v-else class="image-empty">{{ tr('暂无图片') }}</div>
             </template>
           </el-table-column>
-          <el-table-column :label="tr('SKU编号')" prop="skuId" min-width="120" align="center" show-overflow-tooltip>
+          <el-table-column :label="tr('SKU编号')" prop="skuCode" min-width="120" align="center" show-overflow-tooltip>
             <template #default="{ row }">
-              {{ row.itemSku?.skuCode || '-' }}
+              {{ getSkuCode(row) }}
             </template>
           </el-table-column>
         </template>
 
         <!-- ========== 商品维度列 ========== -->
         <template v-else>
-          <el-table-column :label="tr('商品名称')" prop="itemId" min-width="120" align="center" show-overflow-tooltip>
-            <template #default="{ row }">{{ row.item?.itemName || '-' }}</template>
+          <el-table-column :label="tr('商品名称')" prop="itemGroupKey" min-width="120" align="center" show-overflow-tooltip>
+            <template #default="{ row }">{{ getItemName(row) }}</template>
           </el-table-column>
           <el-table-column :label="tr('商品图片')" width="110" align="center">
             <template #default="{ row }">
               <el-image
-                v-if="row.item?.mainThumbUrl"
-                :src="row.item.mainThumbUrl"
+                v-if="getItemImage(row)"
+                :src="getItemImage(row)"
                 fit="cover"
                 class="item-main-image"
-                :preview-src-list="[row.item.mainThumbUrl]"
+                :preview-src-list="[getItemImage(row)]"
                 preview-teleported
-              />
-              <span v-else>{{ tr('暂无图片') }}</span>
+              >
+                <template #error>
+                  <div class="image-empty">{{ tr('暂无图片') }}</div>
+                </template>
+              </el-image>
+              <div v-else class="image-empty">{{ tr('暂无图片') }}</div>
             </template>
           </el-table-column>
-          <el-table-column :label="tr('SKU编号')" prop="skuId" min-width="120" align="center" show-overflow-tooltip>
+          <el-table-column :label="tr('SKU编号')" prop="skuGroupKey" min-width="120" align="center" show-overflow-tooltip>
             <template #default="{ row }">
-              {{ row.itemSku?.skuCode || '-' }}
+              {{ getSkuCode(row) }}
             </template>
           </el-table-column>
-          <el-table-column :label="tr('仓库')" prop="skuIdAndWarehouseId" min-width="80" align="center" show-overflow-tooltip>
+          <el-table-column :label="tr('仓库')" prop="skuWarehouseGroupKey" min-width="80" align="center" show-overflow-tooltip>
             <template #default="{ row }">
-              {{ useWmsStore().warehouseMap.get(row.warehouseId)?.warehouseName || '-' }}
+              {{ getWarehouseName(row) }}
             </template>
           </el-table-column>
         </template>
@@ -200,12 +216,17 @@
 </template>
 
 <script setup name="Inventory">
-import { listInventoryBoard } from '@/api/wms/inventory'
+import {
+  exportInventoryBoardItem,
+  listInventoryBoard,
+  listInventoryBoardWarehouseSummary
+} from '@/api/wms/inventory'
 import { computed, getCurrentInstance, onMounted, ref } from 'vue'
 import { getRowspanMethod } from '@/utils/getRowSpanMethod'
 import { useWmsStore } from '@/store/modules/wms'
 import useSettingsStore from '@/store/modules/settings'
 import { translateByMap } from '@/locales/runtime-map'
+import { blobValidate } from '@/utils/ruoyi'
 
 const { proxy } = getCurrentInstance()
 const settingsStore = useSettingsStore()
@@ -213,9 +234,10 @@ const spanMethod = computed(() => getRowspanMethod(inventoryList.value, rowSpanA
 
 const inventoryList = ref([])
 const loading = ref(true)
+const exportLoading = ref(false)
 const total = ref(0)
 const tableRef = ref(null)
-const rowSpanArray = ref(['warehouseId', 'warehouseIdAndItemId', 'warehouseIdAndSkuId'])
+const rowSpanArray = ref(['warehouseGroupKey', 'warehouseItemGroupKey'])
 const warehouseSummaryMap = ref(new Map())
 
 const filterable = ref(false)
@@ -256,50 +278,72 @@ function formatProfit(v) {
 }
 
 /**
- * 获取仓库聚合后的总数量
+ * 从汇总接口结果构建 Map：优先按 warehouseId 索引，并辅以 warehouseName 便于兜底对齐
  */
-function getWarehouseSummaryQuantity(warehouseId) {
-  return warehouseSummaryMap.value.get(warehouseId)?.quantity ?? 0
+function buildWarehouseSummaryMap(items = []) {
+  const map = new Map()
+  for (const it of items) {
+    const quantity = Number(it.totalQuantity) || 0
+    const amt = Number(it.totalAmount)
+    const amount = Number.isFinite(amt) ? amt : 0
+    const entry = { quantity, amount }
+    if (it.warehouseId != null && it.warehouseId !== '') {
+      map.set(String(it.warehouseId), entry)
+    }
+    if (it.warehouseName) {
+      map.set(String(it.warehouseName), entry)
+    }
+  }
+  return map
+}
+
+function getWarehouseSummaryEntry(row) {
+  if (row?.warehouseId != null && row.warehouseId !== '') {
+    const byId = warehouseSummaryMap.value.get(String(row.warehouseId))
+    if (byId) return byId
+  }
+  const name = String(row?.warehouseName ?? '')
+  if (name) {
+    return warehouseSummaryMap.value.get(name)
+  }
+  return undefined
 }
 
 /**
- * 获取仓库聚合后的总价（quantity * avgReceiptCost）
+ * 获取仓库聚合后的总数量（后端汇总接口）
  */
-function getWarehouseSummaryAmount(warehouseId) {
-  return warehouseSummaryMap.value.get(warehouseId)?.amount ?? 0
+function getWarehouseSummaryQuantity(row) {
+  return getWarehouseSummaryEntry(row)?.quantity ?? 0
 }
 
 /**
- * 按当前筛选条件拉取全部分页数据并做仓库聚合
+ * 获取仓库聚合后的总价（后端汇总接口）
  */
-const fetchWarehouseSummaryMap = async (query, type) => {
-  const pageSize = 200
-  const baseQuery = { ...query, pageNum: 1, pageSize }
-  const summaryMap = new Map()
-  const collectRows = (rows = []) => {
-    rows.forEach(it => {
-      const warehouseId = it.warehouseId
-      if (warehouseId === null || warehouseId === undefined) return
-      const quantity = Number(it.quantity) || 0
-      const avgReceiptCost = Number(it.avgReceiptCost)
-      const amount = Number.isFinite(avgReceiptCost) ? (avgReceiptCost * quantity) : 0
-      const current = summaryMap.get(warehouseId) || { quantity: 0, amount: 0 }
-      current.quantity += quantity
-      current.amount += amount
-      summaryMap.set(warehouseId, current)
-    })
-  }
+function getWarehouseSummaryAmount(row) {
+  return getWarehouseSummaryEntry(row)?.amount ?? 0
+}
 
-  const firstRes = await listInventoryBoard(baseQuery, type)
-  collectRows(firstRes.rows || [])
-
-  const totalRows = Number(firstRes.total) || 0
-  const totalPages = Math.ceil(totalRows / pageSize)
-  for (let pageNum = 2; pageNum <= totalPages; pageNum++) {
-    const pageRes = await listInventoryBoard({ ...baseQuery, pageNum }, type)
-    collectRows(pageRes.rows || [])
+function getWarehouseGroupKey(row) {
+  if (row?.warehouseId != null && row.warehouseId !== '') {
+    return String(row.warehouseId)
   }
-  return summaryMap
+  return String(row?.warehouseName ?? '')
+}
+
+function getWarehouseName(row) {
+  return row?.warehouseName || '-'
+}
+
+function getItemName(row) {
+  return row?.itemName || '-'
+}
+
+function getItemImage(row) {
+  return row?.itemImage || ''
+}
+
+function getSkuCode(row) {
+  return row?.skuCode || '-'
 }
 
 /**
@@ -314,36 +358,92 @@ function formatTime(t) {
 
 // ───────────── 数据获取 ─────────────
 
-const getList = async () => {
+const getCurrentQuery = () => {
   const query = { ...queryParams.value }
   if (filterable.value) {
     query.minQuantity = 1
   } else {
     query.minQuantity = undefined
   }
+  return query
+}
+
+/** 与列表筛选项一致，不传分页、排序（汇总无分页） */
+const getWarehouseSummaryQuery = () => {
+  const full = getCurrentQuery()
+  const { pageNum, pageSize, orderByColumn, isAsc, ...rest } = full
+  return rest
+}
+
+const getList = async () => {
+  const query = getCurrentQuery()
   loading.value = true
-  if (queryType.value === 'warehouse') {
-    warehouseSummaryMap.value = await fetchWarehouseSummaryMap(query, queryType.value)
-  } else {
-    warehouseSummaryMap.value = new Map()
-  }
-  const res = await listInventoryBoard(query, queryType.value)
-  let rows = res.rows || []
-  if (filterable.value) {
-    rows = rows.filter(it => Number(it.quantity) !== 0)
-  }
-  inventoryList.value = rows
-  inventoryList.value.forEach(it => {
+  try {
+    let res
     if (queryType.value === 'warehouse') {
-      it.warehouseIdAndItemId = it.warehouseId + '-' + it.item.id
-    } else if (queryType.value === 'item') {
-      it.itemId = it.item.id
-      it.skuIdAndWarehouseId = it.skuId + '-' + it.warehouseId
+      const summaryQuery = getWarehouseSummaryQuery()
+      const [summaryRsp, listRsp] = await Promise.all([
+        listInventoryBoardWarehouseSummary(summaryQuery),
+        listInventoryBoard(query, queryType.value)
+      ])
+      res = listRsp
+      const raw = summaryRsp?.data
+      const summaryItems = Array.isArray(raw) ? raw : []
+      warehouseSummaryMap.value = buildWarehouseSummaryMap(summaryItems)
+    } else {
+      warehouseSummaryMap.value = new Map()
+      res = await listInventoryBoard(query, queryType.value)
     }
-  })
-  // 分页总数必须以接口 res.total 为准；原先在过滤时用当前页 length，会导致只有「一页」、翻页失效
-  total.value = res.total ?? 0
-  loading.value = false
+    let rows = res.rows || []
+    if (filterable.value) {
+      rows = rows.filter(it => Number(it.quantity) !== 0)
+    }
+
+    rows.forEach(it => {
+      const warehouseKey = getWarehouseGroupKey(it)
+      const itemKey = String(it.itemName ?? '')
+      const skuKey = String(it.skuCode ?? '')
+
+      it.warehouseGroupKey = warehouseKey
+      it.itemGroupKey = itemKey
+      it.skuGroupKey = skuKey
+      it.warehouseItemGroupKey = `${warehouseKey}-${itemKey}`
+      it.skuWarehouseGroupKey = `${skuKey}-${warehouseKey}`
+    })
+
+    inventoryList.value = rows
+    total.value = res.total ?? 0
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleExportExcel = async () => {
+  try {
+    exportLoading.value = true
+    const blobData = await exportInventoryBoardItem(getCurrentQuery())
+    const isBlob = blobValidate(blobData)
+    if (!isBlob) {
+      const resText = await blobData.text()
+      const rspObj = JSON.parse(resText)
+      const errMsg = rspObj?.msg || tr('导出失败')
+      throw new Error(errMsg)
+    }
+    const blob = new Blob([blobData], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'MichaelStudioWMS-库存统计.xlsx'
+    a.click()
+    window.URL.revokeObjectURL(url)
+    proxy.$modal.msgSuccess(tr('导出成功'))
+  } catch (e) {
+    proxy.$modal.msgError(e?.message || tr('导出失败'))
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 const handleQuery = () => {
@@ -368,9 +468,9 @@ const handleColumnSortChange = ({ prop, order }) => {
 
 const handleSortTypeChange = (e) => {
   if (e === 'warehouse') {
-    rowSpanArray.value = ['warehouseId', 'warehouseIdAndItemId']
+    rowSpanArray.value = ['warehouseGroupKey', 'warehouseItemGroupKey']
   } else if (e === 'item') {
-    rowSpanArray.value = ['itemId', 'skuId', 'skuIdAndWarehouseId']
+    rowSpanArray.value = ['itemGroupKey', 'skuGroupKey', 'skuWarehouseGroupKey']
   }
   queryParams.value.pageNum = 1
   getList()
@@ -406,6 +506,14 @@ onMounted(() => {
   min-width: 88px;
 }
 
+.toolbar-right {
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+
 .statistic-table {
   width: 100%;
 }
@@ -419,6 +527,18 @@ onMounted(() => {
   height: 72px;
   border-radius: 6px;
   display: inline-block;
+}
+
+.image-empty {
+  width: 72px;
+  height: 72px;
+  border-radius: 6px;
+  border: 1px dashed var(--el-border-color, #dcdfe6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-text-color-secondary, #909399);
+  font-size: 12px;
 }
 
 </style>
