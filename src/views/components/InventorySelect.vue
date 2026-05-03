@@ -30,13 +30,14 @@
       <el-table-column type="selection" width="55" :reserve-selection="true" :selectable="judgeSelectable"/>
       <el-table-column label="商品信息" prop="itemId">
         <template #default="{ row }">
-          <div>{{ row.item?.itemName || '-' }}</div>
-          <div v-if="row.item?.itemBrand && getBrandName(row.item.itemBrand)">品牌：{{ getBrandName(row.item.itemBrand) }}</div>
+          <div>{{
+            (getRowItemName(row) || '-')
+          }}</div>
         </template>
       </el-table-column>
       <el-table-column label="SKU编号">
         <template #default="{ row }">
-          <div v-if="row.itemSku.skuCode">{{ row.itemSku.skuCode }}</div>
+          <div>{{ getRowSkuCode(row) || '-' }}</div>
         </template>
       </el-table-column>
       <el-table-column label="剩余库存" prop="quantity" align="right">
@@ -82,6 +83,14 @@ const wmsStore = useWmsStore()
 const getBrandName = (brandId) => {
   if (brandId === null || brandId === undefined) return ''
   return wmsStore.itemBrandMap.get(brandId)?.brandName || ''
+}
+
+/** boardList/warehouse 多在根字段返回 itemName、skuCode；部分接口嵌套 item/itemSku，两处都兼容 */
+function getRowItemName(row) {
+  return row?.itemName
+}
+function getRowSkuCode(row) {
+  return row?.skuCode
 }
 const deptOptions = ref([]);
 const query = reactive({
@@ -205,7 +214,9 @@ async function handleSkuEnter() {
     if (!rows.length) {
       return
     }
-    const exactMatched = rows.find((it) => (it.itemSku?.skuCode || '').trim() === skuCode)
+    const exactMatched = rows.find(
+      (it) => String(it.itemSku?.skuCode ?? it.skuCode ?? '').trim() === skuCode
+    )
     const pickedRow = exactMatched || rows[0]
     if (!props.selectedInventory.find(selected => getWarehouseAndSkuKey(selected) === getWarehouseAndSkuKey(pickedRow))) {
       inventorySelectFormRef.value?.toggleRowSelection(pickedRow, true)
