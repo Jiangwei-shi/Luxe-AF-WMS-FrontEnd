@@ -260,28 +260,38 @@ const getBrandName = (brandId) => {
   if (brandId === null || brandId === undefined) return ''
   return wmsStore.itemBrandMap.get(brandId)?.brandName || ''
 }
-const normalizeDetailRow = (detail = {}) => {
+const normalizeDetailRow = (detail = {}, { inventoryRow = false } = {}) => {
   const skuId = detail.skuId ?? detail.itemSku?.id ?? detail.itemSkuId
-  const itemSku = detail.itemSku || {
-    id: skuId,
-    skuCode: detail.skuCode,
-    barcode: detail.barcode,
-    costPrice: detail.costPrice,
-    sellingPrice: detail.sellingPrice
+  const itemSku = {
+    ...(detail.itemSku || {}),
+    id: detail.itemSku?.id ?? skuId,
+    skuCode: detail.itemSku?.skuCode ?? detail.skuCode,
+    barcode: detail.itemSku?.barcode ?? detail.barcode,
+    costPrice: detail.itemSku?.costPrice ?? detail.costPrice,
+    sellingPrice: detail.itemSku?.sellingPrice ?? detail.sellingPrice
   }
-  const item = detail.item || {
-    id: detail.itemId,
-    itemName: detail.itemName,
-    itemCode: detail.itemCode,
-    itemBrand: detail.itemBrand
+  const item = {
+    ...(detail.item || {}),
+    id: detail.item?.id ?? detail.itemId,
+    itemName: detail.item?.itemName ?? detail.itemName,
+    itemCode: detail.item?.itemCode ?? detail.itemCode,
+    itemBrand: detail.item?.itemBrand ?? detail.itemBrand
   }
+
   return {
     ...detail,
     skuId,
     itemSku,
-    item
+    item,
+    inventoryId: detail.inventoryId ?? (inventoryRow ? detail.id : undefined)
   }
 }
+
+const toInventorySelection = (row = {}) => ({
+  id: row.inventoryId ?? row.id,
+  skuId: row.skuId ?? row.itemSku?.id,
+  warehouseId: row.warehouseId
+})
 
 // 选择商品 start
 const showAddItem = () => {
@@ -301,30 +311,30 @@ const handleOkClick = (item) => {
   if (!scanMode.value) {
     inventorySelectShow.value = false
   }
+  const normalizedRows = item.map((it) => normalizeDetailRow(it, { inventoryRow: true }))
   const selectedMap = new Map((selectedInventory.value || []).map((it) => [getWarehouseAndSkuKey(it), it]))
-  item.forEach((it) => {
-    selectedMap.set(getWarehouseAndSkuKey(it), it)
+  normalizedRows.forEach((normalized) => {
+    selectedMap.set(getWarehouseAndSkuKey(normalized), toInventorySelection(normalized))
   })
   // 维护“当前出库单全部已存在库存”集合，保证刷新后已加载状态可全量回填
   selectedInventory.value = Array.from(selectedMap.values())
-  item.forEach(it => {
-    if (!form.value.details.find(detail => getWarehouseAndSkuKey(detail) === getWarehouseAndSkuKey(it))) {
+  normalizedRows.forEach((normalized) => {
+    if (!form.value.details.find((detail) => getWarehouseAndSkuKey(detail) === getWarehouseAndSkuKey(normalized))) {
       const quantity = 1
-      const sellingPrice = it.itemSku?.sellingPrice
+      const sellingPrice = normalized.itemSku?.sellingPrice
       let amount = undefined
       if (sellingPrice || sellingPrice === 0) {
         amount = Number(sellingPrice) * quantity
       }
-      form.value.details.push(
-        {
-          itemSku: it.itemSku,
-          item: it.item,
-          skuId: it.skuId,
-          amount,
-          quantity,
-          warehouseId: form.value.warehouseId,
-          inventoryId: it.id,
-        })
+      form.value.details.push({
+        itemSku: normalized.itemSku,
+        item: normalized.item,
+        skuId: normalized.skuId,
+        amount,
+        quantity,
+        warehouseId: form.value.warehouseId,
+        inventoryId: normalized.inventoryId,
+      })
     }
   })
   updateTotals()
@@ -343,11 +353,11 @@ const getParamsBeforeSave = (orderStatus) => {
   let details = []
   if (form.value.details?.length) {
     // 构建参数
-    details = form.value.details.map(it => {
+    details = form.value.details.map((it) => {
+      const skuId = it.skuId ?? it.itemSku?.id
       return {
         id: it.id,
-        receiptOrderId: form.value.id,
-        skuId: it.skuId,
+        skuId,
         amount: it.amount,
         quantity: it.quantity,
         warehouseId: form.value.warehouseId
@@ -477,13 +487,7 @@ const loadDetail = (id) => {
       ? response.data.details.map((it) => normalizeDetailRow(it))
       : []
     if (detailRows.length) {
-      selectedInventory.value = detailRows.map(it => {
-        return {
-          id: it.id,
-          skuId: it.skuId ?? it.itemSku?.id,
-          warehouseId: it.warehouseId
-        }
-      })
+      selectedInventory.value = detailRows.map((it) => toInventorySelection(it))
     }
     form.value = {
       ...response.data,
