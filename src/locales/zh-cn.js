@@ -326,6 +326,7 @@
     skuMatchAll: '全部',
     skuMatchMatched: '已匹配',
     skuMatchUnmatched: '未匹配',
+    skuMatchNoStock: '已匹配但无库存',
     filterStatus: '订单状态',
     filterShipmentStatus: '出库单状态',
     shipmentStatusAll: '全部',
@@ -370,6 +371,10 @@
     labelEditSku: '编辑',
     labelUncreated: '未创建',
     skuIssue: 'SKU异常',
+    skuNotFound: 'SKU不存在',
+    skuNoStock: '无库存',
+    skuInStock: '有库存',
+    itemSkuStatus: 'SKU校验',
     skuIssueBrushOrder: 'Sample样品',
     // 订单信息栏
     orderInfoId: '订单ID',
