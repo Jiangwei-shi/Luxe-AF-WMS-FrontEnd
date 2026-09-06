@@ -61,6 +61,20 @@ export function accountLabel(account) {
   return `[${account.accountCode}] ${account.displayName}`
 }
 
+export function liveEmployeeOptionLabel(option) {
+  if (!option) return ''
+  const name = option.label || ''
+  return option.nickName ? `${name} (${option.nickName})` : name
+}
+
+export function matchLiveEmployee(option, keyword) {
+  const query = String(keyword || '').trim().toLowerCase()
+  if (!query) return true
+  return [option?.label, option?.nickName, option?.secondary, option?.extra]
+    .filter(Boolean)
+    .some(value => String(value).toLowerCase().includes(query))
+}
+
 export function downloadCsv(filename, headers, rows) {
   const escape = value => `"${String(value == null ? '' : value).replace(/"/g, '""')}"`
   const csv = [headers.map(v => escape(v.label)).join(',')]

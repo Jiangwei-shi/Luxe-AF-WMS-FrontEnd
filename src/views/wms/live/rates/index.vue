@@ -17,7 +17,7 @@
         <div v-loading="loading" class="employee-list">
           <button v-for="employee in filteredEmployees" :key="employee.value" type="button" class="employee-item" :class="{ active: selectedEmployeeId === employee.value }" @click="selectEmployee(employee.value)">
             <span class="employee-avatar">{{ initial(employee.label) }}</span>
-            <span class="employee-copy"><strong>{{ employee.label }}</strong><small>{{ rateRecordLabel(rateCountByEmployee(employee.value)) }}</small></span>
+            <span class="employee-copy"><strong>{{ employee.label }}</strong><small>{{ employee.nickName ? employee.nickName + ' · ' : '' }}{{ rateRecordLabel(rateCountByEmployee(employee.value)) }}</small></span>
             <span class="employee-count">{{ rateCountByEmployee(employee.value) }}</span>
           </button>
           <el-empty v-if="!loading && !filteredEmployees.length" :description="tr('暂无主播或直播运营')" :image-size="64" />
@@ -37,7 +37,7 @@
           <div class="employee-summary">
             <div class="summary-main">
               <span class="summary-avatar">{{ initial(selectedEmployee.label) }}</span>
-              <div><h3>{{ selectedEmployee.label }}</h3><p>{{ employeeSummaryText }}</p></div>
+              <div><h3>{{ selectedEmployee.label }}</h3><p>{{ selectedEmployee.nickName ? selectedEmployee.nickName + ' · ' : '' }}{{ employeeSummaryText }}</p></div>
             </div>
             <div class="live-actions">
               <el-button size="small" @click="setAllGroups(0)">{{ tr('全部启用') }}</el-button>
@@ -112,7 +112,7 @@
       <el-alert v-if="dialog.error" class="rate-history-hint" :title="dialog.error" type="error" :closable="false" show-icon />
       <el-form ref="formRef" :model="dialog.form" :rules="rules" :label-width="isEn ? '126px' : '90px'">
         <div class="dialog-grid">
-          <el-form-item :label="tr('主播/运营')" prop="employeeId"><el-select v-model="dialog.form.employeeId" disabled><el-option v-for="v in options.employees" :key="v.value" :label="v.label" :value="v.value" /></el-select></el-form-item>
+          <el-form-item :label="tr('主播/运营')" prop="employeeId"><el-select v-model="dialog.form.employeeId" disabled><el-option v-for="v in options.employees" :key="v.value" :label="liveEmployeeOptionLabel(v)" :value="v.value" /></el-select></el-form-item>
           <el-form-item :label="tr('直播平台')" prop="accountId"><el-select v-model="dialog.form.accountId"><el-option v-for="v in configurableAccounts" :key="v.id" :label="accountLabel(v)" :value="v.id" /></el-select></el-form-item>
           <el-form-item :label="tr('费率类型')" prop="rateTypeId"><el-select v-model="dialog.form.rateTypeId"><el-option v-for="v in options.rateTypes" :key="v.id" :label="tr(v.typeName)" :value="v.id" /></el-select></el-form-item>
           <el-form-item :label="tr('时薪')" prop="hourlyRate"><el-input-number v-model="dialog.form.hourlyRate" :precision="2" :min="0" /></el-form-item>
@@ -181,7 +181,7 @@ import { ArrowDown, ArrowRight, Connection, Delete, Edit, Search, WarningFilled 
 import { addRate, deleteRate, deleteRateAccountGroup, getLiveOptions, getRateAccountGroupUsage, getRateUsage, listRateAccountGroups, listRates, previewRateSave, syncRateAccountGroup, updateAllRateAccountGroupStatuses, updateRate, updateRateAccountGroupStatus } from '@/api/wms/livePayroll'
 import useSettingsStore from '@/store/modules/settings'
 import { translateByMap } from '@/locales/runtime-map'
-import { accountLabel, displayDate, downloadCsv, isoDate, LIVE_DATE_FORMAT, money } from '../shared'
+import { accountLabel, displayDate, downloadCsv, isoDate, liveEmployeeOptionLabel, matchLiveEmployee, LIVE_DATE_FORMAT, money } from '../shared'
 import UsageConflictDialog from '../components/UsageConflictDialog.vue'
 import RateRecordsTable from '../components/RateRecordsTable.vue'
 import { rateStatusLabel } from './rateDisplay'
@@ -195,7 +195,7 @@ const syncDialog = reactive({ open: false, source: null, mode: 'OVERWRITE', targ
 const usageDialog = reactive({ open: false, rows: [], action: '', target: '' })
 const rules = { employeeId: [{ required: true, message: '请选择主播或直播运营' }], accountId: [{ required: true, message: '请选择直播平台' }], rateTypeId: [{ required: true, message: '请选择费率类型' }], hourlyRate: [{ required: true, message: '请输入时薪' }], effectiveDate: [{ required: true, message: '请选择生效日期' }] }
 
-const filteredEmployees = computed(() => { const keyword = employeeKeyword.value.trim().toLowerCase(); return keyword ? options.employees.filter(v => `${v.label} ${v.extra || ''}`.toLowerCase().includes(keyword)) : options.employees })
+const filteredEmployees = computed(() => { const keyword = employeeKeyword.value.trim(); return keyword ? options.employees.filter(v => matchLiveEmployee(v, keyword)) : options.employees })
 const selectedEmployee = computed(() => options.employees.find(v => v.value === selectedEmployeeId.value))
 const selectedEmployeeRates = computed(() => rows.value.filter(v => v.employeeId === selectedEmployeeId.value))
 const activeEmployeeRates = computed(() => selectedEmployeeRates.value.filter(v => v.effectiveStatus === 'ACTIVE'))

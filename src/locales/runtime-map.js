@@ -894,8 +894,13 @@ const zhToEnMap = {
   '所选用户均已在HR员工档案中': 'All selected users are already in HR employee archive',
   '姓名不能为空': 'Name is required',
   '请输入员工姓名': 'Please enter employee name',
+  '请输入员工昵称': 'Please enter a nickname',
+  '姓名不可重复；不同员工可以使用相同昵称': 'Names must be unique; nicknames can be shared',
+  '员工姓名已存在': 'Employee name already exists',
+  '昵称': 'Nickname',
   '姓名/昵称': 'Name / Legal Name',
-  '姓名/用户信息': 'Name / Legal Name',
+  '姓名/用户信息': 'Name',
+  '对应登录账号的用户信息，需保持唯一': 'Same as Legal Name on the login account; names must stay unique',
   '请输入姓名或用户昵称': 'Please enter name or legal name',
   '请输入姓名或用户信息': 'Please enter name or legal name',
   '关联登录账号时，岗位会同步到用户管理': 'When linked to a login account, posts sync to User Management',
@@ -982,7 +987,8 @@ const zhToEnMap = {
   '已完成离职归档': 'Offboarded and archived',
   '全部部门': 'All Departments',
   '搜索昵称/登录名/手机/邮箱/部门/岗位等': 'Search legal name, user name, phone, email, dept, post...',
-  '搜索用户信息/用户名/手机/邮箱/部门/岗位等': 'Search legal name, user name, phone, email, dept, post...',
+  '搜索用户信息/用户名/手机/邮箱/部门/岗位等': 'Search name, user name, phone, email, dept, post...',
+  '搜索用户信息、用户名、手机、邮箱、部门、岗位等': 'Search name, user name, phone, email, dept, post...',
   '支持搜索员工档案中已填写的各类信息，含用户昵称、登录名、手机、邮箱、部门、岗位、备注等': 'Search across profile fields: legal name, user name, phone, email, department, post, remarks, etc.',
   '支持搜索员工档案中已填写的各类信息，含用户信息、用户名、手机、邮箱、部门、岗位、备注等': 'Search across profile fields: legal name, user name, phone, email, department, post, remarks, etc.',
   '全部职位': 'All Positions',
@@ -1033,7 +1039,11 @@ const zhToEnMap = {
   '该类型已有 PDF 文件，重新上传将覆盖原文件': 'This slot already has a PDF; re-uploading will replace the existing file',
   '请先为该分组命名': 'Please name this group first',
   '批次名称': 'Batch name',
+  '批次副标题': 'Batch subtitle',
   '请输入本批次名称': 'Enter a name for this upload batch',
+  '可自定义，例如用途说明；留空则显示文件数量': 'Optional custom subtitle; leave blank to show file count',
+  '可自定义副标题，留空则显示文件数量': 'Optional subtitle; leave blank to show file count',
+  '批次副标题不能超过128个字符': 'Batch subtitle cannot exceed 128 characters',
   '其他文件批次': 'Other Files Batch',
   '未命名批次': 'Untitled batch',
   '未分组': 'Ungrouped',
@@ -1408,15 +1418,15 @@ export function translateByMap(text, language = 'zh-cn') {
     return text
   }
 
-  // 用户上传的文件名等自由文本不要做局部替换（避免「盘库xxx.pdf」被改成 Stocktakexxx.pdf）
   const trimmed = text.trim()
-  if (/\.[a-zA-Z0-9]{1,8}$/.test(trimmed) || /[\\/]/.test(trimmed)) {
-    return text
-  }
-
   const exact = zhToEnMap[trimmed]
   if (exact) {
     return replacePreservingSpaces(text, exact)
+  }
+
+  // 未收录的路径/文件名不要做局部替换（避免「盘库xxx.pdf」被改成 Stocktakexxx.pdf）
+  if (/\.[a-zA-Z0-9]{1,8}$/.test(trimmed) || /[\\/]/.test(trimmed)) {
+    return text
   }
 
   let translated = text

@@ -286,7 +286,7 @@
           </button>
 
           <transition name="order-expand">
-            <div v-show="isExpanded(order, index)" class="detail-area">
+            <div v-if="isExpanded(order, index)" class="detail-area">
               <div class="order-info-bar">
                 <div class="order-info-item">
                   <span class="order-info-label">{{ t('platformOrders.orderInfoId') }}</span>
@@ -711,7 +711,7 @@ import { computed, defineComponent, getCurrentInstance, h, onActivated, onMounte
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowDown, ArrowRight, CopyDocument, Edit, UploadFilled } from '@element-plus/icons-vue'
-import { listPlatformOrders, getOrderStatusMap, updateOrderSku, createShipments, exportPlatformOrders, exportPlatformOrderWeeklyReport, importNotes, getAutoCreateConfig, updateAutoCreateConfig } from '@/api/wms/platformOrder'
+import { listPlatformOrders, getPlatformOrder, getOrderStatusMap, updateOrderSku, createShipments, exportPlatformOrders, exportPlatformOrderWeeklyReport, importNotes, getAutoCreateConfig, updateAutoCreateConfig } from '@/api/wms/platformOrder'
 import { listAllPlatformShops, batchSyncOrders } from '@/api/wms/platformShop'
 import { formatDateTimeForQuery, formatLosAngelesTime } from '@/utils/laTime'
 import { getExportLanguageHeaders } from '@/utils/xlsxTranslate'
@@ -989,11 +989,20 @@ function toggleOrder(order, index) {
   ensureDetail(order, index)
 }
 
-function ensureDetail(order, index) {
-  // 列表数据已包含展开所需的全部字段，无需额外请求
+async function ensureDetail(order, index) {
   const key = orderKey(order, index)
   if (detailCache[key]) return
-  detailCache[key] = order
+  const orderId = getOrderId(order)
+  if (!orderId || !order?.platform) {
+    detailCache[key] = order
+    return
+  }
+  try {
+    const res = await getPlatformOrder(orderId, order.platform, order.shopAuthId)
+    detailCache[key] = { ...order, ...(res.data || {}) }
+  } catch {
+    detailCache[key] = order
+  }
 }
 
 function handleQuery() {
