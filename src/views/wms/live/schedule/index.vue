@@ -12,7 +12,7 @@
               <el-date-picker class="week-picker-input" v-model="selectedWeek" type="date" value-format="YYYY-MM-DD" format="MM/DD/YYYY" placeholder="MM/DD/YYYY" popper-class="schedule-week-picker-popper" :cell-class-name="weekCellClassName" :editable="true" :clearable="false" @change="handleWeekChange" />
             </div>
           </el-form-item>
-          <el-form-item label="主播"><el-select v-model="query.employeeId" filterable clearable placeholder="全部主播"><el-option v-for="v in options.employees" :key="v.value" :label="v.label" :value="v.value" /></el-select></el-form-item>
+          <el-form-item label="主播"><el-select v-model="query.employeeId" filterable clearable placeholder="全部主播"><el-option v-for="v in options.employees" :key="v.value" :label="liveEmployeeOptionLabel(v)" :value="v.value" /></el-select></el-form-item>
           <el-form-item label="直播平台"><el-select v-model="query.accountId" clearable placeholder="全部直播平台"><el-option v-for="v in options.accounts" :key="v.id" :label="accountLabel(v)" :value="v.id" /></el-select></el-form-item>
           <el-form-item label="场次"><el-select v-model="query.rateTypeId" clearable placeholder="全部场次"><el-option v-for="v in options.rateTypes" :key="v.id" :label="v.typeName" :value="v.id" /></el-select></el-form-item>
           <el-form-item class="query-action"><el-button type="primary" @click="load">查询</el-button></el-form-item>
@@ -40,7 +40,7 @@
       <el-form ref="formRef" :model="dialog.form" :rules="rules" :label-width="isEn ? '128px' : '92px'">
         <div class="dialog-grid">
           <el-form-item label="日期" prop="scheduleDate"><el-date-picker v-model="dialog.form.scheduleDate" type="date" value-format="YYYY-MM-DD" :format="LIVE_DATE_FORMAT" @change="handleScheduleScopeChange" /></el-form-item>
-          <el-form-item label="主播" prop="employeeId"><el-select v-model="dialog.form.employeeId" filterable @change="handleScheduleScopeChange"><el-option v-for="v in options.employees" :key="v.value" :label="v.label" :value="v.value" /></el-select></el-form-item>
+          <el-form-item label="主播" prop="employeeId"><el-select v-model="dialog.form.employeeId" filterable @change="handleScheduleScopeChange"><el-option v-for="v in options.employees" :key="v.value" :label="liveEmployeeOptionLabel(v)" :value="v.value" /></el-select></el-form-item>
           <el-form-item label="直播平台" prop="accountId"><el-select v-model="dialog.form.accountId" @change="handleScheduleScopeChange"><el-option v-for="v in options.accounts" :key="v.id" :label="accountLabel(v)" :value="v.id" /></el-select></el-form-item>
           <el-form-item label="场次类型" prop="rateTypeId">
             <div class="rate-type-field">
@@ -70,7 +70,7 @@ import { computed, getCurrentInstance, onMounted, reactive, ref } from 'vue'
 import { addSchedule, deleteSchedule, getLiveOptions, listScheduleCalendar, listScheduleRateTypes, updateSchedule } from '@/api/wms/livePayroll'
 import useSettingsStore from '@/store/modules/settings'
 import { translateByMap } from '@/locales/runtime-map'
-import { accountLabel, displayDate, downloadCsv, isoDate, LIVE_DATE_FORMAT, weekRange } from '../shared'
+import { accountLabel, displayDate, downloadCsv, isoDate, liveEmployeeOptionLabel, LIVE_DATE_FORMAT, weekRange } from '../shared'
 const { proxy } = getCurrentInstance()
 const settingsStore = useSettingsStore()
 const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')

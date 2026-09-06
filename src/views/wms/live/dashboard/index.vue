@@ -19,7 +19,7 @@
       <el-form :inline="true">
         <el-form-item label="日期"><el-date-picker v-model="dateRange" type="daterange" value-format="YYYY-MM-DD" :format="LIVE_DATE_FORMAT" range-separator="至" /></el-form-item>
         <el-form-item label="直播平台"><el-select v-model="filters.accountId" clearable filterable placeholder="全部直播平台"><el-option v-for="v in options.accounts" :key="v.id" :label="accountLabel(v)" :value="v.id" /></el-select></el-form-item>
-        <el-form-item label="主播"><el-select v-model="filters.employeeId" clearable filterable placeholder="全部主播"><el-option v-for="v in options.employees" :key="v.value" :label="v.label" :value="v.value" /></el-select></el-form-item>
+        <el-form-item label="主播"><el-select v-model="filters.employeeId" clearable filterable placeholder="全部主播"><el-option v-for="v in options.employees" :key="v.value" :label="liveEmployeeOptionLabel(v)" :value="v.value" /></el-select></el-form-item>
         <el-form-item label="费率类型"><el-select v-model="filters.rateTypeId" clearable placeholder="全部类型"><el-option v-for="v in options.rateTypes" :key="v.id" :label="v.typeName" :value="v.id" /></el-select></el-form-item>
         <el-form-item><el-button type="primary" @click="load">查询</el-button><el-button @click="selectMonth(0)">本月</el-button><el-button @click="selectMonth(-1)">上个月</el-button></el-form-item>
       </el-form>
@@ -108,7 +108,7 @@ import * as echarts from 'echarts'
 import { getDashboard, getLiveOptions, importAttendance } from '@/api/wms/livePayroll'
 import useSettingsStore from '@/store/modules/settings'
 import { translateByMap } from '@/locales/runtime-map'
-import { accountLabel, displayDate, downloadCsv, LIVE_DATE_FORMAT, money, monthRange } from '../shared'
+import { accountLabel, displayDate, downloadCsv, liveEmployeeOptionLabel, LIVE_DATE_FORMAT, money, monthRange } from '../shared'
 
 const settingsStore = useSettingsStore()
 const router = useRouter()

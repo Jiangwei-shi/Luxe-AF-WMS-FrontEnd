@@ -192,7 +192,8 @@
                       <el-tag v-if="row.userId" size="small" type="primary" effect="plain" class="account-tag account-tag--linked">{{ tr('有账号') }}</el-tag>
                       <el-tag v-else size="small" type="info" effect="plain" class="account-tag account-tag--none">{{ tr('无账号') }}</el-tag>
                     </div>
-                    <div v-if="row.nameEn" class="name-secondary">{{ row.nameEn }}</div>
+                    <div v-if="row.nickName" class="name-secondary">{{ tr('昵称') }}: {{ row.nickName }}</div>
+                    <div v-else-if="row.nameEn" class="name-secondary">{{ row.nameEn }}</div>
                   </div>
                 </template>
               </el-table-column>
@@ -233,7 +234,7 @@
           <div class="detail-body">
           <div class="detail-header">
             <div>
-              <h3 class="detail-name">{{ selectedEmployee.nameCn }}<span v-if="selectedEmployee.nameEn" class="detail-name-en">{{ selectedEmployee.nameEn }}</span></h3>
+              <h3 class="detail-name">{{ selectedEmployee.nameCn }}<span v-if="selectedEmployee.nickName" class="detail-name-en">{{ selectedEmployee.nickName }}</span><span v-else-if="selectedEmployee.nameEn" class="detail-name-en">{{ selectedEmployee.nameEn }}</span></h3>
               <div v-if="selectedEmployee.email || selectedEmployee.phone || selectedEmployee.userName" class="detail-meta">
                 {{ [selectedEmployee.userName ? tr('登录账号') + ': ' + selectedEmployee.userName : '', selectedEmployee.email, selectedEmployee.phone].filter(Boolean).join(' · ') }}
               </div>
@@ -389,7 +390,7 @@
                         data-runtime-i18n-ignore="true"
                       >{{ batch.displayName }}</div>
                       <div class="attachment-desc">
-                        {{ tr('共 {count} 个文件').replace('{count}', String(batch.files.length)) }}
+                        {{ batchSubtitleText(batch) }}
                       </div>
                     </div>
                     <el-tag size="small" type="success">{{ tr('已上传') }}</el-tag>
@@ -477,6 +478,15 @@
             :placeholder="tr('请输入本批次名称')"
           />
         </el-form-item>
+        <el-form-item :label="tr('批次副标题')">
+          <el-input
+            v-model="uploadDialogBatchSubtitle"
+            maxlength="128"
+            show-word-limit
+            :disabled="uploadDialogLoading"
+            :placeholder="tr('可自定义，例如用途说明；留空则显示文件数量')"
+          />
+        </el-form-item>
       </el-form>
       <el-upload
         class="hr-upload-dialog-zone"
@@ -511,6 +521,26 @@
           :disabled="!uploadDialogFileList.length"
           @click="submitUploadDialog"
         >{{ tr('开始上传') }}</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="renameBatchOpen"
+      :title="tr('重命名批次')"
+      width="min(480px, 92vw)"
+      destroy-on-close
+    >
+      <el-form label-position="top">
+        <el-form-item :label="tr('批次名称')" required>
+          <el-input v-model="renameBatchName" maxlength="128" show-word-limit :placeholder="tr('请输入本批次名称')" />
+        </el-form-item>
+        <el-form-item :label="tr('批次副标题')">
+          <el-input v-model="renameBatchSubtitle" maxlength="128" show-word-limit :placeholder="tr('可自定义副标题，留空则显示文件数量')" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button :disabled="renameBatchLoading" @click="renameBatchOpen = false">{{ tr('取消') }}</el-button>
+        <el-button type="primary" :loading="renameBatchLoading" @click="submitRenameBatch">{{ tr('确定') }}</el-button>
       </template>
     </el-dialog>
 
@@ -565,6 +595,12 @@
               <el-col :span="12">
                 <el-form-item :label="isCreateMode ? tr('姓名') : tr('姓名/用户信息')" prop="nameCn">
                   <el-input v-model="form.nameCn" :placeholder="isCreateMode ? tr('请输入员工姓名') : tr('请输入姓名或用户信息')" :disabled="isLinkedUserReadonly" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item :label="tr('昵称')" prop="nickName">
+                  <el-input v-model="form.nickName" maxlength="64" show-word-limit :placeholder="tr('请输入员工昵称')" :disabled="isLinkedUserReadonly" />
+                  <div class="form-hint">{{ tr('姓名不可重复；不同员工可以使用相同昵称') }}</div>
                 </el-form-item>
               </el-col>
               <el-col :span="12">
@@ -788,7 +824,13 @@ const uploadDialogTip = ref('')
 const uploadDialogFileList = ref([])
 const uploadDialogBatchId = ref('')
 const uploadDialogBatchName = ref('')
+const uploadDialogBatchSubtitle = ref('')
 const uploadDialogLegacyAttachmentIds = ref([])
+const renameBatchOpen = ref(false)
+const renameBatchLoading = ref(false)
+const renameBatchName = ref('')
+const renameBatchSubtitle = ref('')
+const renameBatchTarget = ref(null)
 const uploadingType = ref('')
 const uploadProgress = ref(0)
 
@@ -964,11 +1006,16 @@ const otherAttachmentBatches = computed(() => {
         key: item.batchId,
         batchId: item.batchId,
         batchName: item.batchName || '',
+        batchSubtitle: item.batchSubtitle || '',
         displayName: item.batchName || tr('未命名批次'),
         files: []
       })
     }
-    byId.get(item.batchId).files.push(item)
+    const current = byId.get(item.batchId)
+    if (!current.batchSubtitle && item.batchSubtitle) {
+      current.batchSubtitle = item.batchSubtitle
+    }
+    current.files.push(item)
   })
   const batches = [...byId.values()]
   if (legacy.length) {
@@ -976,6 +1023,7 @@ const otherAttachmentBatches = computed(() => {
       key: '__legacy_ungrouped',
       batchId: null,
       batchName: '',
+      batchSubtitle: '',
       displayName: tr('未分组'),
       files: legacy,
       legacy: true
@@ -1601,6 +1649,7 @@ function openRequiredUploadDialog(card) {
   uploadDialogAccept.value = '.pdf,application/pdf'
   uploadDialogBatchId.value = ''
   uploadDialogBatchName.value = ''
+  uploadDialogBatchSubtitle.value = ''
   uploadDialogTitle.value = `${tr('上传')} - ${tr(card.label)}`
   const baseHelp = `${tr(card.desc || card.label)} · ${tr('仅支持 PDF，每个类型限一个文件')}`
   uploadDialogHelp.value = attachmentMap.value[card.code]
@@ -1620,6 +1669,16 @@ function defaultOtherBatchName() {
   return `${tr('其他文件')} ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
 }
 
+function defaultBatchSubtitle(count) {
+  return tr('共 {count} 个文件').replace('{count}', String(count ?? 0))
+}
+
+function batchSubtitleText(batch) {
+  const custom = String(batch?.batchSubtitle || '').trim()
+  if (custom) return custom
+  return defaultBatchSubtitle(batch?.files?.length || 0)
+}
+
 function openOtherUploadDialog(batch) {
   if (uploadDialogLoading.value || isUploadingType('OTHER')) return
   uploadDialogType.value = 'OTHER'
@@ -1631,8 +1690,10 @@ function openOtherUploadDialog(batch) {
     : []
   if (batch?.batchId) {
     uploadDialogBatchName.value = batch.batchName || batch.displayName || defaultOtherBatchName()
+    uploadDialogBatchSubtitle.value = batch.batchSubtitle || ''
   } else {
     uploadDialogBatchName.value = defaultOtherBatchName()
+    uploadDialogBatchSubtitle.value = ''
   }
   uploadDialogTitle.value = batch
     ? tr('向此批次添加文件')
@@ -1651,6 +1712,7 @@ function cancelUploadDialog() {
   uploadDialogType.value = ''
   uploadDialogBatchId.value = ''
   uploadDialogBatchName.value = ''
+  uploadDialogBatchSubtitle.value = ''
   uploadDialogLegacyAttachmentIds.value = []
 }
 
@@ -1749,6 +1811,7 @@ async function submitUploadDialog() {
     fromDialog: true,
     batchId: uploadDialogBatchId.value || undefined,
     batchName: String(uploadDialogBatchName.value || '').trim(),
+    batchSubtitle: String(uploadDialogBatchSubtitle.value || '').trim(),
     legacyAttachmentIds: [...uploadDialogLegacyAttachmentIds.value]
   })
 }
@@ -1770,10 +1833,12 @@ async function submitFiles(files, attachmentType, options = {}) {
       }
       let batchId = options.batchId || undefined
       const legacyIds = options.legacyAttachmentIds || uploadDialogLegacyAttachmentIds.value || []
+      const batchSubtitle = String(options.batchSubtitle || '').trim()
       if (!batchId && legacyIds.length) {
         const groupRes = await groupOtherAttachmentBatch({
           employeeId: selectedEmployee.value.id,
           batchName,
+          batchSubtitle,
           attachmentIds: legacyIds
         })
         batchId = groupRes?.data || groupRes
@@ -1793,6 +1858,7 @@ async function submitFiles(files, attachmentType, options = {}) {
         employeeId: selectedEmployee.value.id,
         batchId,
         batchName,
+        batchSubtitle,
         files: uploadedFiles
       })
     } else {
@@ -1812,6 +1878,7 @@ async function submitFiles(files, attachmentType, options = {}) {
       uploadDialogFileList.value = []
       uploadDialogBatchId.value = ''
       uploadDialogBatchName.value = ''
+      uploadDialogBatchSubtitle.value = ''
       uploadDialogLegacyAttachmentIds.value = []
     }
     if (attachmentType !== 'OTHER') {
@@ -1865,12 +1932,35 @@ async function uploadSingleFile(file, attachmentType, onProgress) {
   })
 }
 
-async function renameOtherBatch(batch) {
+function renameOtherBatch(batch) {
   if (!batch) return
+  renameBatchTarget.value = batch
+  renameBatchName.value = batch.batchName || (batch.legacy ? '' : batch.displayName) || ''
+  renameBatchSubtitle.value = batch.batchSubtitle || defaultBatchSubtitle(batch.files?.length || 0)
+  renameBatchOpen.value = true
+}
+
+async function submitRenameBatch() {
+  const batch = renameBatchTarget.value
+  if (!batch) return
+  const batchName = String(renameBatchName.value || '').trim()
+  if (!batchName) {
+    proxy.$modal.msgWarning(tr('批次名称不能为空'))
+    return
+  }
+  if (batchName.length > 128) {
+    proxy.$modal.msgWarning(tr('批次名称不能超过128个字符'))
+    return
+  }
+  const batchSubtitle = String(renameBatchSubtitle.value || '').trim()
+  if (batchSubtitle.length > 128) {
+    proxy.$modal.msgWarning(tr('批次副标题不能超过128个字符'))
+    return
+  }
+  renameBatchLoading.value = true
   try {
-    const batchName = await promptBatchName(batch.batchName || (batch.legacy ? '' : batch.displayName) || '')
     if (batch.batchId) {
-      await renameOtherAttachmentBatch(batch.batchId, { batchName })
+      await renameOtherAttachmentBatch(batch.batchId, { batchName, batchSubtitle })
     } else {
       const ids = (batch.files || []).map(item => item.id).filter(Boolean)
       if (!ids.length) {
@@ -1880,14 +1970,17 @@ async function renameOtherBatch(batch) {
       await groupOtherAttachmentBatch({
         employeeId: selectedEmployee.value.id,
         batchName,
+        batchSubtitle,
         attachmentIds: ids
       })
     }
+    renameBatchOpen.value = false
     proxy.$modal.msgSuccess(tr('修改成功'))
     await loadEmployeeDetail(selectedEmployee.value.id)
   } catch (err) {
-    if (err === 'cancel' || err === 'close') return
     proxy.$modal.msgError(err?.response?.data?.msg || err?.msg || err?.message || tr('修改失败'))
+  } finally {
+    renameBatchLoading.value = false
   }
 }
 
