@@ -52,8 +52,9 @@ export const syncAccounts = () => request({ url: `${base}/accounts/sync-shops`, 
 
 export const listRates = params => request({ url: `${base}/rates/list`, method: 'get', params })
 export const previewRateImpact = data => request({ url: `${base}/rates/impact-preview`, method: 'post', data })
-export const addRate = data => request({ url: `${base}/rates`, method: 'post', data })
-export const updateRate = data => request({ url: `${base}/rates`, method: 'put', data })
+export const previewRateSave = data => request({ url: `${base}/rates/save-preview`, method: 'post', data, silentError: true })
+export const addRate = data => request({ url: `${base}/rates`, method: 'post', data, silentError: true })
+export const updateRate = data => request({ url: `${base}/rates`, method: 'put', data, silentError: true })
 export const deleteRate = id => request({ url: `${base}/rates/${id}`, method: 'delete', silentError: true })
 export const getRateUsage = id => request({ url: `${base}/rates/${id}/usage`, method: 'get', silentError: true })
 export const listRateAccountGroups = employeeId => request({ url: `${base}/rates/account-groups`, method: 'get', params: { employeeId } })

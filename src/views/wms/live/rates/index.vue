@@ -31,6 +31,7 @@
               <el-radio-button label="detail">{{ tr('费率明细') }}</el-radio-button>
               <el-radio-button label="list">{{ tr('列表') }}</el-radio-button>
             </el-radio-group>
+            <el-button type="primary" :disabled="!configurableAccounts.length" @click="openDialog()">{{ tr('新增费率') }}</el-button>
           </div>
 
           <div class="employee-summary">
@@ -62,39 +63,43 @@
               </header>
 
               <div v-show="isExpanded(account.id)" class="rate-type-list">
-                <div v-for="type in options.rateTypes" :key="type.id" class="rate-type-row">
+                <div v-for="type in displayRateTypes" :key="type.id" class="rate-type-row">
                   <div class="rate-type-name"><strong>{{ tr(type.typeName) }}</strong></div>
                   <template v-if="rateFor(account.id, type.id)">
                     <div class="rate-value">
-                      <el-tag size="small" :type="rateFor(account.id, type.id).status === 0 ? 'success' : 'info'">{{ tr(rateFor(account.id, type.id).status === 0 ? '生效中' : '已停用') }}</el-tag>
+                      <el-tag size="small" type="success">{{ tr('生效中') }}</el-tag>
                       <strong>{{ money(rateFor(account.id, type.id).hourlyRate) }}/h</strong>
                       <span>{{ effectiveDateText(rateFor(account.id, type.id).effectiveDate) }}</span>
                     </div>
                     <div class="rate-actions">
-                      <el-button link :icon="Edit" title="编辑" :disabled="!isGroupEnabled(account.id)" @click="openDialog(rateFor(account.id, type.id))" />
+                      <el-button link type="primary" :disabled="!canConfigure(account) || type.status !== 0" @click="openDialog({}, account.id, type.id)">{{ tr('新增费率') }}</el-button>
+                      <el-button link :icon="Edit" :title="tr('编辑')" :disabled="!canEditRate(rateFor(account.id, type.id))" @click="openDialog(rateFor(account.id, type.id))" />
                       <el-button link type="danger" :icon="Delete" title="删除" @click="remove(rateFor(account.id, type.id))" />
                     </div>
                   </template>
                   <template v-else>
-                    <span class="unconfigured">{{ tr('未配置') }}</span>
-                    <el-button link type="primary" :disabled="!canConfigure(account)" @click="openDialog({}, account.id, type.id)">{{ tr('+ 添加') }}</el-button>
+                    <span class="unconfigured">{{ tr('暂无生效费率') }}</span>
+                    <el-button link type="primary" :disabled="!canConfigure(account) || type.status !== 0" @click="openDialog({}, account.id, type.id)">{{ tr('+ 添加') }}</el-button>
                   </template>
                 </div>
+                <el-collapse v-if="inactiveRatesFor(account.id).length" :key="selectedEmployeeId" class="inactive-rates">
+                  <el-collapse-item name="inactive">
+                    <template #title>{{ tr('未生效费率') }}（{{ inactiveRatesFor(account.id).length }}）</template>
+                    <RateRecordsTable :rows="inactiveRatesFor(account.id)" :can-edit="canEditRate" @edit="openDialog" @remove="remove" />
+                  </el-collapse-item>
+                </el-collapse>
               </div>
             </article>
           </div>
 
           <div v-else class="rate-list-view">
-            <el-table :data="selectedEmployeeRates" stripe>
-              <el-table-column prop="accountLabel" :label="tr('直播平台')" min-width="190" />
-              <el-table-column prop="rateTypeName" :label="tr('费率类型')"><template #default="s"><el-tag class="type-tag">{{ tr(s.row.rateTypeName) }}</el-tag></template></el-table-column>
-              <el-table-column :label="tr('时薪')"><template #default="s"><strong>{{ money(s.row.hourlyRate) }}/h</strong></template></el-table-column>
-              <el-table-column prop="effectiveDate" :label="tr('生效日期')"><template #default="s">{{ displayDate(s.row.effectiveDate) }}</template></el-table-column>
-              <el-table-column prop="expiryDate" :label="tr('失效日期')"><template #default="s">{{ s.row.expiryDate ? displayDate(s.row.expiryDate) : tr('长期') }}</template></el-table-column>
-              <el-table-column :label="tr('状态')"><template #default="s"><el-tag :type="s.row.status === 0 ? 'success' : 'info'">{{ tr(s.row.status === 0 ? '生效中' : '已停用') }}</el-tag></template></el-table-column>
-              <el-table-column prop="remark" :label="tr('备注')" />
-              <el-table-column :label="tr('操作')" width="140" fixed="right"><template #default="s"><el-button link type="primary" :disabled="!isGroupEnabled(s.row.accountId)" @click="openDialog(s.row)">{{ tr('编辑') }}</el-button><el-button link type="danger" @click="remove(s.row)">{{ tr('删除') }}</el-button></template></el-table-column>
-            </el-table>
+            <RateRecordsTable :rows="activeEmployeeRates" :can-edit="canEditRate" show-account @edit="openDialog" @remove="remove" />
+            <el-collapse v-if="inactiveEmployeeRates.length" :key="selectedEmployeeId" class="inactive-rates">
+              <el-collapse-item name="inactive">
+                <template #title>{{ tr('未生效费率') }}（{{ inactiveEmployeeRates.length }}）</template>
+                <RateRecordsTable :rows="inactiveEmployeeRates" :can-edit="canEditRate" show-account @edit="openDialog" @remove="remove" />
+              </el-collapse-item>
+            </el-collapse>
           </div>
         </template>
         <el-empty v-else :description="tr('请选择主播或直播运营')" />
@@ -102,6 +107,9 @@
     </div>
 
     <el-dialog v-model="dialog.open" class="rate-dialog" :title="tr(dialog.form.id ? '编辑费率' : '新增费率')" width="760px" append-to-body>
+      <el-alert class="rate-history-hint" :title="tr('调薪请新增费率，保留历史记录；编辑用于修正当前记录。')" type="info" :closable="false" show-icon />
+      <el-alert class="rate-history-hint" :title="tr('同一主播、平台和类型的已启用费率日期不能重叠；新增较晚费率时，可将无失效日期的旧费率截止到前一天。')" type="info" :closable="false" />
+      <el-alert v-if="dialog.error" class="rate-history-hint" :title="dialog.error" type="error" :closable="false" show-icon />
       <el-form ref="formRef" :model="dialog.form" :rules="rules" :label-width="isEn ? '126px' : '90px'">
         <div class="dialog-grid">
           <el-form-item :label="tr('主播/运营')" prop="employeeId"><el-select v-model="dialog.form.employeeId" disabled><el-option v-for="v in options.employees" :key="v.value" :label="v.label" :value="v.value" /></el-select></el-form-item>
@@ -118,6 +126,16 @@
     </el-dialog>
 
     <el-dialog v-model="impactDialog.open" class="rate-impact-dialog" title="确认费率修改影响" width="1040px" append-to-body :close-on-click-modal="false">
+      <div v-if="impactDialog.rateAdjustment" class="rate-adjustment-notice">
+        <el-alert :title="tr('旧费率未设置失效日期，确认后将自动补齐')" type="warning" :closable="false" show-icon />
+        <el-descriptions :column="isEn ? 1 : 2" border>
+          <el-descriptions-item :label="tr('原费率')">{{ money(impactDialog.rateAdjustment.hourlyRate) }}/h</el-descriptions-item>
+          <el-descriptions-item :label="tr('生效日期')">{{ displayDate(impactDialog.rateAdjustment.effectiveDate) }}</el-descriptions-item>
+          <el-descriptions-item :label="tr('失效日期调整')">{{ tr('长期') }} → <strong>{{ displayDate(impactDialog.rateAdjustment.newExpiryDate) }}</strong></el-descriptions-item>
+          <el-descriptions-item :label="tr('新费率生效日期')">{{ displayDate(impactDialog.pendingForm?.effectiveDate) }}</el-descriptions-item>
+        </el-descriptions>
+        <p>{{ tr('旧费率记录会保留，调整后与新费率日期不重叠；取消则不做任何修改。') }}</p>
+      </div>
       <div class="impact-notice">
         <el-icon><WarningFilled /></el-icon>
         <div>
@@ -160,17 +178,19 @@
 <script setup>
 import { computed, getCurrentInstance, onMounted, reactive, ref } from 'vue'
 import { ArrowDown, ArrowRight, Connection, Delete, Edit, Search, WarningFilled } from '@element-plus/icons-vue'
-import { addRate, deleteRate, deleteRateAccountGroup, getLiveOptions, getRateAccountGroupUsage, getRateUsage, listRateAccountGroups, listRates, previewRateImpact, syncRateAccountGroup, updateAllRateAccountGroupStatuses, updateRate, updateRateAccountGroupStatus } from '@/api/wms/livePayroll'
+import { addRate, deleteRate, deleteRateAccountGroup, getLiveOptions, getRateAccountGroupUsage, getRateUsage, listRateAccountGroups, listRates, previewRateSave, syncRateAccountGroup, updateAllRateAccountGroupStatuses, updateRate, updateRateAccountGroupStatus } from '@/api/wms/livePayroll'
 import useSettingsStore from '@/store/modules/settings'
 import { translateByMap } from '@/locales/runtime-map'
 import { accountLabel, displayDate, downloadCsv, isoDate, LIVE_DATE_FORMAT, money } from '../shared'
 import UsageConflictDialog from '../components/UsageConflictDialog.vue'
+import RateRecordsTable from '../components/RateRecordsTable.vue'
+import { rateStatusLabel } from './rateDisplay'
 
 const settingsStore = useSettingsStore(), isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en'), tr = text => translateByMap(text, settingsStore.language || 'zh-cn')
 const { proxy } = getCurrentInstance(), loading = ref(false), groupLoading = ref(false), rows = ref([]), formRef = ref()
 const options = reactive({ employees: [], accounts: [], rateTypes: [] }), employeeKeyword = ref(''), selectedEmployeeId = ref(null), viewMode = ref('detail')
-const groupLinks = ref([]), expandedAccounts = ref(new Set()), statusBusy = ref(null), dialog = reactive({ open: false, form: {}, loading: false })
-const impactDialog = reactive({ open: false, rows: [], pendingForm: null, saving: false })
+const groupLinks = ref([]), expandedAccounts = ref(new Set()), statusBusy = ref(null), dialog = reactive({ open: false, form: {}, loading: false, error: '' })
+const impactDialog = reactive({ open: false, rows: [], rateAdjustment: null, pendingForm: null, saving: false })
 const syncDialog = reactive({ open: false, source: null, mode: 'OVERWRITE', targetAccountIds: [], loading: false })
 const usageDialog = reactive({ open: false, rows: [], action: '', target: '' })
 const rules = { employeeId: [{ required: true, message: '请选择主播或直播运营' }], accountId: [{ required: true, message: '请选择直播平台' }], rateTypeId: [{ required: true, message: '请选择费率类型' }], hourlyRate: [{ required: true, message: '请输入时薪' }], effectiveDate: [{ required: true, message: '请选择生效日期' }] }
@@ -178,6 +198,15 @@ const rules = { employeeId: [{ required: true, message: '请选择主播或直�
 const filteredEmployees = computed(() => { const keyword = employeeKeyword.value.trim().toLowerCase(); return keyword ? options.employees.filter(v => `${v.label} ${v.extra || ''}`.toLowerCase().includes(keyword)) : options.employees })
 const selectedEmployee = computed(() => options.employees.find(v => v.value === selectedEmployeeId.value))
 const selectedEmployeeRates = computed(() => rows.value.filter(v => v.employeeId === selectedEmployeeId.value))
+const activeEmployeeRates = computed(() => selectedEmployeeRates.value.filter(v => v.effectiveStatus === 'ACTIVE'))
+const inactiveEmployeeRates = computed(() => selectedEmployeeRates.value.filter(v => v.effectiveStatus !== 'ACTIVE'))
+const displayRateTypes = computed(() => {
+  const types = new Map(options.rateTypes.map(type => [type.id, type]))
+  selectedEmployeeRates.value.forEach(rate => {
+    if (!types.has(rate.rateTypeId)) types.set(rate.rateTypeId, { id: rate.rateTypeId, typeName: rate.rateTypeName, status: 1 })
+  })
+  return [...types.values()]
+})
 const sortedAccounts = computed(() => [...options.accounts].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0) || String(a.platform).localeCompare(String(b.platform)) || String(a.accountCode).localeCompare(String(b.accountCode))))
 const activeAccounts = computed(() => sortedAccounts.value.filter(v => v.status === 0))
 const configurableAccounts = computed(() => activeAccounts.value.filter(v => isGroupEnabled(v.id)))
@@ -186,7 +215,7 @@ const employeeSummaryText = computed(() => isEn.value
   ? `${selectedEmployeeRates.value.length} rate ${selectedEmployeeRates.value.length === 1 ? 'record' : 'records'} · ${enabledGroupCount.value} of ${activeAccounts.value.length} live platforms enabled`
   : `共 ${selectedEmployeeRates.value.length} 条费率 · ${enabledGroupCount.value} / ${activeAccounts.value.length} 个直播平台启用`)
 const syncTargets = computed(() => activeAccounts.value.filter(v => v.id !== syncDialog.source?.id))
-const rateMatrix = computed(() => { const result = new Map(); selectedEmployeeRates.value.forEach(rate => { const key = `${rate.accountId}:${rate.rateTypeId}`; if (!result.has(key)) result.set(key, rate) }); return result })
+const rateMatrix = computed(() => new Map(activeEmployeeRates.value.map(rate => [`${rate.accountId}:${rate.rateTypeId}`, rate])))
 
 function initial(name) { return String(name || '?').trim().charAt(0).toUpperCase() }
 function rateRecordLabel(count) { return isEn.value ? `${count} rate ${count === 1 ? 'record' : 'records'}` : `${count} 条费率` }
@@ -194,6 +223,8 @@ function effectiveDateText(date) { return isEn.value ? `From ${displayDate(date)
 function rateCountByEmployee(employeeId) { return rows.value.filter(v => v.employeeId === employeeId).length }
 function accountRateCount(accountId) { return selectedEmployeeRates.value.filter(v => v.accountId === accountId).length }
 function rateFor(accountId, rateTypeId) { return rateMatrix.value.get(`${accountId}:${rateTypeId}`) }
+function inactiveRatesFor(accountId) { return inactiveEmployeeRates.value.filter(rate => rate.accountId === accountId) }
+function canEditRate(rate) { return configurableAccounts.value.some(account => account.id === rate.accountId) && options.rateTypes.some(type => type.id === rate.rateTypeId) }
 function isExpanded(accountId) { return expandedAccounts.value.has(accountId) }
 function hasAccountGroup(accountId) { return groupLinks.value.some(v => v.accountId === accountId) || accountRateCount(accountId) > 0 }
 function isGroupEnabled(accountId) { return groupLinks.value.find(v => v.accountId === accountId)?.status === 0 }
@@ -208,9 +239,44 @@ async function selectEmployee(employeeId) { if (selectedEmployeeId.value === emp
 async function toggleGroupStatus(account, enabled) { statusBusy.value = account.id; try { await updateRateAccountGroupStatus({ employeeId: selectedEmployeeId.value, accountId: account.id, status: enabled ? 0 : 1 }); await loadGroups(); proxy.$modal.msgSuccess(enabled ? '直播平台分组已启用' : '直播平台分组已禁用') } catch (error) { await showActionBlocked(error, enabled ? null : () => getRateAccountGroupUsage({ employeeId: selectedEmployeeId.value, accountId: account.id }), '停用', '该直播平台分组') } finally { statusBusy.value = null } }
 async function setAllGroups(status) { try { await updateAllRateAccountGroupStatuses({ employeeId: selectedEmployeeId.value, status }); await loadGroups(); proxy.$modal.msgSuccess(status === 0 ? '全部直播平台已启用' : '全部直播平台已禁用') } catch (error) { await showActionBlocked(error, status === 1 ? () => getRateAccountGroupUsage({ employeeId: selectedEmployeeId.value }) : null, '停用', '该主播的直播平台分组') } }
 
-function openDialog(row = {}, accountId = null, rateTypeId = null) { const targetAccountId = row.accountId || accountId; if (targetAccountId && !isGroupEnabled(targetAccountId)) { proxy.$modal.msgWarning('请先启用该直播平台分组'); return } if (!targetAccountId && !configurableAccounts.value.length) { proxy.$modal.msgWarning('请先启用至少一个直播平台分组'); return } dialog.form = { id: row.id, employeeId: row.employeeId || selectedEmployeeId.value, accountId: targetAccountId, rateTypeId: row.rateTypeId || rateTypeId, hourlyRate: Number(row.hourlyRate || 0), effectiveDate: row.effectiveDate || isoDate(), expiryDate: row.expiryDate || null, status: row.status ?? 0, remark: row.remark || '' }; dialog.open = true }
-async function submit() { await formRef.value.validate(); if (!isGroupEnabled(dialog.form.accountId)) { proxy.$modal.msgWarning('直播平台分组未启用，不能维护费率'); return } dialog.loading = true; try { const pendingForm = { ...dialog.form }; const res = await previewRateImpact(pendingForm); impactDialog.rows = res.data || []; impactDialog.pendingForm = pendingForm; impactDialog.open = true } finally { dialog.loading = false } }
-async function confirmSubmit() { if (!impactDialog.pendingForm) return; impactDialog.saving = true; try { const form = impactDialog.pendingForm; await (form.id ? updateRate(form) : addRate(form)); proxy.$modal.msgSuccess(`保存成功${impactDialog.rows.length ? `，已同步更新 ${impactDialog.rows.length} 条开播记录` : ''}`); impactDialog.open = false; dialog.open = false; impactDialog.pendingForm = null; await loadRates() } finally { impactDialog.saving = false } }
+function openDialog(row = {}, accountId = null, rateTypeId = null) { const targetAccountId = row.accountId || accountId; if (targetAccountId && !isGroupEnabled(targetAccountId)) { proxy.$modal.msgWarning('请先启用该直播平台分组'); return } if (!targetAccountId && !configurableAccounts.value.length) { proxy.$modal.msgWarning('请先启用至少一个直播平台分组'); return } dialog.form = { id: row.id, employeeId: row.employeeId || selectedEmployeeId.value, accountId: targetAccountId, rateTypeId: row.rateTypeId || rateTypeId, hourlyRate: Number(row.hourlyRate || 0), effectiveDate: row.effectiveDate || isoDate(), expiryDate: row.expiryDate || null, status: row.status ?? 0, remark: row.remark || '' }; dialog.error = ''; dialog.open = true }
+async function submit() {
+  if (dialog.loading) return
+  await formRef.value.validate()
+  if (!isGroupEnabled(dialog.form.accountId)) { proxy.$modal.msgWarning('直播平台分组未启用，不能维护费率'); return }
+  dialog.error = ''
+  impactDialog.pendingForm = null
+  impactDialog.rateAdjustment = null
+  impactDialog.open = false
+  dialog.loading = true
+  try {
+    const pendingForm = { ...dialog.form }
+    const { data } = await previewRateSave(pendingForm)
+    impactDialog.rows = data.streamImpacts || []
+    impactDialog.rateAdjustment = data.rateAdjustment || null
+    impactDialog.pendingForm = { ...pendingForm, rateAdjustmentToken: data.rateAdjustmentToken || null }
+    impactDialog.open = true
+  } catch (error) {
+    dialog.error = error?.message || tr('费率校验失败，请稍后重试。')
+  } finally { dialog.loading = false }
+}
+async function confirmSubmit() {
+  if (!impactDialog.open || !impactDialog.pendingForm || impactDialog.saving) return
+  impactDialog.saving = true
+  try {
+    const form = impactDialog.pendingForm
+    await (form.id ? updateRate(form) : addRate(form))
+    proxy.$modal.msgSuccess(`保存成功${impactDialog.rateAdjustment ? '，已自动补齐旧费率失效日期' : ''}${impactDialog.rows.length ? `，已同步更新 ${impactDialog.rows.length} 条开播记录` : ''}`)
+    impactDialog.open = false
+    dialog.open = false
+    impactDialog.pendingForm = null
+    await loadRates()
+  } catch (error) {
+    impactDialog.open = false
+    impactDialog.pendingForm = null
+    dialog.error = error?.message || tr('费率保存失败，请重新预览后重试。')
+  } finally { impactDialog.saving = false }
+}
 async function remove(row) { await proxy.$modal.confirm(`确认删除 ${row.employeeName} 在 ${row.accountLabel} 的这条费率？`); try { await deleteRate(row.id) } catch (error) { await showActionBlocked(error, () => getRateUsage(row.id), '删除', '该费率配置'); return } proxy.$modal.msgSuccess('删除成功'); await loadRates() }
 async function removeAccountGroup(account) { await proxy.$modal.confirm(`确认删除 ${selectedEmployee.value.label} 的 ${accountLabel(account)} 直播平台分组及其下全部费率？`); try { await deleteRateAccountGroup({ employeeId: selectedEmployeeId.value, accountId: account.id }) } catch (error) { await showActionBlocked(error, () => getRateAccountGroupUsage({ employeeId: selectedEmployeeId.value, accountId: account.id }), '删除', '该直播平台分组'); return } proxy.$modal.msgSuccess('直播平台分组及费率已删除'); await Promise.all([loadRates(), loadGroups()]) }
 
@@ -219,8 +285,8 @@ async function showActionBlocked(error, usageLoader, action, target) { if (usage
 function openSync(account) { syncDialog.source = account; syncDialog.mode = 'OVERWRITE'; syncDialog.targetAccountIds = []; syncDialog.open = true }
 function selectAllSyncTargets() { syncDialog.targetAccountIds = syncTargets.value.map(v => v.id) }
 async function submitSync() { syncDialog.loading = true; try { const res = await syncRateAccountGroup({ employeeId: selectedEmployeeId.value, sourceAccountId: syncDialog.source.id, targetAccountIds: syncDialog.targetAccountIds, mode: syncDialog.mode }); proxy.$modal.msgSuccess(`已同步 ${res.data || 0} 条费率，目标直播平台分组已启用`); syncDialog.open = false; await Promise.all([loadRates(), loadGroups()]) } finally { syncDialog.loading = false } }
-function headers() { return [{ key: 'employeeName', label: '主播/运营' }, { key: 'accountLabel', label: '直播平台' }, { key: 'rateTypeName', label: '费率类型' }, { key: 'hourlyRate', label: '时薪' }, { key: 'effectiveDate', label: '生效日期' }, { key: 'expiryDate', label: '失效日期' }, { key: 'status', label: '状态' }, { key: 'remark', label: '备注' }] }
-function exportRows() { downloadCsv('主播费率配置.csv', headers(), rows.value.map(row => ({ ...row, effectiveDate: displayDate(row.effectiveDate), expiryDate: displayDate(row.expiryDate) }))) }
+function headers() { return [{ key: 'employeeName', label: '主播/运营' }, { key: 'accountLabel', label: '直播平台' }, { key: 'rateTypeName', label: '费率类型' }, { key: 'hourlyRate', label: '时薪' }, { key: 'effectiveDate', label: '生效日期' }, { key: 'expiryDate', label: '失效日期' }, { key: 'status', label: '启用状态' }, { key: 'effectiveStatusLabel', label: '生效状态' }, { key: 'remark', label: '备注' }] }
+function exportRows() { downloadCsv('主播费率配置.csv', headers(), rows.value.map(row => ({ ...row, effectiveStatusLabel: tr(rateStatusLabel(row)), effectiveDate: displayDate(row.effectiveDate), expiryDate: displayDate(row.expiryDate) }))) }
 onMounted(loadAll)
 </script>
 
@@ -241,7 +307,7 @@ onMounted(loadAll)
 .employee-copy small, .employee-count { color: #9299aa; font-size: 12px; }
 .employee-count { min-width: 24px; text-align: right; }
 .rate-detail-panel { min-width: 0; padding: 16px; }
-.detail-toolbar { margin-bottom: 14px; }
+.detail-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .employee-summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 .summary-main { display: flex; align-items: center; gap: 12px; }
 .summary-avatar { width: 42px; height: 42px; }
@@ -255,14 +321,21 @@ onMounted(loadAll)
 .account-collapse small { color: #9aa1af; }
 .account-actions { display: flex; align-items: center; gap: 8px; }
 .rate-type-list { background: #fff; }
-.rate-type-row { display: grid; grid-template-columns: minmax(170px, 1fr) minmax(250px, 1.4fr) 72px; align-items: center; gap: 12px; min-height: 54px; padding: 8px 16px; border-top: 1px solid #f0f1f4; }
+.rate-type-row { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(220px, 1.4fr) auto; align-items: center; gap: 12px; min-height: 54px; padding: 8px 16px; border-top: 1px solid #f0f1f4; }
 .rate-type-name { display: flex; align-items: center; gap: 7px; }
 .rate-type-name strong { color: #5a6070; font-size: 14px; }
 .rate-type-name small, .unconfigured { color: #a0a6b3; }
-.rate-value { display: flex; align-items: center; gap: 12px; color: #838b9c; font-size: 13px; }
+.rate-value { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; color: #838b9c; font-size: 13px; }
 .rate-value strong { color: #3563e9; font-size: 15px; }
 .rate-actions { display: flex; justify-content: flex-end; }
 .rate-list-view { overflow: hidden; border: 1px solid #e9eaf0; border-radius: 12px; }
+.inactive-rates { padding: 0 16px; border-bottom: 0; }
+.inactive-rates :deep(.el-collapse-item__header) { gap: 6px; color: #838b9c; }
+.inactive-rates :deep(.el-collapse-item__wrap) { border-bottom: 0; }
+.rate-history-hint { margin-bottom: 20px; }
+.rate-adjustment-notice { margin-bottom: 20px; }
+.rate-adjustment-notice :deep(.el-descriptions) { margin-top: 12px; }
+.rate-adjustment-notice p { color: #8a641e; font-size: 13px; }
 .sync-source { display: grid; grid-template-columns: 90px 1fr auto; align-items: center; gap: 12px; padding: 14px; border-radius: 10px; background: #f5f7fb; }
 .sync-source span, .sync-source small, .sync-mode small, .sync-targets small { color: #8d95a6; }
 .sync-mode { margin: 18px 0; }
@@ -280,7 +353,7 @@ onMounted(loadAll)
 .amount-change span { color: #8b93a5; text-decoration: line-through; }
 .amount-change b { color: #a4abbb; font-weight: 400; }
 .amount-change strong { color: #3563e9; }
-@media (max-width: 1050px) { .rate-config-shell { grid-template-columns: 230px minmax(0, 1fr); } .rate-type-row { grid-template-columns: minmax(140px, 1fr) minmax(210px, 1.2fr) 72px; } }
+@media (max-width: 1050px) { .rate-config-shell { grid-template-columns: 230px minmax(0, 1fr); } .rate-type-row { grid-template-columns: minmax(100px, 1fr) minmax(180px, 1.2fr) auto; } }
 @media (max-width: 760px) { .rate-config-shell { grid-template-columns: 1fr; } .employee-summary { align-items: flex-start; flex-direction: column; } .rate-type-row { grid-template-columns: 1fr auto; } .rate-value { grid-column: 1 / -1; grid-row: 2; flex-wrap: wrap; } .rate-actions { grid-column: 2; grid-row: 1; } .sync-targets :deep(.el-checkbox-group) { grid-template-columns: 1fr; } }
 </style>
 
