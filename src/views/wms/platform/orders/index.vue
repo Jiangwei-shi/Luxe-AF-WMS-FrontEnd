@@ -79,6 +79,7 @@
             <el-option :label="t('platformOrders.skuMatchAll')" value="" />
             <el-option :label="t('platformOrders.skuMatchMatched')" value="MATCHED" />
             <el-option :label="t('platformOrders.skuMatchUnmatched')" value="UNMATCHED" />
+            <el-option :label="t('platformOrders.skuMatchNoStock')" value="NO_STOCK" />
           </el-select>
         </el-form-item>
         <el-form-item class="filter-item" :label="t('platformOrders.filterStatus')" prop="orderStatus">
@@ -228,11 +229,12 @@
               <span class="primary-value ellipsis">{{ displayValue(getFirstItem(order).productName) }}</span>
             </div>
 
-            <div class="summary-cell sku-cell" :class="{ 'sku-cell-problem': hasSkuIssue(order, index) }">
+            <div class="summary-cell sku-cell" :class="{ 'sku-cell-problem': hasSkuIssue(order, index), 'sku-cell-no-stock': hasNoStock(order, index) }">
               <span class="cell-label">{{ t('platformOrders.sku') }}</span>
               <div class="sku-row">
-                <span :class="['secondary-value', 'ellipsis', { 'sku-value-problem': hasSkuIssue(order, index) }]">{{ displayValue(getSkuText(getFirstItem(order))) }}</span>
-                <el-tag v-if="hasSkuIssue(order, index)" type="danger" effect="dark" size="small" class="sku-problem-tag">{{ getSkuIssueText(order, index) }}</el-tag>
+                <span :class="['secondary-value', 'ellipsis', { 'sku-value-problem': hasSkuIssue(order, index), 'sku-value-no-stock': hasNoStock(order, index) }]">{{ displayValue(getSkuText(getFirstItem(order))) }}</span>
+                <el-tag v-if="hasSkuIssue(order, index) || hasNoStock(order, index)" :type="hasSkuIssue(order, index) ? 'danger' : 'warning'" effect="dark" size="small" class="sku-problem-tag">{{ getSkuStatusText(getFirstItem(getDisplayOrder(order, index))) }}</el-tag>
+                <el-tag v-if="isBrushOrder(getDisplayOrder(order, index))" type="info" size="small" class="sku-problem-tag">{{ t('platformOrders.skuIssueBrushOrder') }}</el-tag>
                 <el-button v-if="canEditSku(order, index)" link size="small" class="sku-edit-btn" :icon="Edit" @click.stop="startSkuEdit(order, index, getFirstItem(order))" v-hasPermi="['wms:platform:edit']">{{ t('platformOrders.labelEditSku') }}</el-button>
               </div>
             </div>
@@ -313,6 +315,7 @@
                     <InfoLine :label="t('platformOrders.itemSkuId')" :value="item.skuId" />
                     <InfoLine :label="t('platformOrders.itemSkuName')" :value="item.skuName" />
                     <InfoLine :label="t('platformOrders.itemSellerSku')" :value="item.sellerSku" />
+                    <InfoLine :label="t('platformOrders.itemSkuStatus')" :value="getSkuStatusText(item)" />
                     <InfoLine :label="t('platformOrders.itemQuantity')" :value="formatQuantity(item.quantity)" />
                     <InfoLine :label="t('platformOrders.itemOriginalPrice')" :value="formatMoney(item.originalPrice, item.currency || getCurrency(getDisplayOrder(order, index)))" />
                     <InfoLine :label="t('platformOrders.itemSalePrice')" :value="formatMoney(item.salePrice, item.currency || getCurrency(getDisplayOrder(order, index)))" strong />
@@ -1369,18 +1372,20 @@ function isBrushOrder(order) {
 }
 
 function hasSkuIssue(order, index) {
-  const ord = getDisplayOrder(order, index)
-  if (isBrushOrder(ord)) return true
-  const sku = String(getSkuText(getFirstItem(ord)) || '').trim()
-  if (!sku || sku === '-' || sku.toLowerCase() === 'empty') return true
-  const reason = String(ord?.skipReason || '')
-  return /SKU not matched|Seller SKU is empty|SKU未匹配|商家SKU为空/i.test(reason)
+  return getFirstItem(getDisplayOrder(order, index)).skuStatus === 'UNMATCHED'
 }
 
-function getSkuIssueText(order, index) {
-  const ord = getDisplayOrder(order, index)
-  if (isBrushOrder(ord)) return t('platformOrders.skuIssueBrushOrder')
-  return t('platformOrders.skuIssue')
+function hasNoStock(order, index) {
+  return getFirstItem(getDisplayOrder(order, index)).skuStatus === 'NO_STOCK'
+}
+
+function getSkuStatusText(item) {
+  const key = {
+    UNMATCHED: 'skuNotFound',
+    NO_STOCK: 'skuNoStock',
+    IN_STOCK: 'skuInStock'
+  }[item?.skuStatus]
+  return key ? t(`platformOrders.${key}`) : '-'
 }
 
 function getCurrency(order) {
@@ -2631,6 +2636,18 @@ onActivated(() => {
 
 .sku-value-problem {
   color: #b42318;
+  font-weight: 700;
+}
+
+.sku-cell-no-stock {
+  padding: 6px 8px;
+  border: 1px solid #e6a23c;
+  border-radius: 6px;
+  background: #fdf6ec;
+}
+
+.sku-value-no-stock {
+  color: #b26a00;
   font-weight: 700;
 }
 

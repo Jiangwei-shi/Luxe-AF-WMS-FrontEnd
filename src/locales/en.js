@@ -326,6 +326,7 @@
     skuMatchAll: 'All',
     skuMatchMatched: 'Matched',
     skuMatchUnmatched: 'Unmatched',
+    skuMatchNoStock: 'Matched, no stock',
     filterStatus: 'Listing Status',
     filterShipmentStatus: 'Shipment Status',
     shipmentStatusAll: 'All',
@@ -370,6 +371,10 @@
     labelEditSku: 'Edit',
     labelUncreated: 'Not created',
     skuIssue: 'SKU Issue',
+    skuNotFound: 'SKU not found',
+    skuNoStock: 'No stock',
+    skuInStock: 'In stock',
+    itemSkuStatus: 'SKU check',
     skuIssueBrushOrder: 'Sample',
     // Order info bar
     orderInfoId: 'Order ID',
