@@ -899,7 +899,8 @@ const zhToEnMap = {
   '员工姓名已存在': 'Employee name already exists',
   '昵称': 'Nickname',
   '姓名/昵称': 'Name / Legal Name',
-  '姓名/用户信息': 'Name / Legal Name',
+  '姓名/用户信息': 'Name',
+  '对应登录账号的用户信息，需保持唯一': 'Same as Legal Name on the login account; names must stay unique',
   '请输入姓名或用户昵称': 'Please enter name or legal name',
   '请输入姓名或用户信息': 'Please enter name or legal name',
   '关联登录账号时，岗位会同步到用户管理': 'When linked to a login account, posts sync to User Management',
@@ -986,7 +987,8 @@ const zhToEnMap = {
   '已完成离职归档': 'Offboarded and archived',
   '全部部门': 'All Departments',
   '搜索昵称/登录名/手机/邮箱/部门/岗位等': 'Search legal name, user name, phone, email, dept, post...',
-  '搜索用户信息/用户名/手机/邮箱/部门/岗位等': 'Search legal name, user name, phone, email, dept, post...',
+  '搜索用户信息/用户名/手机/邮箱/部门/岗位等': 'Search name, user name, phone, email, dept, post...',
+  '搜索用户信息、用户名、手机、邮箱、部门、岗位等': 'Search name, user name, phone, email, dept, post...',
   '支持搜索员工档案中已填写的各类信息，含用户昵称、登录名、手机、邮箱、部门、岗位、备注等': 'Search across profile fields: legal name, user name, phone, email, department, post, remarks, etc.',
   '支持搜索员工档案中已填写的各类信息，含用户信息、用户名、手机、邮箱、部门、岗位、备注等': 'Search across profile fields: legal name, user name, phone, email, department, post, remarks, etc.',
   '全部职位': 'All Positions',
@@ -1416,15 +1418,15 @@ export function translateByMap(text, language = 'zh-cn') {
     return text
   }
 
-  // 用户上传的文件名等自由文本不要做局部替换（避免「盘库xxx.pdf」被改成 Stocktakexxx.pdf）
   const trimmed = text.trim()
-  if (/\.[a-zA-Z0-9]{1,8}$/.test(trimmed) || /[\\/]/.test(trimmed)) {
-    return text
-  }
-
   const exact = zhToEnMap[trimmed]
   if (exact) {
     return replacePreservingSpaces(text, exact)
+  }
+
+  // 未收录的路径/文件名不要做局部替换（避免「盘库xxx.pdf」被改成 Stocktakexxx.pdf）
+  if (/\.[a-zA-Z0-9]{1,8}$/.test(trimmed) || /[\\/]/.test(trimmed)) {
+    return text
   }
 
   let translated = text

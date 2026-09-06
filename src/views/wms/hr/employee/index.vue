@@ -112,7 +112,7 @@
             <el-input
               v-model="queryParams.keyword"
               class="search-input"
-              :placeholder="tr('搜索用户信息/用户名/手机/邮箱/部门/岗位等')"
+              :placeholder="tr('搜索用户信息、用户名、手机、邮箱、部门、岗位等')"
               clearable
               @keyup.enter="handleQuery"
             />
@@ -591,16 +591,31 @@
       <el-form ref="employeeRef" :model="form" :rules="rules" :label-width="drawerLabelWidth">
         <el-tabs v-model="activeTab" :before-leave="beforeTabLeave">
           <el-tab-pane :label="tr('基本信息')" name="basic">
-            <el-row :gutter="16">
+            <el-row :gutter="20" class="employee-basic-grid">
               <el-col :span="12">
-                <el-form-item :label="isCreateMode ? tr('姓名') : tr('姓名/用户信息')" prop="nameCn">
+                <el-form-item prop="nameCn">
+                  <template #label>
+                    <span class="form-label-with-tip">
+                      {{ tr('姓名') }}
+                      <el-tooltip v-if="!isCreateMode" :content="tr('对应登录账号的用户信息，需保持唯一')" placement="top">
+                        <el-icon class="form-label-tip"><QuestionFilled /></el-icon>
+                      </el-tooltip>
+                    </span>
+                  </template>
                   <el-input v-model="form.nameCn" :placeholder="isCreateMode ? tr('请输入员工姓名') : tr('请输入姓名或用户信息')" :disabled="isLinkedUserReadonly" />
                 </el-form-item>
               </el-col>
               <el-col :span="12">
-                <el-form-item :label="tr('昵称')" prop="nickName">
+                <el-form-item prop="nickName">
+                  <template #label>
+                    <span class="form-label-with-tip">
+                      {{ tr('昵称') }}
+                      <el-tooltip :content="tr('姓名不可重复；不同员工可以使用相同昵称')" placement="top">
+                        <el-icon class="form-label-tip"><QuestionFilled /></el-icon>
+                      </el-tooltip>
+                    </span>
+                  </template>
                   <el-input v-model="form.nickName" maxlength="64" show-word-limit :placeholder="tr('请输入员工昵称')" :disabled="isLinkedUserReadonly" />
-                  <div class="form-hint">{{ tr('姓名不可重复；不同员工可以使用相同昵称') }}</div>
                 </el-form-item>
               </el-col>
               <el-col :span="12">
@@ -621,6 +636,21 @@
                 </el-form-item>
               </el-col>
               <el-col :span="12">
+                <el-form-item>
+                  <template #label>
+                    <span class="form-label-with-tip">
+                      {{ tr('岗位') }}
+                      <el-tooltip :content="form.userId ? tr('关联登录账号时，岗位会同步到用户管理') : tr('无登录账号时，岗位仅保存在员工档案中')" placement="top">
+                        <el-icon class="form-label-tip"><QuestionFilled /></el-icon>
+                      </el-tooltip>
+                    </span>
+                  </template>
+                  <el-select v-model="form.postIds" multiple :placeholder="tr('请选择岗位')" style="width: 100%" clearable :disabled="isLinkedUserReadonly">
+                    <el-option v-for="item in postOptions" :key="item.postId" :label="item.postName" :value="item.postId" :disabled="item.status == 0" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
                 <el-form-item :label="tr('联系电话')" prop="phone">
                   <el-input v-model="form.phone" :placeholder="tr('请输入手机号码')" :disabled="isLinkedUserReadonly" />
                 </el-form-item>
@@ -635,7 +665,6 @@
                   <el-input v-model="form.employeeNo" :placeholder="tr('留空自动生成')" :disabled="!!form.id" />
                 </el-form-item>
               </el-col>
-              <el-col :span="12" />
               <el-col :span="12">
                 <el-form-item :label="tr('性别')">
                   <el-select v-model="form.gender" :placeholder="tr('请选择')" style="width: 100%" :disabled="isLinkedUserReadonly">
@@ -645,17 +674,6 @@
                   </el-select>
                 </el-form-item>
               </el-col>
-              <el-col :span="12" />
-              <el-col :span="12">
-                <el-form-item :label="tr('岗位')">
-                  <el-select v-model="form.postIds" multiple :placeholder="tr('请选择岗位')" style="width: 100%" clearable :disabled="isLinkedUserReadonly">
-                    <el-option v-for="item in postOptions" :key="item.postId" :label="item.postName" :value="item.postId" :disabled="item.status == 0" />
-                  </el-select>
-                  <div v-if="form.userId" class="form-hint">{{ tr('关联登录账号时，岗位会同步到用户管理') }}</div>
-                  <div v-else class="form-hint">{{ tr('无登录账号时，岗位仅保存在员工档案中') }}</div>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12" />
               <el-col :span="12">
                 <el-form-item :label="tr('员工状态')" prop="employeeStatus">
                   <el-select v-model="form.employeeStatus" :placeholder="tr('请选择员工状态')" style="width: 100%" :disabled="isLinkedUserReadonly">
@@ -863,7 +881,7 @@ const { form, queryParams, rules } = toRefs(data)
 const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
 const hrText = (zh, en) => ((settingsStore.language || 'zh-cn') === 'en' ? en : zh)
 const isEn = computed(() => (settingsStore.language || 'zh-cn') === 'en')
-const drawerLabelWidth = computed(() => isEn.value ? '150px' : '110px')
+const drawerLabelWidth = computed(() => isEn.value ? '136px' : '96px')
 const canViewSensitive = computed(() => proxy?.$auth?.hasPermi('wms:employee:sensitive'))
 const canEditLinkedUser = computed(() => hrCapabilities.value?.canEditLinkedUser ?? proxy?.$auth?.hasPermi('system:user:edit'))
 const canLoadDeptTree = computed(() => hrCapabilities.value?.canLoadDeptTree ?? proxy?.$auth?.hasPermi('system:user:list'))
@@ -2392,6 +2410,25 @@ loadCapabilities().then(() => {
     font-size: 12px;
     color: #909399;
     line-height: 1.4;
+  }
+  .employee-basic-grid {
+    width: 100%;
+  }
+  .employee-basic-grid :deep(.el-form-item) {
+    margin-bottom: 18px;
+  }
+  .employee-basic-grid :deep(.el-form-item__content) {
+    min-height: 32px;
+  }
+  .form-label-with-tip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .form-label-tip {
+    color: #909399;
+    cursor: help;
+    font-size: 13px;
   }
   .name-cell .name-secondary {
     margin-top: 2px;
