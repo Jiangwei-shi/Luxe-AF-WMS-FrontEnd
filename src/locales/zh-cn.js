@@ -374,6 +374,8 @@
     skuNotFound: 'SKU不存在',
     skuNoStock: '无库存',
     skuInStock: '有库存',
+    skuShipped: '已出库',
+    skuShipmentCreated: '已生成出库单',
     itemSkuStatus: 'SKU校验',
     skuIssueBrushOrder: 'Sample样品',
     // 订单信息栏
