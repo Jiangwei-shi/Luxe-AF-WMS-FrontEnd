@@ -374,6 +374,8 @@
     skuNotFound: 'SKU not found',
     skuNoStock: 'No stock',
     skuInStock: 'In stock',
+    skuShipped: 'Completed outbound',
+    skuShipmentCreated: 'Shipment order created',
     itemSkuStatus: 'SKU check',
     skuIssueBrushOrder: 'Sample',
     // Order info bar

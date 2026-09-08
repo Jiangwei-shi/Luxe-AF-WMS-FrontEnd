@@ -229,10 +229,12 @@
               <span class="primary-value ellipsis">{{ displayValue(getFirstItem(order).productName) }}</span>
             </div>
 
-            <div class="summary-cell sku-cell" :class="{ 'sku-cell-problem': hasSkuIssue(order, index), 'sku-cell-no-stock': hasNoStock(order, index) }">
+            <div class="summary-cell sku-cell" :class="{ 'sku-cell-problem': hasSkuIssue(order, index), 'sku-cell-no-stock': hasNoStock(order, index), 'sku-cell-shipped': isShipmentCompleted(getDisplayOrder(order, index)) }">
               <span class="cell-label">{{ t('platformOrders.sku') }}</span>
               <div class="sku-row">
-                <span :class="['secondary-value', 'ellipsis', { 'sku-value-problem': hasSkuIssue(order, index), 'sku-value-no-stock': hasNoStock(order, index) }]">{{ displayValue(getSkuText(getFirstItem(order))) }}</span>
+                <span :class="['secondary-value', 'ellipsis', { 'sku-value-problem': hasSkuIssue(order, index), 'sku-value-no-stock': hasNoStock(order, index), 'sku-value-shipped': isShipmentCompleted(getDisplayOrder(order, index)) }]">{{ displayValue(getSkuText(getFirstItem(order))) }}</span>
+                <el-tag v-if="isShipmentCompleted(getDisplayOrder(order, index))" type="success" effect="dark" size="small" class="sku-problem-tag">{{ t('platformOrders.skuShipped') }}</el-tag>
+                <el-tag v-else-if="isShipmentPending(getDisplayOrder(order, index))" type="info" size="small" class="sku-problem-tag">{{ t('platformOrders.skuShipmentCreated') }}</el-tag>
                 <el-tag v-if="hasSkuIssue(order, index) || hasNoStock(order, index)" :type="hasSkuIssue(order, index) ? 'danger' : 'warning'" effect="dark" size="small" class="sku-problem-tag">{{ getSkuStatusText(getFirstItem(getDisplayOrder(order, index))) }}</el-tag>
                 <el-tag v-if="isBrushOrder(getDisplayOrder(order, index))" type="info" size="small" class="sku-problem-tag">{{ t('platformOrders.skuIssueBrushOrder') }}</el-tag>
                 <el-button v-if="canEditSku(order, index)" link size="small" class="sku-edit-btn" :icon="Edit" @click.stop="startSkuEdit(order, index, getFirstItem(order))" v-hasPermi="['wms:platform:edit']">{{ t('platformOrders.labelEditSku') }}</el-button>
@@ -315,7 +317,9 @@
                     <InfoLine :label="t('platformOrders.itemSkuId')" :value="item.skuId" />
                     <InfoLine :label="t('platformOrders.itemSkuName')" :value="item.skuName" />
                     <InfoLine :label="t('platformOrders.itemSellerSku')" :value="item.sellerSku" />
-                    <InfoLine :label="t('platformOrders.itemSkuStatus')" :value="getSkuStatusText(item)" />
+                    <InfoLine :label="t('platformOrders.itemSkuStatus')">
+                      <span :class="{ 'sku-value-shipped': isShipmentCompleted(getDisplayOrder(order, index)) }">{{ getSkuStatusText(item, getDisplayOrder(order, index)) }}</span>
+                    </InfoLine>
                     <InfoLine :label="t('platformOrders.itemQuantity')" :value="formatQuantity(item.quantity)" />
                     <InfoLine :label="t('platformOrders.itemOriginalPrice')" :value="formatMoney(item.originalPrice, item.currency || getCurrency(getDisplayOrder(order, index)))" />
                     <InfoLine :label="t('platformOrders.itemSalePrice')" :value="formatMoney(item.salePrice, item.currency || getCurrency(getDisplayOrder(order, index)))" strong />
@@ -1380,21 +1384,37 @@ function isBrushOrder(order) {
   return Number(order?.brushOrder || order?.isBrushOrder || 0) === 1
 }
 
+function isShipmentCompleted(order) {
+  return Boolean(order?.shipmentOrderId) && Number(order.shipmentOrderStatus) === 1
+}
+
+function isShipmentPending(order) {
+  // 未返回状态或关联单已失效时，不把空值转换成暂存状态 0。
+  return Boolean(order?.shipmentOrderId)
+    && (order.shipmentOrderStatus === 0 || order.shipmentOrderStatus === '0')
+}
+
 function hasSkuIssue(order, index) {
-  return getFirstItem(getDisplayOrder(order, index)).skuStatus === 'UNMATCHED'
+  const displayOrder = getDisplayOrder(order, index)
+  return !isShipmentCompleted(displayOrder) && getFirstItem(displayOrder).skuStatus === 'UNMATCHED'
 }
 
 function hasNoStock(order, index) {
-  return getFirstItem(getDisplayOrder(order, index)).skuStatus === 'NO_STOCK'
+  const displayOrder = getDisplayOrder(order, index)
+  return !isShipmentCompleted(displayOrder) && getFirstItem(displayOrder).skuStatus === 'NO_STOCK'
 }
 
-function getSkuStatusText(item) {
+function getSkuStatusText(item, order) {
+  if (isShipmentCompleted(order)) return t('platformOrders.skuShipped')
   const key = {
     UNMATCHED: 'skuNotFound',
     NO_STOCK: 'skuNoStock',
     IN_STOCK: 'skuInStock'
   }[item?.skuStatus]
-  return key ? t(`platformOrders.${key}`) : '-'
+  const stockText = key ? t(`platformOrders.${key}`) : '-'
+  return isShipmentPending(order)
+    ? [t('platformOrders.skuShipmentCreated'), stockText].join(' · ')
+    : stockText
 }
 
 function getCurrency(order) {
@@ -2631,9 +2651,26 @@ onActivated(() => {
 
 .sku-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
   min-width: 0;
+}
+
+.sku-row > .secondary-value {
+  max-width: 100%;
+}
+
+.sku-cell-shipped {
+  padding: 6px 8px;
+  border: 1px solid #67c23a;
+  border-radius: 6px;
+  background: #f0f9eb;
+}
+
+.sku-value-shipped {
+  color: #529b2e;
+  font-weight: 700;
 }
 
 .sku-cell-problem {
@@ -2662,9 +2699,12 @@ onActivated(() => {
 
 .sku-problem-tag {
   flex-shrink: 0;
-  height: 18px;
+  max-width: 100%;
+  min-height: 18px;
+  height: auto;
   line-height: 16px;
   padding: 0 5px;
+  white-space: normal;
 }
 
 .sku-edit-btn {
