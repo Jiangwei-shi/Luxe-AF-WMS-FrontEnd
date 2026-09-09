@@ -28,18 +28,20 @@ async function fixture() {
     { ...base, id: 7, employeeId: 2, effectiveStatus: 'ACTIVE' },
     { ...base, id: 1, rateTypeId: 21, rateTypeName: '历史场次类型', effectiveStatus: 'EXPIRED' }
   ]
-  const calls = { add: [], update: [], export: null }
+  const calls = { add: [], update: [], sync: [], export: null }
   const preview = { data: { streamImpacts: [], rateAdjustment: null, rateAdjustmentToken: null }, error: null, saveError: null }
   const api = {
     getLiveOptions: async () => ({ employees: [{ value: 1, label: '主播 A' }, { value: 2, label: '主播 B' }], accounts: [{ id: 10, status: 0 }], rateTypes: [{ id: 20, status: 0, typeName: '普通直播' }] }),
     listRates: async () => ({ rows: records.slice() }),
     listRateAccountGroups: async () => ({ data: [{ accountId: 10, status: 0 }] }),
+    previewRateSync: async () => ({ data: { streamImpacts: [], impactToken: 'sync-token' } }),
+    syncRateAccountGroup: async body => { if (preview.saveError) throw preview.saveError; calls.sync.push(body); return { data: 1 } },
     previewRateSave: async () => { if (preview.error) throw preview.error; return { data: preview.data } },
     addRate: async row => { if (preview.saveError) throw preview.saveError; calls.add.push({ ...row }); records.push({ ...row, id: 8, effectiveStatus: 'PENDING' }) },
     updateRate: async row => { calls.update.push({ ...row }) }
   }
   const component = createComponent({
-    vue: { ...vue, onMounted: () => {}, getCurrentInstance: () => ({ proxy: { $modal: { msgSuccess() {}, msgWarning() {} } } }) },
+    vue: { ...vue, onMounted: () => {}, onActivated: () => {}, getCurrentInstance: () => ({ proxy: { $modal: { msgSuccess() {}, msgWarning() {} } } }) },
     '@element-plus/icons-vue': {},
     '@/api/wms/livePayroll': api,
     '@/store/modules/settings': () => ({ language: 'zh-cn' }),
@@ -158,4 +160,39 @@ test('a stale confirmation rejected by the server returns to the form for anothe
   assert.equal(page.impactDialog.open, false)
   assert.equal(page.impactDialog.pendingForm, null)
   assert.equal(calls.add.length, 0)
+})
+
+test('inactive sidebar entries are hidden by default and remain available for history and export', async () => {
+  const {page,calls}=await fixture()
+  page.options.employees.push({value:3,label:'离职主播',employeeStatus:2})
+  page.rows.value.push({id:99,employeeId:3,effectiveStatus:'EXPIRED'})
+  assert.equal(page.filteredEmployees.value.some(row=>row.value===3),false)
+  page.exportRows()
+  assert.equal(calls.export[2].some(row=>row.employeeId===3),false)
+  page.includeInactive.value=true
+  assert.equal(page.filteredEmployees.value.some(row=>row.value===3),true)
+  await page.selectEmployee(3)
+  assert.equal(page.selectedEmployeeRates.value.length,1)
+  page.includeInactive.value=false
+  await page.resetEmployeeSelection()
+  assert.notEqual(page.selectedEmployeeId.value,3)
+})
+test('batch rate sync requires preview and passes its token to the confirmed write', async () => {
+  const {page,calls,preview}=await fixture()
+  page.openSync({id:10})
+  page.syncDialog.targetAccountIds=[11]
+  await page.submitSync()
+  assert.equal(calls.sync.length,0)
+  await page.previewSync()
+  page.syncDialog.changeReason='更正历史费率'
+  await page.submitSync()
+  assert.equal(calls.sync.length,1)
+  assert.equal(calls.sync[0].impactToken,'sync-token')
+  assert.equal(calls.sync[0].changeReason,'更正历史费率')
+  page.openSync({id:10})
+  page.syncDialog.targetAccountIds=[11]
+  await page.previewSync()
+  preview.saveError=new Error('费率变化，重新预览')
+  await assert.rejects(page.submitSync(),/重新预览/)
+  assert.equal(page.syncDialog.preview,null)
 })

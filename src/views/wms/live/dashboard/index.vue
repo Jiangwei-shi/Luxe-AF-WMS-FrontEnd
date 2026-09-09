@@ -15,14 +15,15 @@
         <el-button type="primary" @click="exportSummary">导出 CSV</el-button>
       </div>
     </div>
+    <el-alert :closable="false" type="info" style="margin-bottom:16px" :title="`按入账日期统计：已确认调整 ${money(data.overview?.confirmedAdjustments)}，待确认调整 ${money(data.overview?.pendingAdjustments)}。下方原业务薪酬保持原口径，结算金额以薪酬结算批次为准。`" />
     <el-card class="live-filter" shadow="never">
       <el-form :inline="true">
         <el-form-item label="日期"><el-date-picker v-model="dateRange" type="daterange" value-format="YYYY-MM-DD" :format="LIVE_DATE_FORMAT" range-separator="至" /></el-form-item>
         <el-form-item label="直播平台"><el-select v-model="filters.accountId" clearable filterable placeholder="全部直播平台"><el-option v-for="v in options.accounts" :key="v.id" :label="accountLabel(v)" :value="v.id" /></el-select></el-form-item>
-        <el-form-item label="主播"><el-select v-model="filters.employeeId" clearable filterable placeholder="全部主播"><el-option v-for="v in options.employees" :key="v.value" :label="liveEmployeeOptionLabel(v)" :value="v.value" /></el-select></el-form-item>
+        <el-form-item label="主播"><LiveEmployeeSelect v-model="filters.employeeId"   placeholder="全部主播" :employees="options.employees" /></el-form-item>
         <el-form-item label="费率类型"><el-select v-model="filters.rateTypeId" clearable placeholder="全部类型"><el-option v-for="v in options.rateTypes" :key="v.id" :label="v.typeName" :value="v.id" /></el-select></el-form-item>
         <el-form-item><el-button type="primary" @click="load">查询</el-button><el-button @click="selectMonth(0)">本月</el-button><el-button @click="selectMonth(-1)">上个月</el-button></el-form-item>
-      </el-form>
+      <el-form-item label="主播状态"><el-select v-model="filters.employeeScope" @change="load"><el-option label="全部" value="ALL" /><el-option label="在职/试用期" value="ACTIVE" /><el-option label="已离职/归档" value="INACTIVE" /></el-select></el-form-item></el-form>
     </el-card>
 
     <div class="metric-grid" v-loading="loading">
@@ -45,7 +46,7 @@
       </el-card>
       <el-card class="live-card" shadow="never">
         <template #header>排班 vs 实际</template>
-        <el-table :data="data.attendance" stripe><el-table-column prop="employeeName" label="主播" /><el-table-column prop="planned" label="计划场次" /><el-table-column prop="actual" label="实际场次" /><el-table-column prop="difference" label="差异"><template #default="s"><span :class="s.row.difference >= 0 ? 'positive' : 'negative'">{{ s.row.difference > 0 ? '+' : '' }}{{ s.row.difference }}</span></template></el-table-column><el-table-column label="状态"><template #default="s">{{ tr(s.row.status) }}</template></el-table-column></el-table>
+        <el-table :data="data.attendance" stripe><el-table-column prop="employeeName" label="主播" ><template #default="s"><LiveEmployeeName :name="s.row.employeeName" :status="s.row.employeeStatus" /></template></el-table-column><el-table-column prop="planned" label="计划场次" /><el-table-column prop="actual" label="实际场次" /><el-table-column prop="difference" label="差异"><template #default="s"><span :class="s.row.difference >= 0 ? 'positive' : 'negative'">{{ s.row.difference > 0 ? '+' : '' }}{{ s.row.difference }}</span></template></el-table-column><el-table-column label="状态"><template #default="s">{{ tr(s.row.status) }}</template></el-table-column></el-table>
       </el-card>
     </div>
     <el-card class="live-card checklist-card" shadow="never">
@@ -75,7 +76,7 @@
       </div>
       <el-table :data="filteredChecklist" stripe empty-text="当前筛选范围内没有核对记录">
         <el-table-column prop="date" label="日期" width="120" sortable><template #default="s">{{ displayDate(s.row.date) }}</template></el-table-column>
-        <el-table-column prop="employeeName" label="主播" min-width="110" />
+        <el-table-column prop="employeeName" label="主播" min-width="110" ><template #default="s"><LiveEmployeeName :name="s.row.employeeName" :status="s.row.employeeStatus" /></template></el-table-column>
         <el-table-column label="直播平台" min-width="220">
           <template #default="s">{{ s.row.accountLabel }}<span v-if="s.row.platform" class="muted"> ({{ s.row.platform }})</span></template>
         </el-table-column>
@@ -95,14 +96,16 @@
     <el-card class="live-card" shadow="never">
       <template #header>主播汇总 · 总薪酬 = 开播薪酬 + 佣金收入</template>
       <el-table :data="data.employeeSummary" stripe>
-        <el-table-column type="index" label="排名" width="70" /><el-table-column prop="employeeName" label="主播" /><el-table-column prop="sessions" label="总场次" /><el-table-column prop="hours" label="总工时"><template #default="s">{{ Number(s.row.hours || 0).toFixed(2) }}h</template></el-table-column><el-table-column prop="megaSessions" label="MEGA场次" /><el-table-column label="开播薪酬"><template #default="s">{{ money(s.row.streamCompensation) }}</template></el-table-column><el-table-column label="佣金收入"><template #default="s">{{ money(s.row.commissionIncome) }}</template></el-table-column><el-table-column label="总薪酬"><template #default="s"><strong>{{ money(s.row.totalCompensation) }}</strong></template></el-table-column><el-table-column label="占比"><template #default="s">{{ s.row.share }}%</template></el-table-column>
+        <el-table-column type="index" label="排名" width="70" /><el-table-column prop="employeeName" label="主播" ><template #default="s"><LiveEmployeeName :name="s.row.employeeName" :status="s.row.employeeStatus" /></template></el-table-column><el-table-column prop="sessions" label="总场次" /><el-table-column prop="hours" label="总工时"><template #default="s">{{ Number(s.row.hours || 0).toFixed(2) }}h</template></el-table-column><el-table-column prop="megaSessions" label="MEGA场次" /><el-table-column label="开播薪酬"><template #default="s">{{ money(s.row.streamCompensation) }}</template></el-table-column><el-table-column label="佣金收入"><template #default="s">{{ money(s.row.commissionIncome) }}</template></el-table-column><el-table-column label="总薪酬"><template #default="s"><strong>{{ money(s.row.totalCompensation) }}</strong></template></el-table-column><el-table-column label="占比"><template #default="s">{{ s.row.share }}%</template></el-table-column>
       </el-table>
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import LiveEmployeeSelect from '../components/LiveEmployeeSelect.vue'
+import LiveEmployeeName from '../components/LiveEmployeeName.vue'
+import { onActivated, computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { getDashboard, getLiveOptions, importAttendance } from '@/api/wms/livePayroll'
@@ -115,7 +118,7 @@ const router = useRouter()
 const tr = (text) => translateByMap(text, settingsStore.language || 'zh-cn')
 const loading = ref(false)
 const dateRange = ref(monthRange())
-const filters = reactive({ employeeId: null, accountId: null, rateTypeId: null })
+const filters = reactive({ employeeScope:'ALL', employeeId: null, accountId: null, rateTypeId: null })
 const options = reactive({ employees: [], accounts: [], rateTypes: [] })
 const data = reactive({ overview: {}, rateStats: [], dailyTrend: [], platformStats: [], employeeSummary: [], attendance: [], dailyChecklist: [] })
 const overview = computed(() => data.overview || {})
@@ -153,6 +156,7 @@ const metrics = computed(() => [
 async function load() {
   loading.value = true
   try {
+    Object.assign(options, await getLiveOptions())
     const res = await getDashboard({ ...filters, startDate: dateRange.value[0], endDate: dateRange.value[1] })
     Object.assign(data, res.data || {})
     await nextTick(); renderCharts()
@@ -213,6 +217,7 @@ function exportChecklist() {
 function resize() { trendChart?.resize(); platformChart?.resize() }
 onMounted(async () => { Object.assign(options, await getLiveOptions()); await load(); window.addEventListener('resize', resize) })
 onBeforeUnmount(() => { window.removeEventListener('resize', resize); trendChart?.dispose(); platformChart?.dispose() })
+onActivated(async () => { Object.assign(options, await getLiveOptions()) })
 </script>
 
 <style scoped lang="scss">
