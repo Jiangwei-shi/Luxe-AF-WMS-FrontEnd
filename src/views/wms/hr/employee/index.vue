@@ -284,7 +284,7 @@
             <el-descriptions-item :label="tr('岗位')">{{ selectedEmployee.position || '-' }}</el-descriptions-item>
             <el-descriptions-item :label="tr('联系电话')">{{ selectedEmployee.phone || '-' }}</el-descriptions-item>
             <el-descriptions-item :label="tr('状态')">
-              <el-tag size="small" :type="statusTagType(selectedEmployee.employeeStatus)">{{ statusLabel(selectedEmployee.employeeStatus) }}</el-tag>
+              <el-tag size="small" :type="statusTagType(selectedEmployee.employeeStatus)">{{ statusLabel(selectedEmployee.employeeStatus) }}</el-tag><span v-if="selectedEmployee.departureDate"> · {{ tr('离职日期') }} {{ selectedEmployee.departureDate }}</span>
             </el-descriptions-item>
             <el-descriptions-item :label="tr('备注')" :span="3">{{ selectedEmployee.remark || '-' }}</el-descriptions-item>
             <template v-if="canViewSensitiveForSelected">
@@ -681,6 +681,11 @@
                     <el-option :label="tr('试用期')" :value="1" />
                     <el-option :label="tr('已离职')" :value="2" />
                   </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12" v-if="form.employeeStatus === 2">
+                <el-form-item :label="tr('离职日期')" prop="departureDate" :rules="[{ required: true, message: '请选择离职日期', trigger: 'change' }]">
+                  <el-date-picker v-model="form.departureDate" type="date" value-format="YYYY-MM-DD" format="MM/DD/YYYY" :disabled="isLinkedUserReadonly" />
                 </el-form-item>
               </el-col>
               <el-col :span="12">
